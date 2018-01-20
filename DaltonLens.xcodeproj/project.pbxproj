@@ -53,6 +53,8 @@
 		2DAD0BC91F7C42BB00CF19D7 /* MetalRendererImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */; };
 		2DAD0BCE1F7C439900CF19D7 /* MetalRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */; };
 		2DAD0BCF1F7C439900CF19D7 /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DAD0BCD1F7C439900CF19D7 /* MetalRenderer.mm */; };
+		2DB837181FE718F9005BD10D /* DaltonTool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DB837171FE718F9005BD10D /* DaltonTool.mm */; };
+		2DB8371C1FE7191A005BD10D /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F490C1F00381C00919399 /* libDalton.dylib */; };
 		2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBB8D61D3BEAA60035D461 /* AppDelegate.swift */; };
 		2DCBB8DB1D3BEAA60035D461 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */; };
 		2DEC0DAD1D3C08C100E8D962 /* DaltonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEC0DAC1D3C08C100E8D962 /* DaltonView.swift */; };
@@ -81,6 +83,13 @@
 			remoteGlobalIDString = 2D7F490B1F00381C00919399;
 			remoteInfo = LibDalton;
 		};
+		2DB8371D1FE7191E005BD10D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2DCBB8CB1D3BEAA60035D461 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D7F490B1F00381C00919399;
+			remoteInfo = Dalton;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -103,6 +112,15 @@
 				2D5FD3E71F003C2A008305C3 /* libDalton.dylib in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2DB837131FE718F8005BD10D /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -161,6 +179,8 @@
 		2DB2FFD51D46B43C003610D9 /* Image.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Image.cpp; sourceTree = "<group>"; };
 		2DB2FFD61D46B43C003610D9 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
 		2DB2FFD81D4736D5003610D9 /* ImageTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ImageTests.mm; sourceTree = "<group>"; };
+		2DB837151FE718F8005BD10D /* DaltonTool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DaltonTool; sourceTree = BUILT_PRODUCTS_DIR; };
+		2DB837171FE718F9005BD10D /* DaltonTool.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonTool.mm; sourceTree = "<group>"; };
 		2DC315441DCA9E3D00057017 /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorUnderCursorAnalyzer.h; sourceTree = "<group>"; };
 		2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ColorUnderCursorAnalyzer.mm; sourceTree = "<group>"; };
@@ -199,6 +219,14 @@
 				2D2D029B1F251138004A7CF4 /* Metal.framework in Frameworks */,
 				2D7F491E1F0039F600919399 /* ImageIO.framework in Frameworks */,
 				2D7F491C1F0039F000919399 /* CoreGraphics.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2DB837121FE718F8005BD10D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DB8371C1FE7191A005BD10D /* libDalton.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -321,6 +349,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		2DB837161FE718F9005BD10D /* DaltonTool */ = {
+			isa = PBXGroup;
+			children = (
+				2DB837171FE718F9005BD10D /* DaltonTool.mm */,
+			);
+			path = DaltonTool;
+			sourceTree = "<group>";
+		};
 		2DCBB8CA1D3BEAA60035D461 = {
 			isa = PBXGroup;
 			children = (
@@ -330,6 +366,7 @@
 				2DCBB8D51D3BEAA60035D461 /* DaltonLens */,
 				2D7F490D1F00381C00919399 /* Dalton */,
 				2D5FD3F01F003CDF008305C3 /* DaltonTests */,
+				2DB837161FE718F9005BD10D /* DaltonTool */,
 				2DCBB8D41D3BEAA60035D461 /* Products */,
 				2DA18B741E92E7D2001B1CAD /* Frameworks */,
 				2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */,
@@ -342,6 +379,7 @@
 				2DCBB8D31D3BEAA60035D461 /* DaltonLens.app */,
 				2D7F490C1F00381C00919399 /* libDalton.dylib */,
 				2D5FD3EF1F003CDF008305C3 /* DaltonTests.xctest */,
+				2DB837151FE718F8005BD10D /* DaltonTool */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -412,6 +450,24 @@
 			productReference = 2D7F490C1F00381C00919399 /* libDalton.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
+		2DB837141FE718F8005BD10D /* DaltonTool */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DB837191FE718F9005BD10D /* Build configuration list for PBXNativeTarget "DaltonTool" */;
+			buildPhases = (
+				2DB837111FE718F8005BD10D /* Sources */,
+				2DB837121FE718F8005BD10D /* Frameworks */,
+				2DB837131FE718F8005BD10D /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2DB8371E1FE7191E005BD10D /* PBXTargetDependency */,
+			);
+			name = DaltonTool;
+			productName = DaltonTool;
+			productReference = 2DB837151FE718F8005BD10D /* DaltonTool */;
+			productType = "com.apple.product-type.tool";
+		};
 		2DCBB8D21D3BEAA60035D461 /* DaltonLens */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2DCBB8ED1D3BEAA60035D461 /* Build configuration list for PBXNativeTarget "DaltonLens" */;
@@ -452,6 +508,11 @@
 						DevelopmentTeam = 68TMSR28JT;
 						ProvisioningStyle = Automatic;
 					};
+					2DB837141FE718F8005BD10D = {
+						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = 68TMSR28JT;
+						ProvisioningStyle = Automatic;
+					};
 					2DCBB8D21D3BEAA60035D461 = {
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = 68TMSR28JT;
@@ -488,6 +549,7 @@
 				2DCBB8D21D3BEAA60035D461 /* DaltonLens */,
 				2D7F490B1F00381C00919399 /* Dalton */,
 				2D5FD3EE1F003CDF008305C3 /* DaltonTests */,
+				2DB837141FE718F8005BD10D /* DaltonTool */,
 			);
 		};
 /* End PBXProject section */
@@ -555,6 +617,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2DB837111FE718F8005BD10D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2DB837181FE718F9005BD10D /* DaltonTool.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2DCBB8CF1D3BEAA60035D461 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -587,6 +657,11 @@
 			isa = PBXTargetDependency;
 			target = 2D7F490B1F00381C00919399 /* Dalton */;
 			targetProxy = 2D7F49201F003AC100919399 /* PBXContainerItemProxy */;
+		};
+		2DB8371E1FE7191E005BD10D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2D7F490B1F00381C00919399 /* Dalton */;
+			targetProxy = 2DB8371D1FE7191E005BD10D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -661,6 +736,54 @@
 				HEADER_SEARCH_PATHS = "";
 				MACH_O_TYPE = mh_dylib;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		2DB8371A1FE718F9005BD10D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 68TMSR28JT;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		2DB8371B1FE718F9005BD10D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 68TMSR28JT;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -809,6 +932,15 @@
 			buildConfigurations = (
 				2D7F49131F00381C00919399 /* Debug */,
 				2D7F49141F00381C00919399 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2DB837191FE718F9005BD10D /* Build configuration list for PBXNativeTarget "DaltonTool" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2DB8371A1FE718F9005BD10D /* Debug */,
+				2DB8371B1FE718F9005BD10D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
