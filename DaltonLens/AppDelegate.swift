@@ -72,10 +72,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     override init () {
         
-        let cmdAltCtrlMask = NSEventModifierFlags(rawValue:
-            NSEventModifierFlags.command.rawValue
-                | NSEventModifierFlags.control.rawValue
-                | NSEventModifierFlags.option.rawValue)
+        let cmdAltCtrlMask = NSEvent.ModifierFlags(rawValue:
+            NSEvent.ModifierFlags.command.rawValue
+                | NSEvent.ModifierFlags.control.rawValue
+                | NSEvent.ModifierFlags.option.rawValue)
         
         nothingMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
         daltonizeV1MenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
@@ -116,7 +116,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
     }
     
-    func setBlindnessType (sender : NSMenuItem) {
+    @objc func setBlindnessType (sender : NSMenuItem) {
         
         let menuItemsToBlindnessType = [
             protanopeMenuItem: Protanope,
@@ -139,11 +139,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // Disable all items
             for item in menuItemsToBlindnessType.keys {
-                item.state = NSOffState
+                item.state = NSControl.StateValue.off
             }
             
             // Re-enable the current one. 
-            sender.state = NSOnState
+            sender.state = NSControl.StateValue.on
         }
         else
         {
@@ -152,9 +152,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
     }
     
-    func toggleLaunchAtStartup (sender: NSMenuItem) {
+    @objc func toggleLaunchAtStartup (sender: NSMenuItem) {
         
-        let wasEnabled = (sender.state == NSOnState);
+        let wasEnabled = (sender.state == NSControl.StateValue.on);
         let enabled = !wasEnabled;
         
         let changeApplied = SMLoginItemSetEnabled("org.daltonLens.DaltonLensLaunchAtLoginHelper" as CFString, enabled)
@@ -164,13 +164,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defaults.set(enabled, forKey:"LaunchAtStartup")
             defaults.synchronize();
             
-            sender.state = enabled ? NSOnState : NSOffState;
+            sender.state = enabled ? NSControl.StateValue.on : NSControl.StateValue.off;
         }
         else
         {
             let alert = NSAlert()
             alert.window.title = "DaltonLens error";
-            alert.alertStyle = NSCriticalAlertStyle;
+            alert.alertStyle = NSAlert.Style.critical;
             alert.messageText = "Could not apply the change"
             alert.informativeText = "Please report the issue."
             alert.runModal();
@@ -184,7 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    func setProcessingMode (sender : NSMenuItem) {
+    @objc func setProcessingMode (sender : NSMenuItem) {
         
         if let dview = daltonView {
             
@@ -199,11 +199,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // Disable all items
             for item in menuItemsToProcessingMode.keys {
-                item.state = NSOffState
+                item.state = NSControl.StateValue.off
             }
             
             // Re-enable the current one.
-            sender.state = NSOnState
+            sender.state = NSControl.StateValue.on
         }
         else
         {
@@ -221,7 +221,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createStatusBarItem () {
         
         // Do any additional setup after loading the view.
-        statusItem = NSStatusBar.system().statusItem(withLength: NSSquareStatusItemLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSSquareStatusItemLength)
         
         let icon = NSImage(named:"DaltonLensIcon_32x32")
         icon!.isTemplate = true
@@ -236,7 +236,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             blindnessMenu.addItem(protanopeMenuItem)
             blindnessMenu.addItem(deuteranopeMenuItem)
             blindnessMenu.addItem(tritanopeMenuItem)
-            protanopeMenuItem.state = NSOnState // default is Protanope
+            protanopeMenuItem.state = NSControl.StateValue.on // default is Protanope
             
             let blindnessMenuItem = NSMenuItem(title: "Blindness", action: nil, keyEquivalent: "")
             blindnessMenuItem.submenu = blindnessMenu
@@ -257,7 +257,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             processingMenu.addItem(highlightExactColorUnderMouseMenuItem)
             #endif
             
-            nothingMenuItem.state = NSOnState // default is Nothing
+            nothingMenuItem.state = NSControl.StateValue.on // default is Nothing
             
             let processingMenuItem = NSMenuItem(title: "Processing", action: nil, keyEquivalent: "")
             processingMenuItem.submenu = processingMenu
@@ -464,7 +464,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if (defaults.value(forKey: "LaunchAtStartup") != nil) {
             let enabled = defaults.bool(forKey:"LaunchAtStartup")
-            launchAtStartupMenuItem.state = enabled ? NSOnState : NSOffState;
+            launchAtStartupMenuItem.state = enabled ? NSControl.StateValue.on : NSControl.StateValue.off;
         }
     }
 
@@ -472,8 +472,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Insert code here to tear down your application
     }
     
-    func quit () {
-        NSApplication.shared().terminate (self);
+    @objc func quit () {
+        NSApplication.shared.terminate (self);
     }
 
 }
