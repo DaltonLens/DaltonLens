@@ -44,7 +44,6 @@
 		2D7F491E1F0039F600919399 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F491D1F0039F600919399 /* ImageIO.framework */; };
 		2D7F49231F003BB500919399 /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F490C1F00381C00919399 /* libDalton.dylib */; };
 		2D832CF01F2F0E3F00800C44 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2DC315441DCA9E3D00057017 /* Shaders.metal */; };
-		2D832CF11F2F0E7800800C44 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2DC315441DCA9E3D00057017 /* Shaders.metal */; };
 		2D832CF51F2FD1B900800C44 /* MetalRendererOffscreen.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D832CF31F2FD1B900800C44 /* MetalRendererOffscreen.h */; };
 		2D832CF61F2FD1B900800C44 /* MetalRendererOffscreen.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D832CF41F2FD1B900800C44 /* MetalRendererOffscreen.mm */; };
 		2D832CF81F2FD2A300800C44 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */; };
@@ -311,16 +310,29 @@
 		2D7F490D1F00381C00919399 /* Dalton */ = {
 			isa = PBXGroup;
 			children = (
+				2D840FB1250D27310022B863 /* macOS */,
 				2D5A56421D527B0500D5148B /* ColorConversion.h */,
 				2D5A56411D527B0500D5148B /* ColorConversion.cpp */,
-				2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */,
-				2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */,
 				2D8070311D5A6C7A003CC8EB /* Common.h */,
 				2D5A563E1D52738400D5148B /* CpuProcessor.h */,
 				2D5A563F1D52738400D5148B /* CpuProcessor.cpp */,
 				2DB2FFD51D46B43C003610D9 /* Image.cpp */,
 				2DB2FFD61D46B43C003610D9 /* Image.h */,
 				2DF3E89D1D57CC8600C9380A /* MathUtils.h */,
+				2DF3E89A1D57CB6E00C9380A /* Simulator.h */,
+				2DF3E8991D57CB6E00C9380A /* Simulator.cpp */,
+				2DF3E86F1D57972400C9380A /* Utils.h */,
+				2DF3E86E1D57972400C9380A /* Utils.cpp */,
+			);
+			path = Dalton;
+			sourceTree = "<group>";
+		};
+		2D840FB1250D27310022B863 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */,
+				2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */,
+				2DC315441DCA9E3D00057017 /* Shaders.metal */,
 				2D5FD40C1F004726008305C3 /* MetalProcessor.h */,
 				2D5FD40A1F004716008305C3 /* MetalProcessor.mm */,
 				2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */,
@@ -328,13 +340,8 @@
 				2D832CF31F2FD1B900800C44 /* MetalRendererOffscreen.h */,
 				2D832CF41F2FD1B900800C44 /* MetalRendererOffscreen.mm */,
 				2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */,
-				2DC315441DCA9E3D00057017 /* Shaders.metal */,
-				2DF3E89A1D57CB6E00C9380A /* Simulator.h */,
-				2DF3E8991D57CB6E00C9380A /* Simulator.cpp */,
-				2DF3E86F1D57972400C9380A /* Utils.h */,
-				2DF3E86E1D57972400C9380A /* Utils.cpp */,
 			);
-			path = Dalton;
+			path = macOS;
 			sourceTree = "<group>";
 		};
 		2DA18B741E92E7D2001B1CAD /* Frameworks */ = {
@@ -629,7 +636,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D832CF11F2F0E7800800C44 /* Shaders.metal in Sources */,
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
 				2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */,
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
