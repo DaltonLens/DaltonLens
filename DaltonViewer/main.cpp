@@ -6,7 +6,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include <GL/glew.h>
+// #include <GL/glew.h>
+#include <GL/gl3w.h>            // Initialize with gl3wInit()
 #include <GLFW/glfw3.h>
 
 #include <cstdio>
@@ -48,7 +49,8 @@ int main(int, char**)
     glfwSwapInterval(1); // Enable vsync
 
     // Initialize OpenGL loader
-    bool err = glewInit() != GLEW_OK;
+    // bool err = glewInit() != GLEW_OK;
+    bool err = gl3wInit() != 0;
     if (err)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
