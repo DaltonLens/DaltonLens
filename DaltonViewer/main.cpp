@@ -6,6 +6,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <Dalton/Image.h>
+
 // #include <GL/glew.h>
 #include <GL/gl3w.h>            // Initialize with gl3wInit()
 #include <GLFW/glfw3.h>
@@ -19,6 +21,10 @@ static void glfw_error_callback(int error, const char* description)
 
 int main(int, char**)
 {
+    dl::ImageSRGBA im(640, 480);
+    im.fill (dl::PixelSRGBA(255,0,0,255));
+    dl::writePngImage("/tmp/debug_im.png", im);
+
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())

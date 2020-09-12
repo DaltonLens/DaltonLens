@@ -314,8 +314,6 @@
 				2D5A56421D527B0500D5148B /* ColorConversion.h */,
 				2D5A56411D527B0500D5148B /* ColorConversion.cpp */,
 				2D8070311D5A6C7A003CC8EB /* Common.h */,
-				2D5A563E1D52738400D5148B /* CpuProcessor.h */,
-				2D5A563F1D52738400D5148B /* CpuProcessor.cpp */,
 				2DB2FFD51D46B43C003610D9 /* Image.cpp */,
 				2DB2FFD61D46B43C003610D9 /* Image.h */,
 				2DF3E89D1D57CC8600C9380A /* MathUtils.h */,
@@ -330,6 +328,8 @@
 		2D840FB1250D27310022B863 /* macOS */ = {
 			isa = PBXGroup;
 			children = (
+				2D5A563E1D52738400D5148B /* CpuProcessor.h */,
+				2D5A563F1D52738400D5148B /* CpuProcessor.cpp */,
 				2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */,
 				2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */,
 				2DC315441DCA9E3D00057017 /* Shaders.metal */,

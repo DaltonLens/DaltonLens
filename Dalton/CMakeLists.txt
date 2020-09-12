@@ -1,0 +1,12 @@
+add_library(dalton 
+    ColorConversion.cpp
+    ColorConversion.h
+    Common.h
+    Image.cpp
+    Image.h
+    MathUtils.h
+    Simulator.cpp
+    Simulator.h
+    Utils.cpp
+    Utils.h
+)
