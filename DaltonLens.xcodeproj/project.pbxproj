@@ -34,12 +34,12 @@
 		2D5FD4031F003D9A008305C3 /* ImageTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DB2FFD81D4736D5003610D9 /* ImageTests.mm */; };
 		2D5FD4081F004447008305C3 /* MetalTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D5FD4071F004447008305C3 /* MetalTests.mm */; };
 		2D5FD40B1F004716008305C3 /* MetalProcessor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D5FD40A1F004716008305C3 /* MetalProcessor.mm */; };
-		2D7F49151F00398600919399 /* ColorConversion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A56411D527B0500D5148B /* ColorConversion.mm */; };
-		2D7F49161F00398600919399 /* ColorUnderCursorAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.mm */; };
-		2D7F49171F00398600919399 /* CpuProcessor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A563F1D52738400D5148B /* CpuProcessor.mm */; };
+		2D7F49151F00398600919399 /* ColorConversion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A56411D527B0500D5148B /* ColorConversion.cpp */; };
+		2D7F49161F00398600919399 /* ColorUnderCursorAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */; };
+		2D7F49171F00398600919399 /* CpuProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A563F1D52738400D5148B /* CpuProcessor.cpp */; };
 		2D7F49181F00398600919399 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DB2FFD51D46B43C003610D9 /* Image.cpp */; };
-		2D7F49191F00398600919399 /* Simulator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E8991D57CB6E00C9380A /* Simulator.mm */; };
-		2D7F491A1F00398600919399 /* Utils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E86E1D57972400C9380A /* Utils.mm */; };
+		2D7F49191F00398600919399 /* Simulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E8991D57CB6E00C9380A /* Simulator.cpp */; };
+		2D7F491A1F00398600919399 /* Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E86E1D57972400C9380A /* Utils.cpp */; };
 		2D7F491C1F0039F000919399 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F491B1F0039F000919399 /* CoreGraphics.framework */; };
 		2D7F491E1F0039F600919399 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F491D1F0039F600919399 /* ImageIO.framework */; };
 		2D7F49231F003BB500919399 /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F490C1F00381C00919399 /* libDalton.dylib */; };
@@ -156,8 +156,8 @@
 		2D58D5781E5B83EA00392D23 /* ref_RandomPlots_protanope.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ref_RandomPlots_protanope.png; sourceTree = "<group>"; };
 		2D58D5791E5B83EA00392D23 /* ref_RandomPlots_tritanope.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ref_RandomPlots_tritanope.png; sourceTree = "<group>"; };
 		2D5A563E1D52738400D5148B /* CpuProcessor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = CpuProcessor.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		2D5A563F1D52738400D5148B /* CpuProcessor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CpuProcessor.mm; sourceTree = "<group>"; };
-		2D5A56411D527B0500D5148B /* ColorConversion.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ColorConversion.mm; sourceTree = "<group>"; };
+		2D5A563F1D52738400D5148B /* CpuProcessor.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = CpuProcessor.cpp; sourceTree = "<group>"; };
+		2D5A56411D527B0500D5148B /* ColorConversion.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ColorConversion.cpp; sourceTree = "<group>"; };
 		2D5A56421D527B0500D5148B /* ColorConversion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorConversion.h; sourceTree = "<group>"; };
 		2D5FD3EF1F003CDF008305C3 /* DaltonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DaltonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D5FD3F31F003CDF008305C3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -176,14 +176,14 @@
 		2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetalRenderer.h; sourceTree = "<group>"; };
 		2DAD0BCD1F7C439900CF19D7 /* MetalRenderer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalRenderer.mm; sourceTree = "<group>"; };
 		2DB2FFD41D46B43C003610D9 /* DaltonLens-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DaltonLens-Bridging-Header.h"; sourceTree = "<group>"; };
-		2DB2FFD51D46B43C003610D9 /* Image.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Image.cpp; sourceTree = "<group>"; };
+		2DB2FFD51D46B43C003610D9 /* Image.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Image.cpp; sourceTree = "<group>"; };
 		2DB2FFD61D46B43C003610D9 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
 		2DB2FFD81D4736D5003610D9 /* ImageTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ImageTests.mm; sourceTree = "<group>"; };
 		2DB837151FE718F8005BD10D /* DaltonTool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DaltonTool; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DB837171FE718F9005BD10D /* DaltonTool.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonTool.mm; sourceTree = "<group>"; };
 		2DC315441DCA9E3D00057017 /* Shaders.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 		2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorUnderCursorAnalyzer.h; sourceTree = "<group>"; };
-		2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ColorUnderCursorAnalyzer.mm; sourceTree = "<group>"; };
+		2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ColorUnderCursorAnalyzer.cpp; sourceTree = "<group>"; };
 		2DCBB8D31D3BEAA60035D461 /* DaltonLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DaltonLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DCBB8D61D3BEAA60035D461 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = AppDelegate.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -191,9 +191,9 @@
 		2DCBB8E81D3BEAA60035D461 /* DaltonTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; lineEnding = 0; path = DaltonTests.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		2DEC0DAC1D3C08C100E8D962 /* DaltonView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = DaltonView.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		2DEC11021DC684970095C4A0 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		2DF3E86E1D57972400C9380A /* Utils.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Utils.mm; sourceTree = "<group>"; };
+		2DF3E86E1D57972400C9380A /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Utils.cpp; sourceTree = "<group>"; };
 		2DF3E86F1D57972400C9380A /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
-		2DF3E8991D57CB6E00C9380A /* Simulator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; lineEnding = 0; path = Simulator.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		2DF3E8991D57CB6E00C9380A /* Simulator.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; lineEnding = 0; path = Simulator.cpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		2DF3E89A1D57CB6E00C9380A /* Simulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Simulator.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		2DF3E89D1D57CC8600C9380A /* MathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MathUtils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -312,12 +312,12 @@
 			isa = PBXGroup;
 			children = (
 				2D5A56421D527B0500D5148B /* ColorConversion.h */,
-				2D5A56411D527B0500D5148B /* ColorConversion.mm */,
+				2D5A56411D527B0500D5148B /* ColorConversion.cpp */,
 				2DCA351A1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.h */,
-				2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.mm */,
+				2DCA351B1DF8A6F0008A679C /* ColorUnderCursorAnalyzer.cpp */,
 				2D8070311D5A6C7A003CC8EB /* Common.h */,
 				2D5A563E1D52738400D5148B /* CpuProcessor.h */,
-				2D5A563F1D52738400D5148B /* CpuProcessor.mm */,
+				2D5A563F1D52738400D5148B /* CpuProcessor.cpp */,
 				2DB2FFD51D46B43C003610D9 /* Image.cpp */,
 				2DB2FFD61D46B43C003610D9 /* Image.h */,
 				2DF3E89D1D57CC8600C9380A /* MathUtils.h */,
@@ -330,9 +330,9 @@
 				2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */,
 				2DC315441DCA9E3D00057017 /* Shaders.metal */,
 				2DF3E89A1D57CB6E00C9380A /* Simulator.h */,
-				2DF3E8991D57CB6E00C9380A /* Simulator.mm */,
+				2DF3E8991D57CB6E00C9380A /* Simulator.cpp */,
 				2DF3E86F1D57972400C9380A /* Utils.h */,
-				2DF3E86E1D57972400C9380A /* Utils.mm */,
+				2DF3E86E1D57972400C9380A /* Utils.cpp */,
 			);
 			path = Dalton;
 			sourceTree = "<group>";
@@ -495,7 +495,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0800;
-				LastUpgradeCheck = 0920;
+				LastUpgradeCheck = 1170;
 				ORGANIZATIONNAME = "Nicolas Burrus";
 				TargetAttributes = {
 					2D5FD3EE1F003CDF008305C3 = {
@@ -529,7 +529,7 @@
 			};
 			buildConfigurationList = 2DCBB8CE1D3BEAA60035D461 /* Build configuration list for PBXProject "DaltonLens" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
@@ -606,14 +606,14 @@
 			files = (
 				2D832CF01F2F0E3F00800C44 /* Shaders.metal in Sources */,
 				2DAD0BCF1F7C439900CF19D7 /* MetalRenderer.mm in Sources */,
-				2D7F49171F00398600919399 /* CpuProcessor.mm in Sources */,
+				2D7F49171F00398600919399 /* CpuProcessor.cpp in Sources */,
 				2D832CF61F2FD1B900800C44 /* MetalRendererOffscreen.mm in Sources */,
 				2D7F49181F00398600919399 /* Image.cpp in Sources */,
-				2D7F49161F00398600919399 /* ColorUnderCursorAnalyzer.mm in Sources */,
-				2D7F49191F00398600919399 /* Simulator.mm in Sources */,
-				2D7F49151F00398600919399 /* ColorConversion.mm in Sources */,
+				2D7F49161F00398600919399 /* ColorUnderCursorAnalyzer.cpp in Sources */,
+				2D7F49191F00398600919399 /* Simulator.cpp in Sources */,
+				2D7F49151F00398600919399 /* ColorConversion.cpp in Sources */,
 				2D5FD40B1F004716008305C3 /* MetalProcessor.mm in Sources */,
-				2D7F491A1F00398600919399 /* Utils.mm in Sources */,
+				2D7F491A1F00398600919399 /* Utils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -761,6 +761,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
@@ -786,6 +787,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
@@ -807,6 +809,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -814,6 +817,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -838,6 +842,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -861,6 +866,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -868,6 +874,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
@@ -886,6 +893,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -904,6 +912,7 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
@@ -911,7 +920,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens/DaltonLens-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -925,13 +934,14 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens/DaltonLens-Bridging-Header.h";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

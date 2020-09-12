@@ -49,7 +49,7 @@ namespace dl
         const auto endTime = currentDateInSeconds();
         const auto deltaTime = endTime - _startTime;
         
-        NSLog(@"[TIME] elasped in %s: %.1f ms", _label.c_str(), deltaTime*1e3);
+        fprintf(stderr, "[TIME] elasped in %s: %.1f ms", _label.c_str(), deltaTime*1e3);
     }
 
 } // dl
