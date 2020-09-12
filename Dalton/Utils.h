@@ -11,16 +11,24 @@
 
 #define DL_MULTI_STATEMENT_MACRO(X) do { X } while(0)
 
-#if DEBUG
+#ifndef NDEBUG
 #define dl_dbg(...) DL_MULTI_STATEMENT_MACRO ( fprintf (stderr, "DEBUG: "); fprintf (stderr, __VA_ARGS__); fprintf (stderr, "\n"); )
 #else
 #define dl_dbg(...)
 #endif // !DEBUG
 
+#ifndef NDEBUG
+#define dl_assert(cond, ...) DL_MULTI_STATEMENT_MACRO ( if (!cond) dl::handle_assert_failure(#cond, __FILE__, __LINE__, __VA_ARGS__); )
+#else
+#define dl_assert(...)
+#endif // !DEBUG
+
 namespace dl
 {
-    
-    std::string formatted (const char* fmt, ...);    
+        
+    std::string formatted (const char* fmt, ...);
+
+    void handle_assert_failure(const char* cond, const char* fileName, int line, const char* fmt, ...);
     
 } // dl
 

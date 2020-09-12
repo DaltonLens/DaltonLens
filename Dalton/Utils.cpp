@@ -22,6 +22,19 @@ namespace dl
         va_end (args);
         return buf;
     }
+
+    void handle_assert_failure(const char* cond, const char* fileName, int line, const char* commentFormat, ...)
+    {
+        char buf [2048];
+        buf[2047] = '\0';
+        va_list args;
+        va_start(args, commentFormat);
+        vsnprintf (buf, 2047, commentFormat, args);
+        va_end (args);
+        
+        fprintf (stderr, "ASSERT failure: %s. Condition %s failed (%s:%d)", buf, cond, fileName, line);
+        abort();
+    }
 }
 
 namespace dl

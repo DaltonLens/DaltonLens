@@ -28,6 +28,8 @@ namespace dl
         
         inline const T* data () const { return reinterpret_cast<T*>(_data); }
         inline T* data () { return reinterpret_cast<T*>(_data); }
+        inline const uint8_t* rawBytes () const { return _data; }
+        inline uint8_t* rawBytes () { return _data; }
         
         inline T* atRowPtr (int r) { return reinterpret_cast<T*>(_data + r*_bytesPerRow); }
         inline const T* atRowPtr (int r) const { return reinterpret_cast<T*>(_data + r*_bytesPerRow); }

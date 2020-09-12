@@ -10,10 +10,17 @@
         "stopAtEntry": false,
         "MIMode": "lldb",
         "miDebuggerPath": "/Users/nb/.vscode/extensions/ms-vscode.cpptools-0.30.0-insiders5/debugAdapters/lldb-mi/bin/lldb-mi",
+        "args": [
+            "/Users/nb/Perso/DaltonLensDrive/Plots/R-ecology-time-series-with-colors-1.png"
+        ]
         // "logging": {
         //   "trace": true,
         //   "engineLogging": true,
         //   "traceResponse": true
         // }
-      },
+    },
+    "files.associations": {
+        "stdexcept": "cpp",
+        "ios": "cpp"
+    },
 }
