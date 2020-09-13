@@ -18,6 +18,12 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+static void checkGLError ()
+{
+    GLenum err = glGetError();
+    dl_assert (err == GL_NO_ERROR, "GL Error! 0x%x", (int)err);
+}
+
 class GLTexture
 {
 public:
@@ -44,8 +50,212 @@ private:
     GLuint _textureId = 0;
 };
 
+bool gl_checkProgram(GLint handle, const char* desc, const char* glsl_version)
+{
+    GLint status = 0, log_length = 0;
+    glGetProgramiv(handle, GL_LINK_STATUS, &status);
+    glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length);
+    if ((GLboolean)status == GL_FALSE)
+        fprintf(stderr, "ERROR: GLShader: failed to link %s! (with GLSL '%s')\n", desc, glsl_version);
+    if (log_length > 1)
+    {
+        ImVector<char> buf;
+        buf.resize((int)(log_length + 1));
+        glGetProgramInfoLog(handle, log_length, NULL, (GLchar *)buf.begin());
+        fprintf(stderr, "%s\n", buf.begin());
+    }
+    return (GLboolean)status == GL_TRUE;
+}
+
+bool gl_checkShader(GLuint handle, const char *desc)
+{
+    GLint status = 0, log_length = 0;
+    glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
+    glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length);
+    if ((GLboolean)status == GL_FALSE)
+        fprintf(stderr, "ERROR: GLShader: failed to compile %s!\n", desc);
+    if (log_length > 1)
+    {
+        ImVector<char> buf;
+        buf.resize((int)(log_length + 1));
+        glGetShaderInfoLog(handle, log_length, NULL, (GLchar *)buf.begin());
+        fprintf(stderr, "%s\n", buf.begin());
+    }
+    return (GLboolean)status == GL_TRUE;
+}
+
+const GLchar *fragmentShader_FlipRedBlue_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        Out_Color = vec4(srgb.b, srgb.g, srgb.r, srgb.a);
+    }
+)";
+
+const GLchar *fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        Out_Color = vec4(1.0-srgb.b, srgb.g, srgb.r, srgb.a);
+    }
+)";
+
+class GLShader
+{
+public:
+    void initialize(const char* glslVersionString, const GLchar* vertexShader, const GLchar* fragmentShader)
+    {
+        const GLchar *defaultVertexShader_glsl_130 =
+            "uniform mat4 ProjMtx;\n"
+            "in vec2 Position;\n"
+            "in vec2 UV;\n"
+            "in vec4 Color;\n"
+            "out vec2 Frag_UV;\n"
+            "out vec4 Frag_Color;\n"
+            "void main()\n"
+            "{\n"
+            "    Frag_UV = UV;\n"
+            "    Frag_Color = Color;\n"
+            "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+            "}\n";
+
+        const GLchar *defaultFragmentShader_glsl_130 =
+            "uniform sampler2D Texture;\n"
+            "in vec2 Frag_UV;\n"
+            "in vec4 Frag_Color;\n"
+            "out vec4 Out_Color;\n"
+            "void main()\n"
+            "{\n"
+            "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+            "}\n";
+
+        // Select shaders matching our GLSL versions
+        if (vertexShader == nullptr)
+            vertexShader = defaultVertexShader_glsl_130;
+
+        if (fragmentShader == nullptr)
+            fragmentShader = defaultFragmentShader_glsl_130;
+
+        // Create shaders
+        const GLchar *vertex_shader_with_version[3] = {glslVersionString, "\n", vertexShader};
+        _vertHandle = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(_vertHandle, 3, vertex_shader_with_version, NULL);
+        glCompileShader(_vertHandle);
+        gl_checkShader(_vertHandle, "vertex shader");
+
+        const GLchar *fragment_shader_with_version[3] = {glslVersionString, "\n", fragmentShader};
+        _fragHandle = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(_fragHandle, 3, fragment_shader_with_version, NULL);
+        glCompileShader(_fragHandle);
+        gl_checkShader(_fragHandle, "fragment shader");
+
+        _shaderHandle = glCreateProgram();
+        glAttachShader(_shaderHandle, _vertHandle);
+        glAttachShader(_shaderHandle, _fragHandle);
+        glLinkProgram(_shaderHandle);
+        gl_checkProgram(_shaderHandle, "shader program", glslVersionString);
+
+        _attribLocationTex = glGetUniformLocation(_shaderHandle, "Texture");
+        _attribLocationProjMtx = glGetUniformLocation(_shaderHandle, "ProjMtx");
+        _attribLocationVtxPos = (GLuint)glGetAttribLocation(_shaderHandle, "Position");
+        _attribLocationVtxUV = (GLuint)glGetAttribLocation(_shaderHandle, "UV");
+        _attribLocationVtxColor = (GLuint)glGetAttribLocation(_shaderHandle, "Color");
+
+        checkGLError();
+    }
+
+    void enable ()
+    {
+        // We need to store the viewport to check its display size later on.
+        ImGuiViewport* viewport = ImGui::GetWindowViewport();
+        dl_assert (_viewportWhenEnabled == nullptr || viewport == _viewportWhenEnabled, 
+                   "You can't enable it multiple times for windows that are not in the same viewport");
+        dl_assert (viewport != nullptr, "Invalid viewport.");
+
+        _viewportWhenEnabled = viewport; 
+
+        auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
+        {
+            GLShader* that = reinterpret_cast<GLShader*>(cmd->UserCallbackData);
+            dl_assert (that, "Invalid user data");
+            that->onRenderEnable (parent_list, cmd);
+        };
+
+        ImGui::GetWindowDrawList()->AddCallback(shaderCallback, this);
+    }
+
+    void disable ()
+    {
+        auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
+        {
+            GLShader* that = reinterpret_cast<GLShader*>(cmd->UserCallbackData);
+            dl_assert (that, "Invalid user data");
+            that->onRenderDisable (parent_list, cmd);
+        };
+
+        ImGui::GetWindowDrawList()->AddCallback(shaderCallback, this);
+    }
+
+private:
+    void onRenderEnable (const ImDrawList *parent_list, const ImDrawCmd *drawCmd)
+    {
+        auto* drawData = _viewportWhenEnabled->DrawData;
+        float L = drawData->DisplayPos.x;
+        float R = drawData->DisplayPos.x + drawData->DisplaySize.x;
+        float T = drawData->DisplayPos.y;
+        float B = drawData->DisplayPos.y + drawData->DisplaySize.y;
+
+        const float ortho_projection[4][4] =
+        {
+            { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
+            { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
+            { 0.0f,         0.0f,        -1.0f,   0.0f },
+            { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
+        };
+
+        glGetIntegerv(GL_CURRENT_PROGRAM, &_prevShaderHandle);
+        glUseProgram (_shaderHandle);
+
+        glUniformMatrix4fv(_attribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
+        glUniform1i(_attribLocationTex, 0);
+
+        checkGLError();
+    }
+
+    void onRenderDisable (const ImDrawList *parent_list, const ImDrawCmd *drawCmd)
+    {
+        glUseProgram (_prevShaderHandle);
+        _prevShaderHandle = 0;
+        _viewportWhenEnabled = nullptr;
+    }
+
+private:
+    GLuint _shaderHandle = 0;
+    GLuint _vertHandle = 0;
+    GLuint _fragHandle = 0;
+    GLuint _attribLocationTex = 0;
+    GLuint _attribLocationProjMtx = 0;
+    GLuint _attribLocationVtxPos = 0;
+    GLuint _attribLocationVtxUV = 0;
+    GLuint _attribLocationVtxColor = 0;
+
+    GLint _prevShaderHandle = 0;
+
+    ImGuiViewport* _viewportWhenEnabled = nullptr;
+};
+
 int main(int argc, char** argv)
 {
+    dl::ScopeTimer initTimer ("Init");
+
     argparse::ArgumentParser parser("dlv", "0.1");
     parser.add_argument("image")
           .help("Image to visualize");
@@ -147,6 +357,12 @@ int main(int argc, char** argv)
     gpuTexture.initialize();
     gpuTexture.upload (im);
 
+    std::array<GLShader, 2> shaders;
+    shaders[0].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    shaders[1].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    int currentShaderIndex = -1;
+    GLShader* currentShader = nullptr;
+
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -178,6 +394,37 @@ int main(int argc, char** argv)
             if (ImGui::IsKeyPressed(GLFW_KEY_Q))
             {
                 glfwSetWindowShouldClose(window, true);
+            }
+
+            auto updateCurrentShader = [&]() {
+                if (currentShaderIndex >= 0)
+                {
+                    currentShader = &shaders[currentShaderIndex];
+                }
+                else
+                {
+                    currentShader = nullptr;
+                }
+            };
+
+            if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
+            {
+                --currentShaderIndex;
+                if (currentShaderIndex < -1)
+                {
+                    currentShaderIndex = shaders.size()-1;
+                }
+                updateCurrentShader();
+            }
+
+            if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT))
+            {
+                ++currentShaderIndex;
+                if (currentShaderIndex == shaders.size())
+                {
+                    currentShaderIndex = -1;
+                }
+                updateCurrentShader ();
             }
         }
 
@@ -218,7 +465,19 @@ int main(int argc, char** argv)
         const auto contentSize = ImGui::GetContentRegionAvail();
         // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
         // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
+
+        if (currentShader)
+        {
+            currentShader->enable();
+        }
+
         ImGui::Image(reinterpret_cast<ImTextureID>(gpuTexture.textureId()), imSize);
+
+        if (currentShader)
+        {
+            currentShader->disable();
+        }
+        
         ImGui::End();
         ImGui::PopStyleVar();
 
@@ -244,6 +503,8 @@ int main(int argc, char** argv)
         }
 
         glfwSwapBuffers(window);
+
+        initTimer.stop();
     }
 
     // Cleanup
