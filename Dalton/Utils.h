@@ -18,7 +18,7 @@
 #endif // !DEBUG
 
 #ifndef NDEBUG
-#define dl_assert(cond, ...) DL_MULTI_STATEMENT_MACRO ( if (!cond) dl::handle_assert_failure(#cond, __FILE__, __LINE__, __VA_ARGS__); )
+#define dl_assert(cond, ...) DL_MULTI_STATEMENT_MACRO ( if (!(cond)) dl::handle_assert_failure(#cond, __FILE__, __LINE__, __VA_ARGS__); else {} )
 #else
 #define dl_assert(...)
 #endif // !DEBUG
@@ -51,7 +51,7 @@ namespace dl
         
     private:
         std::string _label;
-        double _startTime = 0.;
+        double _startTime = -1;
     };
     
 }

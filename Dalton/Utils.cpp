@@ -57,10 +57,15 @@ namespace dl
     
     void ScopeTimer :: stop ()
     {
+        if (_startTime < 0)
+            return;
+
         const auto endTime = currentDateInSeconds();
         const auto deltaTime = endTime - _startTime;
         
-        fprintf(stderr, "[TIME] elasped in %s: %.1f ms", _label.c_str(), deltaTime*1e3);
+        fprintf(stderr, "[TIME] elasped in %s: %.1f ms\n", _label.c_str(), deltaTime*1e3);
+
+        _startTime = -1.0;
     }
 
 } // dl
