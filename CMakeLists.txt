@@ -16,6 +16,21 @@ add_library(glfw3 STATIC IMPORTED)
 set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/glfw/lib/libglfw3.a)
 include_directories(glfw3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/glfw/include)
 
+ExternalProject_Add(clip-deps
+  PREFIX clip
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/clip"
+  CMAKE_ARGS
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_CURRENT_BINARY_DIR}/clip
+  INSTALL_COMMAND 
+        cmake -E make_directory "<INSTALL_DIR>/lib/"
+        COMMAND cmake -E copy "<BINARY_DIR>/libclip.a" "<INSTALL_DIR>/lib/"
+)
+
+add_library(clip STATIC IMPORTED)
+set_target_properties(clip PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/clip/lib/libclip.a)
+include_directories(glfw3 PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/deps)
+
 # ExternalProject_Add(glew-deps
 #   PREFIX glew
 #   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew/build/cmake"

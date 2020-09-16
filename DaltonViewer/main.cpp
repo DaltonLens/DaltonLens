@@ -11,6 +11,8 @@
 
 #include <argparse.hpp>
 
+#include <clip/clip.h>
+
 #include <cstdio>
 
 static void glfw_error_callback(int error, const char* description)
@@ -40,8 +42,9 @@ public:
     void upload (const dl::ImageSRGBA& im)
     {
         glBindTexture(GL_TEXTURE_2D, _textureId);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, im.bytesPerRow()/im.bytesPerPixel());
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.width(), im.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     }
 
     GLuint textureId() const { return _textureId; }
@@ -257,8 +260,14 @@ int main(int argc, char** argv)
     dl::ScopeTimer initTimer ("Init");
 
     argparse::ArgumentParser parser("dlv", "0.1");
-    parser.add_argument("image")
-          .help("Image to visualize");
+    parser.add_argument("images")
+          .help("Images to visualize")
+          .remaining();
+
+    parser.add_argument("--paste")
+          .help("Paste the image from clipboard")
+          .default_value(false)
+          .implicit_value(true);
 
     try
     {
@@ -266,16 +275,82 @@ int main(int argc, char** argv)
     }
     catch (const std::runtime_error &err)
     {
-        std::cout << err.what() << std::endl;
-        std::cout << parser;
+        std::cerr << "Wrong usage" << std::endl;
+        std::cerr << err.what() << std::endl;
+        std::cerr << parser;
         exit(1);
     }
 
-    const auto imagePath = parser.get<std::string>("image");
-
     dl::ImageSRGBA im;
-    bool couldLoad = dl::readPngImage(imagePath, im);
-    dl_assert (couldLoad, "Could not load the image!");
+    std::string imagePath;
+
+    try 
+    {
+        auto images = parser.get<std::vector<std::string>>("images");
+        dl_dbg("%d images provided", (int)images.size());
+
+        imagePath = images[0];        
+        bool couldLoad = dl::readPngImage(imagePath, im);
+        dl_assert (couldLoad, "Could not load the image!");
+    }
+    catch (std::logic_error& e)
+    {
+        std::cerr << "No files provided" << std::endl;
+    }
+
+    if (parser.get<bool>("--paste"))
+    {
+        imagePath = "Pasted from clipboard";
+
+        if (!clip::has(clip::image_format()))
+        {
+            std::cerr << "Clipboard doesn't contain an image" << std::endl;
+            return 1;
+        }
+
+        clip::image clipImg;
+        if (!clip::get_image(clipImg))
+        {
+            std::cout << "Error getting image from clipboard\n";
+            return 2;
+        }
+
+        clip::image_spec spec = clipImg.spec();
+
+        std::cerr << "Image in clipboard "
+            << spec.width << "x" << spec.height
+            << " (" << spec.bits_per_pixel << "bpp)\n"
+            << "Format:" << "\n"
+            << std::hex
+            << "  Red   mask: " << spec.red_mask << "\n"
+            << "  Green mask: " << spec.green_mask << "\n"
+            << "  Blue  mask: " << spec.blue_mask << "\n"
+            << "  Alpha mask: " << spec.alpha_mask << "\n"
+            << std::dec
+            << "  Red   shift: " << spec.red_shift << "\n"
+            << "  Green shift: " << spec.green_shift << "\n"
+            << "  Blue  shift: " << spec.blue_shift << "\n"
+            << "  Alpha shift: " << spec.alpha_shift << "\n";
+
+        switch (spec.bits_per_pixel)
+        {
+        case 32:
+        {
+            im.ensureAllocatedBufferForSize(spec.width, spec.height);
+            im.copyDataFrom((uint8_t*)clipImg.data(), spec.bytes_per_row, spec.width, spec.height);
+            break;
+        }
+
+        case 16:
+        case 24:
+        case 64:
+        default:
+        {
+            std::cerr << "Only 32bpp clipboard supported right now." << std::endl;
+            return 3;
+        }
+        }
+    }
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);

@@ -14,9 +14,15 @@ set (dlv_SOURCES
 )
 
 add_executable(dlv ${dlv_SOURCES})
-add_dependencies(dlv glfw-deps)
+add_dependencies(dlv glfw-deps clip-deps)
+
 target_compile_definitions(dlv PRIVATE -DGL_SILENCE_DEPRECATION=1)
-target_link_libraries(dlv glfw3 dalton)
+
+target_link_libraries(dlv 
+    glfw3
+    clip
+    dalton
+)
 target_link_libraries(dlv
     "-framework Cocoa"
     "-framework OpenGL"
