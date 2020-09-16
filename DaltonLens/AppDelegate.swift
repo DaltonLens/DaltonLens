@@ -221,7 +221,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createStatusBarItem () {
         
         // Do any additional setup after loading the view.
-        statusItem = NSStatusBar.system.statusItem(withLength: NSSquareStatusItemLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         let icon = NSImage(named:"DaltonLensIcon_32x32")
         icon!.isTemplate = true
@@ -279,9 +279,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func createGlobalShortcuts () {
         
-        let cmdControlAlt = NSCommandKeyMask.rawValue |
-            NSControlKeyMask.rawValue |
-            NSAlternateKeyMask.rawValue
+        let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
+            NSEvent.ModifierFlags.control.rawValue |
+            NSEvent.ModifierFlags.option.rawValue
         
         let shortcutNoProcessing = MASShortcut(keyCode:UInt(kVK_ANSI_0),
                                                modifierFlags:cmdControlAlt);
@@ -391,9 +391,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func makeClosableWindow () {
         
         window = NSWindow.init(contentRect: NSMakeRect(300, 300, 640, 400),
-                               styleMask: [NSTitledWindowMask,
-                                           NSResizableWindowMask],
-                               backing: NSBackingStoreType.buffered,
+                               styleMask: [NSWindow.StyleMask.titled,
+                                           NSWindow.StyleMask.resizable],
+                               backing: NSWindow.BackingStoreType.buffered,
                                defer: true);
         
         window!.makeKeyAndOrderFront(self);
@@ -402,20 +402,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func makeAssistiveWindow () {
         
-        self.window = NSWindow.init(contentRect: NSScreen.main()!.frame,
-                                    styleMask: [NSTitledWindowMask],
-                                    backing: NSBackingStoreType.buffered,
+        self.window = NSWindow.init(contentRect: NSScreen.main!.frame,
+                                    styleMask: [NSWindow.StyleMask.titled],
+                                    backing: NSWindow.BackingStoreType.buffered,
                                     defer: true);
         
         if let window = self.window {
         
-            window.styleMask = NSBorderlessWindowMask;
-            window.level = Int(CGWindowLevelKey.assistiveTechHighWindow.rawValue);
-            window.preferredBackingLocation = NSWindowBackingLocation.videoMemory;
-            window.collectionBehavior = [NSWindowCollectionBehavior.stationary,
+            window.styleMask = NSWindow.StyleMask.borderless;
+            window.level = NSWindow.Level(rawValue: Int(CGWindowLevelKey.assistiveTechHighWindow.rawValue));
+            window.preferredBackingLocation = NSWindow.BackingLocation.videoMemory;
+            window.collectionBehavior = [NSWindow.CollectionBehavior.stationary,
                                          // NSWindowCollectionBehavior.canJoinAllSpaces,
-                                        NSWindowCollectionBehavior.moveToActiveSpace,
-                                        NSWindowCollectionBehavior.ignoresCycle];
+                                        NSWindow.CollectionBehavior.moveToActiveSpace,
+                                        NSWindow.CollectionBehavior.ignoresCycle];
             
             // window.backgroundColor = NSColor.clear;
             // Using a tiny alpha value to make sure that windows below this window get refreshes.
@@ -433,7 +433,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // makeClosableWindow ()
         
         // Disabling sharing to avoid capturing this window.
-        window!.sharingType = NSWindowSharingType.none
+        window!.sharingType = NSWindow.SharingType.none
         
         daltonView = DaltonView.init(frame: window!.frame)
         window!.contentView = daltonView

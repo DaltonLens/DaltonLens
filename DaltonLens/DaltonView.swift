@@ -197,7 +197,7 @@ class DaltonView: MTKView {
         let processor : DLMetalProcessor
         
         public init(_ device: MTLDevice) {
-            commandQueue = device.makeCommandQueue()
+            commandQueue = device.makeCommandQueue()!
             processor = DLMetalProcessor.init(device: device)
             mtlRenderer = DLMetalRenderer.init(processor: processor)
         }
@@ -280,7 +280,7 @@ class DaltonView: MTKView {
             return
         }
         
-        let mouseLocation = NSEvent.mouseLocation()
+        let mouseLocation = NSEvent.mouseLocation
         let screenToImageScale = Float(screenImage!.width)/Float(displayRect.width)
         let mouseInImage = CGPoint.init(x: mouseLocation.x,
                                         y: (displayRect.height-mouseLocation.y))
@@ -315,8 +315,8 @@ class DaltonView: MTKView {
                                    commandBuffer: commandBuffer,
                                    renderPassDescriptor: rpd);
             
-            commandBuffer.present(drawable)
-            commandBuffer.commit()
+            commandBuffer!.present(drawable)
+            commandBuffer!.commit()
         }
         
         frameCount = frameCount + 1;

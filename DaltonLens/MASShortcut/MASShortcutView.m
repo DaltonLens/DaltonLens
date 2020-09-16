@@ -434,10 +434,10 @@ void *kUserDataHint = &kUserDataHint;
             else {
                 // Verify possible shortcut
                 if (shortcut.keyCodeString.length > 0) {
-                    if ([_shortcutValidator isShortcutValid:shortcut]) {
+                    if ([self->_shortcutValidator isShortcutValid:shortcut]) {
                         // Verify that shortcut is not used
                         NSString *explanation = nil;
-                        if ([_shortcutValidator isShortcutAlreadyTakenBySystem:shortcut explanation:&explanation]) {
+                        if ([self->_shortcutValidator isShortcutAlreadyTakenBySystem:shortcut explanation:&explanation]) {
                             // Prevent cancel of recording when Alert window is key
                             [weakSelf activateResignObserver:NO];
                             [weakSelf activateEventMonitoring:NO];
