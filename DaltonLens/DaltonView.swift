@@ -8,6 +8,52 @@ import Cocoa
 import Metal
 import MetalKit
 
+func copyCGImageRectToClipboard(inImage: CGImage, rect:CGRect) {
+    
+    let width = Int(rect.width)
+    let height = Int(rect.height)
+    
+    // Create the bitmap context
+    let cgctx = CreateARGBBitmapContext(width:width, height:height)
+    
+    let drawRect = CGRect(x:0, y:0, width:width, height:height)
+    
+    // Draw the image to the bitmap context. Once we draw, the memory
+    // allocated for the context for rendering will then contain the
+    // raw image data in the specified color space.
+    cgctx!.draw(inImage.cropping(to:rect)!, in:drawRect)
+    
+    let bitmapFormat : NSBitmapImageRep.Format = [ .thirtyTwoBitLittleEndian ]
+    let dataPointer = cgctx!.data!.assumingMemoryBound(to: UInt8.self)
+    NSLog("dataPointer = %p", dataPointer.pointee)
+    
+    let planes = UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>.allocate(capacity: 1)
+    planes[0] = dataPointer
+    
+    let bitmap = NSBitmapImageRep.init(bitmapDataPlanes: planes,
+                                       pixelsWide: width,
+                                       pixelsHigh: height,
+                                       bitsPerSample: 8,
+                                       samplesPerPixel: 4,
+                                       hasAlpha: true,
+                                       isPlanar: false,
+                                       colorSpaceName: NSColorSpaceName.deviceRGB,
+                                       bitmapFormat: bitmapFormat,
+                                       bytesPerRow: width*4,
+                                       bitsPerPixel: 32)
+
+    NSLog("bitmap = %@", bitmap!)
+    
+    let data = bitmap!.tiffRepresentation(using: NSBitmapImageRep.TIFFCompression.none, factor: 1.0);
+
+    NSLog("tiff data isEmpty = %d count = %d", data!.isEmpty, data!.count)
+    
+    let pasteboard = NSPasteboard.general;
+    pasteboard.clearContents()
+    let success = pasteboard.setData(data!, forType: NSPasteboard.PasteboardType.tiff)
+    assert (success, "Could not set the data of the pasteboard.")
+}
+
 // For the CPU version, applies a function to a CGImage
 func transformCGImage(inImage: CGImage,
                       by:(UnsafeMutablePointer<UInt8>, _:Int /* width */, _:Int /* height */) -> Void) -> CGImage? {
@@ -190,6 +236,15 @@ class DaltonView: MTKView {
     
     private var frameCount : Int32 = 0
     
+    struct GrabScreenData {
+        var isDragging : Bool = false
+        var firstPointInWindow : CGPoint = CGPoint(x:0, y:0)
+        var secondPointInWindow : CGPoint = CGPoint(x:0, y:0)
+        var rectIsValid : Bool = false
+        var rectIsFinalized : Bool = false
+    }
+    var grabScreenData = GrabScreenData()
+    
     struct MetalData {
 
         let mtlRenderer : DLMetalRenderer
@@ -209,6 +264,21 @@ class DaltonView: MTKView {
             return self.cpuProcessor.processingMode
         }
         set {
+            let prevMode = self.cpuProcessor.processingMode
+            if (prevMode == GrabScreenArea)
+            {
+                self.window!.ignoresMouseEvents = true
+                self.grabScreenData = GrabScreenData()
+            }
+            
+            if (newValue == GrabScreenArea)
+            {
+                self.window!.ignoresMouseEvents = false
+                // Make sure we grab the focus to be able to click and drag.
+                self.window!.makeKey()
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            
             self.cpuProcessor.processingMode = newValue
             self.mtl.processor.processingMode = newValue
             self.updateStateAndVisibility ()
@@ -248,6 +318,60 @@ class DaltonView: MTKView {
         self.isPaused = doingNothing;
         self.window?.setIsVisible(!doingNothing);
     }
+        
+    override func mouseDown(with event: NSEvent) {
+        if (processingMode != GrabScreenArea) {
+            return
+        }
+        
+        NSLog("Mouse DOWN!!! %d", NSEvent.pressedMouseButtons)
+        let mouseLocation = event.locationInWindow
+        grabScreenData = GrabScreenData()
+        grabScreenData.isDragging = true
+        grabScreenData.firstPointInWindow = mouseLocation
+    }
+    
+    override func mouseDragged(with event: NSEvent) {
+        if (processingMode != GrabScreenArea) {
+            return
+        }
+        
+        if (!grabScreenData.isDragging) {
+            return;
+        }
+        
+        grabScreenData.secondPointInWindow = event.locationInWindow
+        grabScreenData.rectIsValid = true
+    }
+    
+    override func mouseUp(with event: NSEvent) {
+        if (processingMode != GrabScreenArea) {
+            return
+        }
+        
+        if (!grabScreenData.isDragging) {
+            return;
+        }
+        
+        NSLog("Mouse UP!!! %d", NSEvent.pressedMouseButtons)
+        grabScreenData.isDragging = false
+        grabScreenData.secondPointInWindow = event.locationInWindow
+        grabScreenData.rectIsFinalized = true
+    }
+    
+    override var acceptsFirstResponder: Bool { return true }
+    
+    override func keyDown(with event: NSEvent) {
+        if (processingMode != GrabScreenArea) {
+            return
+        }
+        
+        if (event.keyCode == UInt(kVK_Escape))
+        {
+            let delegate = NSApp.delegate as? AppDelegate
+            delegate!.setProcessingMode (mode: Nothing)
+        }
+    }
     
     override func draw(_ dirtyRect: NSRect) {
         
@@ -280,10 +404,21 @@ class DaltonView: MTKView {
             return
         }
         
-        let mouseLocation = NSEvent.mouseLocation
+        let globalMouseLocation = NSEvent.mouseLocation
         let screenToImageScale = Float(screenImage!.width)/Float(displayRect.width)
-        let mouseInImage = CGPoint.init(x: mouseLocation.x,
-                                        y: (displayRect.height-mouseLocation.y))
+        
+        let windowToImage = { (w:CGPoint) -> CGPoint in
+            return CGPoint.init(x: w.x,
+                                y: (displayRect.height-w.y))
+        }
+        
+        let windowToTexture = { (w:CGPoint) -> CGPoint in
+            return CGPoint.init(x: w.x / displayRect.width,
+                                y: w.y / displayRect.height)
+        }
+        
+        let mouseInImage = windowToImage(globalMouseLocation)
+        // NSLog("Mouse location %f %f", mouseInImage.x, mouseInImage.y)
         
         // Get the color under the cursor, used by some shaders.
         let cursorSRGBA = patchExtractor.rgbaValueNear(image:screenImage!,
@@ -296,7 +431,70 @@ class DaltonView: MTKView {
         uniformsBuffer.pointee.underCursorRgba.2 = Float(cursorSRGBA.b)/255.0;
         uniformsBuffer.pointee.underCursorRgba.3 = Float(cursorSRGBA.a)/255.0;
         uniformsBuffer.pointee.frameCount = frameCount;
+        
+        if (processingMode == GrabScreenArea && grabScreenData.rectIsValid)
+        {
+            NSLog("Got a rect to grab!");
+            let p1Texture = windowToTexture(grabScreenData.firstPointInWindow)
+            let p2Texture = windowToTexture(grabScreenData.secondPointInWindow)
+            uniformsBuffer.pointee.grabScreenRectangle.0 = Float(min(p1Texture.x, p2Texture.x));
+            uniformsBuffer.pointee.grabScreenRectangle.1 = Float(min(p1Texture.y, p2Texture.y));
+            uniformsBuffer.pointee.grabScreenRectangle.2 = Float(max(p1Texture.x, p2Texture.x));
+            uniformsBuffer.pointee.grabScreenRectangle.3 = Float(max(p1Texture.y, p2Texture.y));
+        }
+        else
+        {
+            uniformsBuffer.pointee.grabScreenRectangle.0 = -1
+            uniformsBuffer.pointee.grabScreenRectangle.1 = -1
+            uniformsBuffer.pointee.grabScreenRectangle.2 = -1
+            uniformsBuffer.pointee.grabScreenRectangle.3 = -1
+        }
     
+        if (processingMode == GrabScreenArea && grabScreenData.rectIsFinalized)
+        {
+            NSLog("Grab finalized!");
+            let p1Image = windowToImage(grabScreenData.firstPointInWindow)
+            let p2Image = windowToImage(grabScreenData.secondPointInWindow)
+            
+            let xmin = round(Double(min(p1Image.x, p2Image.x)));
+            let ymin = round(Double(min(p1Image.y, p2Image.y)));
+            let xmax = round(Double(max(p1Image.x, p2Image.x)));
+            let ymax = round(Double(max(p1Image.y, p2Image.y)));
+            
+            let rectInImage = CGRect(x:xmin, y:ymin, width:(xmax-xmin), height:(ymax-ymin))
+            copyCGImageRectToClipboard(inImage:screenImage!, rect:rectInImage)
+            
+            let dlvUrl = Bundle.main.url(forAuxiliaryExecutable: "dlv")
+            // let dlvUrl = Bundle.main.url(forAuxiliaryExecutable: "dlv")
+            // let dlvUrl = URL.init(fileURLWithPath:  "/Volumes/Users/nb/Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/DaltonLensLaunchAtLoginHelper.app")
+            
+            let configDict = [
+                NSWorkspace.LaunchConfigurationKey.arguments: ["--paste"],
+            ]
+
+//            do {
+//                // try NSWorkspace.shared.launchApplication(at: dlvUrl!, options: [], configuration:configDict)
+//                let success = NSWorkspace.shared.launchApplication("/Volumes/Users/nb/Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/DaltonLens.app/Contents/MacOS/dlv")
+//                assert (success)
+//            }
+//            catch {
+//                print("Unexpected error: \(error).")
+//                assert (false, "Failed to launch dlv.")
+//            }
+            
+            if #available(OSX 10.15, *) {
+                let config = NSWorkspace.OpenConfiguration.init()
+                config.arguments = ["-paste"]
+                NSWorkspace.shared.openApplication(at: dlvUrl!,
+                                                   configuration:config)
+            } else {
+                // Fallback on earlier versions
+            }
+            
+            let delegate = NSApp.delegate as? AppDelegate
+            delegate!.setProcessingMode (mode: Nothing)
+        }
+        
         // Keeping this around, but we're now using Metal.
         let doCpuTransform = false;
         if (doCpuTransform)

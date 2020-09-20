@@ -9,9 +9,15 @@ import ServiceManagement
 
 // @NSApplicationMain
 
+class DaltonWindow: NSWindow {
+    override var canBecomeKey: Bool {
+            return true
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private var window : NSWindow?
+    private var window : DaltonWindow?
     private var daltonView : DaltonView?
     
     var statusItem : NSStatusItem?
@@ -64,6 +70,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                                                       action: #selector(AppDelegate.setProcessingMode(sender:)),
                                                       keyEquivalent: "9")
     
+    let grabScreenAreaMenuItem = NSMenuItem(title: "Grab Screen Area and Send to Viewer",
+                                            action: #selector(AppDelegate.setProcessingMode(sender:)),
+                                            keyEquivalent: "D")
+    
     var menuItemsToProcessingMode : [NSMenuItem: DLProcessingMode];
     var processingModeToMenuItem : [UInt32: NSMenuItem];
     
@@ -77,6 +87,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 | NSEvent.ModifierFlags.control.rawValue
                 | NSEvent.ModifierFlags.option.rawValue)
         
+        let controlShift = NSEvent.ModifierFlags(rawValue:
+            NSEvent.ModifierFlags.control.rawValue
+                | NSEvent.ModifierFlags.shift.rawValue)
+        
         nothingMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
         daltonizeV1MenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
         switchRedBlueMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
@@ -84,6 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         invertLightnessMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
         highlightColorUnderMouseMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
         highlightExactColorUnderMouseMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
+        grabScreenAreaMenuItem.keyEquivalentModifierMask = controlShift
         
         menuItemsToProcessingMode = [
             nothingMenuItem: Nothing,
@@ -93,7 +108,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             switchAndFlipRedBlueMenuItem: SwitchAndFlipCbCr,
             invertLightnessMenuItem: InvertLightness,
             highlightColorUnderMouseMenuItem: HighlightColorUnderMouse,
-            highlightExactColorUnderMouseMenuItem: HighlightExactColorUnderMouse
+            highlightExactColorUnderMouseMenuItem: HighlightExactColorUnderMouse,
+            grabScreenAreaMenuItem: GrabScreenArea,
         ];
         
         processingModeToMenuItem = [:];
@@ -257,6 +273,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             processingMenu.addItem(highlightExactColorUnderMouseMenuItem)
             #endif
             
+            processingMenu.addItem(grabScreenAreaMenuItem)
+            
             nothingMenuItem.state = NSControl.StateValue.on // default is Nothing
             
             let processingMenuItem = NSMenuItem(title: "Processing", action: nil, keyEquivalent: "")
@@ -282,6 +300,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
             NSEvent.ModifierFlags.control.rawValue |
             NSEvent.ModifierFlags.option.rawValue
+        
+        let controlShift = NSEvent.ModifierFlags.control.rawValue |
+            NSEvent.ModifierFlags.shift.rawValue
         
         let shortcutNoProcessing = MASShortcut(keyCode:UInt(kVK_ANSI_0),
                                                modifierFlags:cmdControlAlt);
@@ -309,6 +330,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let shortcutDown = MASShortcut(keyCode:UInt(kVK_DownArrow),
                                        modifierFlags:cmdControlAlt);
+        
+        let shortcutGrabScreenArea = MASShortcut(keyCode:UInt(kVK_ANSI_D),
+                                       modifierFlags:controlShift);
         
         func incrProcessingMode (currentMode: DLProcessingMode) -> DLProcessingMode {
             let nextMode = (currentMode.rawValue + 1) % (NumProcessingModes.rawValue)
@@ -386,11 +410,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             updateProcessingMode(nextMode: incrProcessingMode)
         }
         #endif
+        
+        MASShortcutMonitor.shared().register(shortcutGrabScreenArea) {
+            updateProcessingMode() {prevMode in
+                return GrabScreenArea
+            };
+        }
     }
     
     func makeClosableWindow () {
         
-        window = NSWindow.init(contentRect: NSMakeRect(300, 300, 640, 400),
+        window = DaltonWindow.init(contentRect: NSMakeRect(300, 300, 640, 400),
                                styleMask: [NSWindow.StyleMask.titled,
                                            NSWindow.StyleMask.resizable],
                                backing: NSWindow.BackingStoreType.buffered,
@@ -402,7 +432,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func makeAssistiveWindow () {
         
-        self.window = NSWindow.init(contentRect: NSScreen.main!.frame,
+        self.window = DaltonWindow.init(contentRect: NSScreen.main!.frame,
                                     styleMask: [NSWindow.StyleMask.titled],
                                     backing: NSWindow.BackingStoreType.buffered,
                                     defer: true);
@@ -430,7 +460,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createWindowAndDaltonView () {
 
         makeAssistiveWindow ()
-        // makeClosableWindow ()
+        // ssmakeClosableWindow ()
         
         // Disabling sharing to avoid capturing this window.
         window!.sharingType = NSWindow.SharingType.none

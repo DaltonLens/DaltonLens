@@ -44,6 +44,7 @@ constant float hsxEpsilon = 1e-10;
 struct Uniforms
 {
     float4 srgbaUnderCursor;
+    float4 grabScreenRectangle;
     int frameCount; // for animations
 };
 
@@ -464,3 +465,27 @@ fragment float4 fragment_highlightSameColor(VertexOut vert [[stage_in]],
     float3 finalSRGB = select (srgba.rgb, transformedSRGB, shouldHighlight);
     return float4(finalSRGB, 1.0);
 }
+
+fragment float4 fragment_grabScreenArea(VertexOut vert [[stage_in]],
+                                        texture2d<float> screenTexture [[texture(0)]],
+                                        constant Uniforms &uniforms [[buffer(0)]])
+{
+    float4 rect = uniforms.grabScreenRectangle;
+    float4 srgba = screenTexture.sample(defaultSampler, vert.texCoords);
+        
+    float xMin = rect[0];
+    float yMin = rect[1];
+    float xMax = rect[2];
+    float yMax = rect[3];
+    
+    bool isInRect = (vert.texCoords.x >= xMin && vert.texCoords.x <= xMax) && (vert.texCoords.y >= yMin && vert.texCoords.y <= yMax);
+    // bool isInRect = (vert.texCoords.x >= 0.2 && vert.texCoords.x <= 0.4) && (vert.texCoords.y >= 0.2 && vert.texCoords.y <= 0.4);
+    
+    float3 yCbCr = yCbCrFromSRGBA(srgba);
+    yCbCr.x = select (yCbCr.x, yCbCr.x*0.5, !isInRect);
+    float3 maybeTransformedSRGB = sRGBAfromYCbCr(yCbCr, 1.0).rgb;
+    
+    float3 finalSRGB = maybeTransformedSRGB;
+    return float4(finalSRGB, 1.0);
+}
+

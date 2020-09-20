@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2D0C82652517966100EB76AD /* dlv in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2D0C82642517966100EB76AD /* dlv */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */; };
 		2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9B1DAAC0B400AA97BC /* MASHotKey.m */; };
 		2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9E1DAAC0B400AA97BC /* MASLocalization.m */; };
@@ -92,6 +93,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		2D0C82622517964500EB76AD /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2D4C76E41E77406E00DCBBB7 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -121,9 +131,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		2DD5424A2517899000EAB8A8 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				2D0C82652517966100EB76AD /* dlv in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2D0C82642517966100EB76AD /* dlv */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = dlv; path = build/DaltonViewer/dlv; sourceTree = "<group>"; };
 		2D240D981DAAC0B400AA97BC /* MASDictionaryTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASDictionaryTransformer.h; sourceTree = "<group>"; };
 		2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MASDictionaryTransformer.m; sourceTree = "<group>"; };
 		2D240D9A1DAAC0B400AA97BC /* MASHotKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASHotKey.h; sourceTree = "<group>"; };
@@ -188,6 +209,7 @@
 		2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2DCBB8DF1D3BEAA60035D461 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2DCBB8E81D3BEAA60035D461 /* DaltonTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; lineEnding = 0; path = DaltonTests.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
+		2DD5424C251789EA00EAB8A8 /* default.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; name = default.metallib; path = "../../Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/default.metallib"; sourceTree = "<group>"; };
 		2DEC0DAC1D3C08C100E8D962 /* DaltonView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = DaltonView.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		2DEC11021DC684970095C4A0 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		2DF3E86E1D57972400C9380A /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Utils.cpp; sourceTree = "<group>"; };
@@ -367,6 +389,8 @@
 		2DCBB8CA1D3BEAA60035D461 = {
 			isa = PBXGroup;
 			children = (
+				2D0C82642517966100EB76AD /* dlv */,
+				2DD5424C251789EA00EAB8A8 /* default.metallib */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
 				2D28D13E1F7C523D00BD8040 /* README.md */,
 				2D28D13C1F7C4E5400BD8040 /* TODO */,
@@ -484,6 +508,9 @@
 				2DCBB8D11D3BEAA60035D461 /* Resources */,
 				2D4C76E41E77406E00DCBBB7 /* CopyFiles */,
 				2D5FD3E61F003C19008305C3 /* CopyFiles */,
+				2DD5424A2517899000EAB8A8 /* CopyFiles */,
+				2DD5425525178A3E00EAB8A8 /* ShellScript */,
+				2D0C82622517964500EB76AD /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -502,7 +529,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0800;
-				LastUpgradeCheck = 1170;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = "Nicolas Burrus";
 				TargetAttributes = {
 					2D5FD3EE1F003CDF008305C3 = {
@@ -595,6 +622,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		2DD5425525178A3E00EAB8A8 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/default.metallib",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/DaltonLens.app/Contents/Resources/default.metallib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp \"${BUILT_PRODUCTS_DIR}/default.metallib\" \"${BUILT_PRODUCTS_DIR}/DaltonLens.app/Contents/Resources\"\n\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2D5FD3EB1F003CDF008305C3 /* Sources */ = {
@@ -826,6 +875,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -883,6 +933,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;

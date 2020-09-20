@@ -17,6 +17,7 @@
 struct DLMetalUniforms
 {
     float underCursorRgba[4];
+    float grabScreenRectangle[4];
     int32_t frameCount;
     int32_t padding[3];
 };

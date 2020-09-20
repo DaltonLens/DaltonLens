@@ -18,6 +18,7 @@ typedef enum
     InvertLightness,
     HighlightColorUnderMouse,
     HighlightExactColorUnderMouse,
+    GrabScreenArea,
     
     NumProcessingModes
 } DLProcessingMode;

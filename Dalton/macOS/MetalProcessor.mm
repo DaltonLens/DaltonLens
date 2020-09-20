@@ -41,7 +41,7 @@
         NSError* error = nil;
         self.mtlLibrary = [device newDefaultLibraryWithBundle:bundle error:&error];
         
-        NSAssert(self.mtlLibrary != nil, @"Could not create Metal library %@", [error localizedDescription]);
+        NSAssert(self.mtlLibrary != nil, @"Could not create Metal library: %@", [error localizedDescription]);
         
         self.mtlVertexQuad = [self.mtlLibrary newFunctionWithName:@"vertex_quad"];
         
@@ -94,6 +94,7 @@
     _pipelineStates[@(InvertLightness)] = @[[self createPipelineWithFragment:@"fragment_invertLightness"]];
     _pipelineStates[@(HighlightColorUnderMouse)] = @[[self createPipelineWithFragment:@"fragment_highlightSameColorWithAntialising"]];
     _pipelineStates[@(HighlightExactColorUnderMouse)] = @[[self createPipelineWithFragment:@"fragment_highlightSameColor"]];
+    _pipelineStates[@(GrabScreenArea)] = @[[self createPipelineWithFragment:@"fragment_grabScreenArea"]];
 }
 
 -(id<MTLRenderPipelineState>) createPipelineWithFragment:(NSString*)fragmentName
