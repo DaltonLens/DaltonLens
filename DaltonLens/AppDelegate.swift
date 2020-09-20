@@ -20,6 +20,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var window : DaltonWindow?
     private var daltonView : DaltonView?
     
+    private var daltonViewer : DaltonViewerMacOS?
+    private var daltonViewerTimer : Timer?
+    private var daltonViewerAlreadyRan : Bool = false
+    
     var statusItem : NSStatusItem?
     
     let launchAtStartupMenuItem = NSMenuItem(title: "Launch at Startup",
@@ -469,6 +473,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window!.contentView = daltonView
         
         // window!.delegate = daltonView;
+    }
+    
+    func launchDaltonViewer (argc:Int32, argv:[String]) {
+                
+        self.daltonViewer = DaltonViewerMacOS.init()
+        self.daltonViewer?.initialize(withArgc: argc, argv: argv)
+        
+        NSApp.setActivationPolicy(.regular)
+        
+        self.daltonViewerTimer = Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
+            self.daltonViewer?.runOnce()
+            // if (!self.daltonViewerAlreadyRan)
+            // NSApp.activate(ignoringOtherApps: true)
+            self.daltonViewerAlreadyRan = true
+        }
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {

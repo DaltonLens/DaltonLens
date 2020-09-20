@@ -464,13 +464,20 @@ class DaltonView: MTKView {
             let rectInImage = CGRect(x:xmin, y:ymin, width:(xmax-xmin), height:(ymax-ymin))
             copyCGImageRectToClipboard(inImage:screenImage!, rect:rectInImage)
             
-            let dlvUrl = Bundle.main.url(forAuxiliaryExecutable: "dlv")
+            
+            
+//            let dlvPath = Bundle.main.path(forAuxiliaryExecutable: "DaltonViewer.app")
             // let dlvUrl = Bundle.main.url(forAuxiliaryExecutable: "dlv")
             // let dlvUrl = URL.init(fileURLWithPath:  "/Volumes/Users/nb/Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/DaltonLensLaunchAtLoginHelper.app")
             
-            let configDict = [
-                NSWorkspace.LaunchConfigurationKey.arguments: ["--paste"],
-            ]
+//            let task = Process()
+//            task.arguments = [dlvPath!, "--args", "prout", "--paste"]
+//            task.launchPath = "/usr/bin/open"
+//            task.launch()
+//
+//            let configDict = [
+//                NSWorkspace.LaunchConfigurationKey.arguments: ["--paste"],
+//            ]
 
 //            do {
 //                // try NSWorkspace.shared.launchApplication(at: dlvUrl!, options: [], configuration:configDict)
@@ -482,16 +489,19 @@ class DaltonView: MTKView {
 //                assert (false, "Failed to launch dlv.")
 //            }
             
-            if #available(OSX 10.15, *) {
-                let config = NSWorkspace.OpenConfiguration.init()
-                config.arguments = ["-paste"]
-                NSWorkspace.shared.openApplication(at: dlvUrl!,
-                                                   configuration:config)
-            } else {
-                // Fallback on earlier versions
-            }
+//            if #available(OSX 10.15, *) {
+//                let config = NSWorkspace.OpenConfiguration.init()
+//                config.arguments = ["--paste"]
+//                NSWorkspace.shared.openApplication(at: dlvUrl!,
+//                                                   configuration:config)
+//            } else {
+//                // Fallback on earlier versions
+//            }
             
             let delegate = NSApp.delegate as? AppDelegate
+            
+            delegate?.launchDaltonViewer(argc: 2, argv: ["DaltonViewer", "--paste"])
+            
             delegate!.setProcessingMode (mode: Nothing)
         }
         

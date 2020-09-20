@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2D0C82652517966100EB76AD /* dlv in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2D0C82642517966100EB76AD /* dlv */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		2D0C83862517FA7900EB76AD /* libDaltonViewerLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */; };
+		2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83AC2517FE4300EB76AD /* libglfw3.a */; };
+		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
 		2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */; };
 		2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9B1DAAC0B400AA97BC /* MASHotKey.m */; };
 		2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9E1DAAC0B400AA97BC /* MASLocalization.m */; };
@@ -17,8 +19,6 @@
 		2D240DB21DAAC0B400AA97BC /* MASShortcutValidator.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240DA61DAAC0B400AA97BC /* MASShortcutValidator.m */; };
 		2D240DB31DAAC0B400AA97BC /* MASShortcutView+Bindings.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240DA81DAAC0B400AA97BC /* MASShortcutView+Bindings.m */; };
 		2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240DAA1DAAC0B400AA97BC /* MASShortcutView.m */; };
-		2D28D13D1F7C4E5400BD8040 /* TODO in Resources */ = {isa = PBXBuildFile; fileRef = 2D28D13C1F7C4E5400BD8040 /* TODO */; };
-		2D28D13F1F7C523D00BD8040 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 2D28D13E1F7C523D00BD8040 /* README.md */; };
 		2D28D1411F7C552D00BD8040 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 2D28D1401F7C552D00BD8040 /* LICENSE */; };
 		2D2D029B1F251138004A7CF4 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D2D029A1F251138004A7CF4 /* Metal.framework */; };
 		2D49BB8B1F2A7E4200B6BFAE /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D2D029A1F251138004A7CF4 /* Metal.framework */; };
@@ -62,6 +62,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		2D0C82BD2517E8D900EB76AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2D0C82A52517E8D700EB76AD;
+			remoteInfo = DaltonViewer;
+		};
+		2D0C83842517FA7300EB76AD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2D0C83212517F45900EB76AD;
+			remoteInfo = DaltonViewerLib;
+		};
 		2D4C76E01E77405000DCBBB7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */;
@@ -93,15 +107,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		2D0C82622517964500EB76AD /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		2D4C76E41E77406E00DCBBB7 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -131,20 +136,12 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
-		2DD5424A2517899000EAB8A8 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 6;
-			files = (
-				2D0C82652517966100EB76AD /* dlv in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		2D0C82642517966100EB76AD /* dlv */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = dlv; path = build/DaltonViewer/dlv; sourceTree = "<group>"; };
+		2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DaltonViewer.xcodeproj; path = DaltonViewer/DaltonViewer.xcodeproj; sourceTree = "<group>"; };
+		2D0C83AC2517FE4300EB76AD /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = build/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
+		2D0C83B12517FE4D00EB76AD /* libclip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclip.a; path = build/clip/lib/libclip.a; sourceTree = "<group>"; };
 		2D240D981DAAC0B400AA97BC /* MASDictionaryTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASDictionaryTransformer.h; sourceTree = "<group>"; };
 		2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MASDictionaryTransformer.m; sourceTree = "<group>"; };
 		2D240D9A1DAAC0B400AA97BC /* MASHotKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASHotKey.h; sourceTree = "<group>"; };
@@ -255,6 +252,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */,
+				2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */,
+				2D0C83862517FA7900EB76AD /* libDaltonViewerLib.a in Frameworks */,
 				2D7F49231F003BB500919399 /* libDalton.dylib in Frameworks */,
 				2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */,
 			);
@@ -263,6 +263,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2D0C82BA2517E8D800EB76AD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2D0C82BE2517E8D900EB76AD /* DaltonViewer.app */,
+				2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		2D240D971DAAC0B400AA97BC /* MASShortcut */ = {
 			isa = PBXGroup;
 			children = (
@@ -369,6 +378,8 @@
 		2DA18B741E92E7D2001B1CAD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				2D0C83B12517FE4D00EB76AD /* libclip.a */,
+				2D0C83AC2517FE4300EB76AD /* libglfw3.a */,
 				2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */,
 				2D2D029A1F251138004A7CF4 /* Metal.framework */,
 				2D7F491D1F0039F600919399 /* ImageIO.framework */,
@@ -389,7 +400,7 @@
 		2DCBB8CA1D3BEAA60035D461 = {
 			isa = PBXGroup;
 			children = (
-				2D0C82642517966100EB76AD /* dlv */,
+				2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */,
 				2DD5424C251789EA00EAB8A8 /* default.metallib */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
 				2D28D13E1F7C523D00BD8040 /* README.md */,
@@ -508,9 +519,7 @@
 				2DCBB8D11D3BEAA60035D461 /* Resources */,
 				2D4C76E41E77406E00DCBBB7 /* CopyFiles */,
 				2D5FD3E61F003C19008305C3 /* CopyFiles */,
-				2DD5424A2517899000EAB8A8 /* CopyFiles */,
 				2DD5425525178A3E00EAB8A8 /* ShellScript */,
-				2D0C82622517964500EB76AD /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -577,6 +586,10 @@
 					ProductGroup = 2D4C76DD1E77404F00DCBBB7 /* Products */;
 					ProjectRef = 2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */;
 				},
+				{
+					ProductGroup = 2D0C82BA2517E8D800EB76AD /* Products */;
+					ProjectRef = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -589,6 +602,20 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		2D0C82BE2517E8D900EB76AD /* DaltonViewer.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = DaltonViewer.app;
+			remoteRef = 2D0C82BD2517E8D900EB76AD /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libDaltonViewerLib.a;
+			remoteRef = 2D0C83842517FA7300EB76AD /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		2D4C76E11E77405000DCBBB7 /* DaltonLensLaunchAtLoginHelper.app */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.application;
@@ -614,8 +641,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D28D13F1F7C523D00BD8040 /* README.md in Resources */,
-				2D28D13D1F7C4E5400BD8040 /* TODO in Resources */,
 				2D28D1411F7C552D00BD8040 /* LICENSE in Resources */,
 				2DCBB8DB1D3BEAA60035D461 /* Assets.xcassets in Resources */,
 			);
@@ -963,16 +988,26 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/DaltonViewer",
+				);
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/glfw/lib",
+					"$(PROJECT_DIR)/build/clip/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens/DaltonLens-Bridging-Header.h";
@@ -985,16 +1020,26 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/DaltonViewer",
+				);
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/build/glfw/lib",
+					"$(PROJECT_DIR)/build/clip/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens/DaltonLens-Bridging-Header.h";
