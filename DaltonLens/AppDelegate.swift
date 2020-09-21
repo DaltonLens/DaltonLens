@@ -21,8 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var daltonView : DaltonView?
     
     private var daltonViewer : DaltonViewerMacOS?
-    private var daltonViewerTimer : Timer?
-    private var daltonViewerAlreadyRan : Bool = false
     
     var statusItem : NSStatusItem?
     
@@ -416,6 +414,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         
         MASShortcutMonitor.shared().register(shortcutGrabScreenArea) {
+            if (self.daltonViewer != nil)
+            {
+                return;
+            }
+            
             updateProcessingMode() {prevMode in
                 return GrabScreenArea
             };
@@ -472,21 +475,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         daltonView = DaltonView.init(frame: window!.frame)
         window!.contentView = daltonView
         
+        daltonView!.daltonAppDelegate = self;
+        
         // window!.delegate = daltonView;
     }
     
     func launchDaltonViewer (argc:Int32, argv:[String]) {
                 
         self.daltonViewer = DaltonViewerMacOS.init()
-        self.daltonViewer?.initialize(withArgc: argc, argv: argv)
+        self.daltonViewer!.initialize(withArgc: argc, argv: argv)
         
         NSApp.setActivationPolicy(.regular)
         
-        self.daltonViewerTimer = Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
-            self.daltonViewer?.runOnce()
-            // if (!self.daltonViewerAlreadyRan)
-            // NSApp.activate(ignoringOtherApps: true)
-            self.daltonViewerAlreadyRan = true
+        Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
+            self.daltonViewer!.runOnce()
+            if (self.daltonViewer!.shouldExit())
+            {
+                timer.invalidate()
+                self.daltonViewer = nil
+                NSApp.delegate = self;
+            }
         }
     }
     

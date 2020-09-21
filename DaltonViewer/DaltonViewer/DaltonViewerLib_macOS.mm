@@ -31,4 +31,9 @@
     _viewer.runOnce();
 }
 
+- (BOOL)shouldExit
+{
+    return _viewer.shouldExit();
+}
+
 @end

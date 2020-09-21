@@ -236,6 +236,8 @@ class DaltonView: MTKView {
     
     private var frameCount : Int32 = 0
     
+    private var frameCountWhenEnteredNothing : Int32 = 0
+    
     struct GrabScreenData {
         var isDragging : Bool = false
         var firstPointInWindow : CGPoint = CGPoint(x:0, y:0)
@@ -285,6 +287,8 @@ class DaltonView: MTKView {
         }
     }
     
+    weak var daltonAppDelegate : AppDelegate?
+    
     var blindnessType: DLBlindnessType {
         get {
             return self.cpuProcessor.blindnessType
@@ -314,9 +318,15 @@ class DaltonView: MTKView {
     
     func updateStateAndVisibility () {
     
-        let doingNothing = (cpuProcessor.processingMode == Nothing);
-        self.isPaused = doingNothing;
-        self.window?.setIsVisible(!doingNothing);
+        let doingNothing = (cpuProcessor.processingMode == Nothing)
+        self.isPaused = doingNothing
+        self.window?.setIsVisible(!doingNothing)
+        
+        if (doingNothing)
+        {
+            self.window!.alphaValue = 0.0
+            self.frameCountWhenEnteredNothing = self.frameCount
+        }
     }
         
     override func mouseDown(with event: NSEvent) {
@@ -368,8 +378,7 @@ class DaltonView: MTKView {
         
         if (event.keyCode == UInt(kVK_Escape))
         {
-            let delegate = NSApp.delegate as? AppDelegate
-            delegate!.setProcessingMode (mode: Nothing)
+            daltonAppDelegate!.setProcessingMode (mode: Nothing)
         }
     }
     
@@ -464,45 +473,8 @@ class DaltonView: MTKView {
             let rectInImage = CGRect(x:xmin, y:ymin, width:(xmax-xmin), height:(ymax-ymin))
             copyCGImageRectToClipboard(inImage:screenImage!, rect:rectInImage)
             
-            
-            
-//            let dlvPath = Bundle.main.path(forAuxiliaryExecutable: "DaltonViewer.app")
-            // let dlvUrl = Bundle.main.url(forAuxiliaryExecutable: "dlv")
-            // let dlvUrl = URL.init(fileURLWithPath:  "/Volumes/Users/nb/Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/DaltonLensLaunchAtLoginHelper.app")
-            
-//            let task = Process()
-//            task.arguments = [dlvPath!, "--args", "prout", "--paste"]
-//            task.launchPath = "/usr/bin/open"
-//            task.launch()
-//
-//            let configDict = [
-//                NSWorkspace.LaunchConfigurationKey.arguments: ["--paste"],
-//            ]
-
-//            do {
-//                // try NSWorkspace.shared.launchApplication(at: dlvUrl!, options: [], configuration:configDict)
-//                let success = NSWorkspace.shared.launchApplication("/Volumes/Users/nb/Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/DaltonLens.app/Contents/MacOS/dlv")
-//                assert (success)
-//            }
-//            catch {
-//                print("Unexpected error: \(error).")
-//                assert (false, "Failed to launch dlv.")
-//            }
-            
-//            if #available(OSX 10.15, *) {
-//                let config = NSWorkspace.OpenConfiguration.init()
-//                config.arguments = ["--paste"]
-//                NSWorkspace.shared.openApplication(at: dlvUrl!,
-//                                                   configuration:config)
-//            } else {
-//                // Fallback on earlier versions
-//            }
-            
-            let delegate = NSApp.delegate as? AppDelegate
-            
-            delegate?.launchDaltonViewer(argc: 2, argv: ["DaltonViewer", "--paste"])
-            
-            delegate!.setProcessingMode (mode: Nothing)
+            daltonAppDelegate!.launchDaltonViewer(argc: 2, argv: ["DaltonViewer", "--paste"])
+            daltonAppDelegate!.setProcessingMode (mode: Nothing)
         }
         
         // Keeping this around, but we're now using Metal.
@@ -528,6 +500,14 @@ class DaltonView: MTKView {
         }
         
         frameCount = frameCount + 1;
+        
+        // Eliminate the ugly artefact when moving away from Nothing. If we don't wait until
+        // the drawables all get flushed, then we get flicker with old drawable showing up on
+        // screen.
+        if (frameCount == (frameCountWhenEnteredNothing + 3))
+        {
+            self.window!.alphaValue = 0.999
+        }
     }
     
 }

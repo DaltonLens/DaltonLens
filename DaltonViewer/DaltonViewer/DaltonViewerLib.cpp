@@ -280,6 +280,8 @@ DaltonViewer::DaltonViewer()
 
 DaltonViewer::~DaltonViewer()
 {
+    dl_dbg("DaltonViewer::~DaltonViewer");
+    
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -421,10 +423,12 @@ bool DaltonViewer::initialize (int argc, char** argv)
     // let the ImGui window resizeable, and the platform window will just get resized
     // accordingly. This way we can remove the decorations AND support resize.
     glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(16, 16, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (impl->window == NULL)
         return 1;
 
+    glfwSetWindowPos(impl->window, 0, 0);
+    
     glfwMakeContextCurrent(impl->window);
     glfwSwapInterval(1); // Enable vsync
     
@@ -494,9 +498,10 @@ void DaltonViewer::runOnce ()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Hack: we need to hide it after processing the first ImGui frame, or
-    // ImGui will somehow end up showing it again.
-    if (ImGui::GetFrameCount() == 1)
+    // Hack: we need to hide it after fully processing the first ImGui frame, or
+    // ImGui will somehow end up showing it again. Also showing it on the very first frame
+    // lead to the focus not being given to the app on macOS. So doing it after the second frame.
+    if (ImGui::GetFrameCount() == 2)
     {
         dl_dbg ("Hiding the window!");
         glfwHideWindow (impl->window);
