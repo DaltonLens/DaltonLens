@@ -3,7 +3,8 @@
 int main(int argc, char** argv)
 {
     DaltonViewer viewer;
-    viewer.initialize(argc, argv);
+    if (!viewer.initialize(argc, argv))
+        return 1;
     
     // Main loop
     while (!viewer.shouldExit())

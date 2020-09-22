@@ -26,6 +26,7 @@
 		2D0C83A62517FDF400EB76AD /* imgui_impl_glfw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82E92517EABE00EB76AD /* imgui_impl_glfw.cpp */; };
 		2D0C83A72517FDF400EB76AD /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82DD2517EA9700EB76AD /* imgui_draw.cpp */; };
 		2D0C83AA2517FDFB00EB76AD /* gl3w.c in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82FA2517EB6F00EB76AD /* gl3w.c */; };
+		2D8E7F8A251A995500B87020 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82D62517EA9700EB76AD /* imgui_demo.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -299,6 +300,7 @@
 				2D0C83A32517FDF400EB76AD /* imgui_widgets.cpp in Sources */,
 				2D0C838D2517FADB00EB76AD /* DaltonViewerLib_macOS.mm in Sources */,
 				2D0C83A62517FDF400EB76AD /* imgui_impl_glfw.cpp in Sources */,
+				2D8E7F8A251A995500B87020 /* imgui_demo.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

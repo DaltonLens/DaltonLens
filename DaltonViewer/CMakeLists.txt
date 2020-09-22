@@ -3,7 +3,7 @@ set (dlv_SOURCES
     ${IMGUI_DIR}/imgui.h
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
-    # ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/examples/
     ${IMGUI_DIR}/examples/imgui_impl_opengl3.cpp
     ${IMGUI_DIR}/examples/imgui_impl_glfw.cpp

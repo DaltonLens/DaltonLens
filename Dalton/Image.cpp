@@ -118,7 +118,7 @@ namespace dl {
         
         if (!f.is_open())
         {
-            dl_dbg ("Could not open the file %s", inputFileName.c_str());
+            dl_dbg ("Could not open the file %s: %s", inputFileName.c_str(), strerror(errno));
             return false;
         }
         

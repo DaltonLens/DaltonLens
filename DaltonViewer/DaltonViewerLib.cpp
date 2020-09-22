@@ -257,6 +257,17 @@ private:
     ImGuiViewport* _viewportWhenEnabled = nullptr;
 };
 
+struct Rect
+{
+    float x = -1.f;
+    float y = -1.f;
+    float width = -1.f;
+    float height = -1.f;
+    
+    ImVec2 imPos() const { return ImVec2(x,y); }
+    ImVec2 imSize() const { return ImVec2(width,height); }
+};
+
 struct DaltonViewer::Impl
 {
     bool shouldExit = false;
@@ -273,10 +284,10 @@ struct DaltonViewer::Impl
     
     ImVec2 monitorSize = ImVec2(-1,-1);
     
-    int userProvidedWindowWidth = -1;
-    int userProvidedWindowHeight = -1;
-    int userProvidedWindowX = -1;
-    int userProvidedWindowY = -1;
+    struct {
+        Rect normal;
+        Rect current;
+    } windowSize;
 };
 
 DaltonViewer::DaltonViewer()
@@ -287,13 +298,16 @@ DaltonViewer::~DaltonViewer()
 {
     dl_dbg("DaltonViewer::~DaltonViewer");
     
-    // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
-    glfwDestroyWindow(impl->window);
-    glfwTerminate();
+    if (impl->window)
+    {
+        // Cleanup
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        
+        glfwDestroyWindow(impl->window);
+        glfwTerminate();
+    }
 }
 
 bool DaltonViewer::initialize (int argc, char** argv)
@@ -347,12 +361,16 @@ bool DaltonViewer::initialize (int argc, char** argv)
     if (parser.present<std::string>("--geometry"))
     {
         std::string geometry = parser.get<std::string>("--geometry");
-        const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d",
-                                 &impl->userProvidedWindowWidth,
-                                 &impl->userProvidedWindowHeight,
-                                 &impl->userProvidedWindowX,
-                                 &impl->userProvidedWindowY);
-        if (count != 4)
+        int x,y,w,h;
+        const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y);
+        if (count == 4)
+        {
+            impl->windowSize.normal.width = w;
+            impl->windowSize.normal.height = h;
+            impl->windowSize.normal.x = x;
+            impl->windowSize.normal.y = y;
+        }
+        else
         {
             std::cerr << "Invalid geometry string " << geometry << std::endl;
             std::cerr << "Format is WidthxHeight+X+Y" << geometry << std::endl;
@@ -424,6 +442,12 @@ bool DaltonViewer::initialize (int argc, char** argv)
     impl->monitorSize = ImVec2(mode->width, mode->height);
     dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
 
+    if (impl->windowSize.normal.width < 0) impl->windowSize.normal.width = impl->im.width();
+    if (impl->windowSize.normal.height < 0) impl->windowSize.normal.height = impl->im.height();
+    if (impl->windowSize.normal.x < 0) impl->windowSize.normal.x = impl->monitorSize.x * 0.10;
+    if (impl->windowSize.normal.y < 0) impl->windowSize.normal.y = impl->monitorSize.y * 0.10;
+    impl->windowSize.current = impl->windowSize.normal;
+    
     // Decide GL+GLSL versions
 #if __APPLE__
     // GL 3.2 + GLSL 150
@@ -469,7 +493,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
@@ -531,6 +555,9 @@ void DaltonViewer::runOnce ()
         glfwHideWindow (impl->window);
     }
 
+    // First condition to update the window is the first time we enter here.
+    bool shouldUpdateWindowSize = (ImGui::GetFrameCount() == 1);
+    
     auto& io = ImGui::GetIO();
     
     if (!io.WantCaptureKeyboard)
@@ -573,19 +600,51 @@ void DaltonViewer::runOnce ()
     }
 
     const float titleBarHeight = ImGui::GetFrameHeight();
-
-    const auto imSize = ImVec2(impl->im.width(), impl->im.height());
-    auto windowSize = ImVec2(impl->userProvidedWindowWidth < 0 ? imSize.x : impl->userProvidedWindowWidth,
-                             impl->userProvidedWindowHeight < 0 ? imSize.y : impl->userProvidedWindowHeight);
-    windowSize.y += titleBarHeight;
-
-    auto& mainVP = *ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(impl->userProvidedWindowX < 0 ? impl->monitorSize.x * 0.10 : impl->userProvidedWindowX,
-                                   impl->userProvidedWindowY < 0 ? impl->monitorSize.y*0.10 : impl->userProvidedWindowY - titleBarHeight),
-                            ImGuiCond_Once);
+        
+    if (ImGui::IsKeyPressed(GLFW_KEY_N))
+    {
+        impl->windowSize.current = impl->windowSize.normal;
+        shouldUpdateWindowSize = true;
+    }
     
-    ImGui::SetNextWindowSize(windowSize, ImGuiCond_Once);
+    if (ImGui::IsKeyPressed(GLFW_KEY_A))
+    {
+        float ratioX = impl->windowSize.current.width / impl->windowSize.normal.width;
+        float ratioY = impl->windowSize.current.height / impl->windowSize.normal.height;
+        if (ratioX < ratioY)
+        {
+            impl->windowSize.current.height = ratioX * impl->windowSize.normal.height;
+        }
+        else
+        {
+            impl->windowSize.current.width = ratioY * impl->windowSize.normal.width;
+        }
+        shouldUpdateWindowSize = true;
+    }
     
+    if (io.InputQueueCharacters.contains('<'))
+    {
+        if (impl->windowSize.current.width > 64 && impl->windowSize.current.height > 64)
+        {
+            impl->windowSize.current.width *= 0.5f;
+            impl->windowSize.current.height *= 0.5f;
+            shouldUpdateWindowSize = true;
+        }
+    }
+    
+    if (io.InputQueueCharacters.contains('>'))
+    {
+        impl->windowSize.current.width *= 2.f;
+        impl->windowSize.current.height *= 2.f;
+        shouldUpdateWindowSize = true;
+    }
+    
+    if (shouldUpdateWindowSize)
+    {
+        ImGui::SetNextWindowPos(ImVec2(impl->windowSize.current.x, impl->windowSize.current.y - titleBarHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(impl->windowSize.current.width, impl->windowSize.current.height + titleBarHeight), ImGuiCond_Always);
+    }
+
     ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
                             // ImGuiWindowFlags_NoResize
                             // ImGuiWindowFlags_NoMove
@@ -598,38 +657,46 @@ void DaltonViewer::runOnce ()
                             | ImGuiWindowFlags_NoDocking
                             | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    ImGui::SetNextWindowFocus();
     bool isOpen = true;
-    ImGui::Begin((impl->imagePath + "###Image").c_str(), &isOpen, flags);
-    if (!isOpen)
+    if (ImGui::Begin((impl->imagePath + "###Image").c_str(), &isOpen, flags))
     {
-        glfwSetWindowShouldClose(impl->window, true);
+        if (!isOpen)
+        {
+            glfwSetWindowShouldClose(impl->window, true);
+        }
+        
+        // Make sure we remain up-to-date in case the user resizes it.
+        impl->windowSize.current.width = ImGui::GetWindowWidth();
+        impl->windowSize.current.height = ImGui::GetWindowHeight() - titleBarHeight;
+        impl->windowSize.current.x = ImGui::GetWindowPos().x;
+        impl->windowSize.current.y = ImGui::GetWindowPos().y + titleBarHeight;
+        
+        // ImGuiViewport* vp = ImGui::GetWindowViewport();
+        // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
+        // {
+        //     ImGui::GetPlatformIO().Platform_SetWindowFocus(vp);
+        // }
+        
+        const auto contentSize = ImGui::GetContentRegionAvail();
+        // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
+        // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
+        
+        if (impl->currentShader)
+        {
+            impl->currentShader->enable();
+        }
+        
+        ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()), impl->windowSize.current.imSize());
+        
+        if (impl->currentShader)
+        {
+            impl->currentShader->disable();
+        }
     }
-
-    // ImGuiViewport* vp = ImGui::GetWindowViewport();
-    // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
-    // {
-    //     ImGui::GetPlatformIO().Platform_SetWindowFocus(vp);
-    // }
-
-    const auto contentSize = ImGui::GetContentRegionAvail();
-    // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
-    // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
-
-    if (impl->currentShader)
-    {
-        impl->currentShader->enable();
-    }
-
-    ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()), imSize);
-
-    if (impl->currentShader)
-    {
-        impl->currentShader->disable();
-    }
-    
     ImGui::End();
     ImGui::PopStyleVar();
+
+    // ImGui::ShowDemoWindow();
 
     // Rendering
     ImGui::Render();
