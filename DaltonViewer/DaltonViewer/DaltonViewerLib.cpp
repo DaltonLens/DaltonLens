@@ -272,6 +272,11 @@ struct DaltonViewer::Impl
     std::string imagePath;
     
     ImVec2 monitorSize = ImVec2(-1,-1);
+    
+    int userProvidedWindowWidth = -1;
+    int userProvidedWindowHeight = -1;
+    int userProvidedWindowX = -1;
+    int userProvidedWindowY = -1;
 };
 
 DaltonViewer::DaltonViewer()
@@ -309,6 +314,9 @@ bool DaltonViewer::initialize (int argc, char** argv)
           .help("Paste the image from clipboard")
           .default_value(false)
           .implicit_value(true);
+    
+    parser.add_argument("--geometry")
+        .help("Geometry of the image area");
 
     try
     {
@@ -319,7 +327,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
         std::cerr << "Wrong usage" << std::endl;
         std::cerr << err.what() << std::endl;
         std::cerr << parser;
-        exit(1);
+        return false;
     }
 
     try
@@ -336,6 +344,22 @@ bool DaltonViewer::initialize (int argc, char** argv)
         std::cerr << "No files provided" << std::endl;
     }
 
+    if (parser.present<std::string>("--geometry"))
+    {
+        std::string geometry = parser.get<std::string>("--geometry");
+        const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d",
+                                 &impl->userProvidedWindowWidth,
+                                 &impl->userProvidedWindowHeight,
+                                 &impl->userProvidedWindowX,
+                                 &impl->userProvidedWindowY);
+        if (count != 4)
+        {
+            std::cerr << "Invalid geometry string " << geometry << std::endl;
+            std::cerr << "Format is WidthxHeight+X+Y" << geometry << std::endl;
+            return false;
+        }
+    }
+    
     if (parser.get<bool>("--paste"))
     {
         impl->imagePath = "Pasted from clipboard";
@@ -343,14 +367,14 @@ bool DaltonViewer::initialize (int argc, char** argv)
         if (!clip::has(clip::image_format()))
         {
             std::cerr << "Clipboard doesn't contain an image" << std::endl;
-            return 1;
+            return false;
         }
 
         clip::image clipImg;
         if (!clip::get_image(clipImg))
         {
             std::cout << "Error getting image from clipboard\n";
-            return 2;
+            return false;
         }
 
         clip::image_spec spec = clipImg.spec();
@@ -385,7 +409,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
         default:
         {
             std::cerr << "Only 32bpp clipboard supported right now." << std::endl;
-            return 3;
+            return false;
         }
         }
     }
@@ -393,7 +417,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
-        return 1;
+        return false;
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -425,7 +449,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
     glfwWindowHint(GLFW_DECORATED, false);
     impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (impl->window == NULL)
-        return 1;
+        return false;
 
     glfwSetWindowPos(impl->window, 0, 0);
     
@@ -438,7 +462,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
     if (err)
     {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
-        return 1;
+        return false;
     }
 
     // Setup Dear ImGui context
@@ -473,7 +497,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
 
     impl->shaders[0].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
     impl->shaders[1].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
-    return 0;
+    return true;
 }
 
 void DaltonViewer::runOnce ()
@@ -551,11 +575,17 @@ void DaltonViewer::runOnce ()
     const float titleBarHeight = ImGui::GetFrameHeight();
 
     const auto imSize = ImVec2(impl->im.width(), impl->im.height());
-    const auto windowSize = ImVec2(imSize.x, imSize.y + titleBarHeight);
+    auto windowSize = ImVec2(impl->userProvidedWindowWidth < 0 ? imSize.x : impl->userProvidedWindowWidth,
+                             impl->userProvidedWindowHeight < 0 ? imSize.y : impl->userProvidedWindowHeight);
+    windowSize.y += titleBarHeight;
 
     auto& mainVP = *ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(impl->monitorSize.x * 0.10, impl->monitorSize.y*0.10), ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(impl->userProvidedWindowX < 0 ? impl->monitorSize.x * 0.10 : impl->userProvidedWindowX,
+                                   impl->userProvidedWindowY < 0 ? impl->monitorSize.y*0.10 : impl->userProvidedWindowY - titleBarHeight),
+                            ImGuiCond_Once);
+    
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Once);
+    
     ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
                             // ImGuiWindowFlags_NoResize
                             // ImGuiWindowFlags_NoMove

@@ -493,7 +493,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             {
                 timer.invalidate()
                 self.daltonViewer = nil
-                NSApp.delegate = self;
+                NSApp.delegate = self
+                NSApp.setActivationPolicy(.accessory)
             }
         }
     }
