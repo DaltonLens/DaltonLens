@@ -1,8 +1,10 @@
 #include "DaltonViewerLib.h"
 
+#define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 #include <Dalton/Image.h>
 #include <Dalton/Utils.h>
@@ -33,20 +35,28 @@ class GLTexture
 public:
     void initialize ()
     {
+        GLint prevTexture;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+        
         glGenTextures(1, &_textureId);
         glBindTexture(GL_TEXTURE_2D, _textureId);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        // Setup filtering parameters for display
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, prevTexture);
     }
 
     void upload (const dl::ImageSRGBA& im)
     {
+        GLint prevTexture;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+        
         glBindTexture(GL_TEXTURE_2D, _textureId);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, im.bytesPerRow()/im.bytesPerPixel());
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.width(), im.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        
+        glBindTexture(GL_TEXTURE_2D, prevTexture);
     }
 
     GLuint textureId() const { return _textureId; }
@@ -88,6 +98,18 @@ bool gl_checkShader(GLuint handle, const char *desc)
     }
     return (GLboolean)status == GL_TRUE;
 }
+
+const GLchar *fragmentShader_Normal_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        Out_Color = vec4(srgb.r, srgb.g, srgb.b, srgb.a);
+    }
+)";
 
 const GLchar *fragmentShader_FlipRedBlue_glsl_130 = R"(
     uniform sampler2D Texture;
@@ -177,7 +199,7 @@ public:
         checkGLError();
     }
 
-    void enable ()
+    void enable (bool useNearestInterpolation)
     {
         // We need to store the viewport to check its display size later on.
         ImGuiViewport* viewport = ImGui::GetWindowViewport();
@@ -185,7 +207,8 @@ public:
                    "You can't enable it multiple times for windows that are not in the same viewport");
         dl_assert (viewport != nullptr, "Invalid viewport.");
 
-        _viewportWhenEnabled = viewport; 
+        _viewportWhenEnabled = viewport;
+        _useNearestInterpolation = useNearestInterpolation;
 
         auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
         {
@@ -231,7 +254,7 @@ private:
 
         glUniformMatrix4fv(_attribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
         glUniform1i(_attribLocationTex, 0);
-
+        
         checkGLError();
     }
 
@@ -255,6 +278,7 @@ private:
     GLint _prevShaderHandle = 0;
 
     ImGuiViewport* _viewportWhenEnabled = nullptr;
+    bool _useNearestInterpolation = true;
 };
 
 struct Rect
@@ -275,9 +299,9 @@ struct DaltonViewer::Impl
     
     GLTexture gpuTexture;
 
-    std::array<GLShader, 2> shaders;
-    int currentShaderIndex = -1;
-    GLShader* currentShader = nullptr;
+    std::array<GLShader, 3> shaders;
+    int currentShaderIndex = 0;
+    GLShader* currentShader = &shaders[0];
     
     dl::ImageSRGBA im;
     std::string imagePath;
@@ -288,6 +312,18 @@ struct DaltonViewer::Impl
         Rect normal;
         Rect current;
     } windowSize;
+    
+    struct {
+        int zoomFactor = 1;
+        
+        // UV means normalized between 0 and 1.
+        ImVec2 uvCenter = ImVec2(0.5f,0.5f);
+    } zoom;
+    
+//    ImVec2 uvPointFromMousePos (const ImVec2& mousePos) const
+//    {
+//
+//    }
 };
 
 DaltonViewer::DaltonViewer()
@@ -499,6 +535,7 @@ bool DaltonViewer::initialize (int argc, char** argv)
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -519,8 +556,9 @@ bool DaltonViewer::initialize (int argc, char** argv)
     impl->gpuTexture.initialize();
     impl->gpuTexture.upload (impl->im);
 
-    impl->shaders[0].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->shaders[1].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->shaders[0].initialize(glsl_version, nullptr, fragmentShader_Normal_glsl_130);
+    impl->shaders[1].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->shaders[2].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
     return true;
 }
 
@@ -553,6 +591,7 @@ void DaltonViewer::runOnce ()
     {
         dl_dbg ("Hiding the window!");
         glfwHideWindow (impl->window);
+        ImGui::SetNextWindowFocus();
     }
 
     // First condition to update the window is the first time we enter here.
@@ -568,20 +607,13 @@ void DaltonViewer::runOnce ()
         }
 
         auto updateCurrentShader = [&]() {
-            if (impl->currentShaderIndex >= 0)
-            {
-                impl->currentShader = &impl->shaders[impl->currentShaderIndex];
-            }
-            else
-            {
-                impl->currentShader = nullptr;
-            }
+            impl->currentShader = &impl->shaders[impl->currentShaderIndex];
         };
 
         if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
         {
             --impl->currentShaderIndex;
-            if (impl->currentShaderIndex < -1)
+            if (impl->currentShaderIndex < 0)
             {
                 impl->currentShaderIndex = impl->shaders.size()-1;
             }
@@ -593,7 +625,7 @@ void DaltonViewer::runOnce ()
             ++impl->currentShaderIndex;
             if (impl->currentShaderIndex == impl->shaders.size())
             {
-                impl->currentShaderIndex = -1;
+                impl->currentShaderIndex = 0;
             }
             updateCurrentShader ();
         }
@@ -660,11 +692,19 @@ void DaltonViewer::runOnce ()
     bool isOpen = true;
     if (ImGui::Begin((impl->imagePath + "###Image").c_str(), &isOpen, flags))
     {
+        // Horrible hack to make sure that our window has the focus once we hide the main window.
+        // Otherwise Ctrl+Click might not work right away.
+        if (ImGui::GetFrameCount()==2)
+        {
+            auto* vp = ImGui::GetWindowViewport();
+            glfwFocusWindow((GLFWwindow*)vp->PlatformHandle);
+        }
+        
         if (!isOpen)
         {
             glfwSetWindowShouldClose(impl->window, true);
         }
-        
+                
         // Make sure we remain up-to-date in case the user resizes it.
         impl->windowSize.current.width = ImGui::GetWindowWidth();
         impl->windowSize.current.height = ImGui::GetWindowHeight() - titleBarHeight;
@@ -681,12 +721,67 @@ void DaltonViewer::runOnce ()
         // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
         // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
         
-        if (impl->currentShader)
+        impl->currentShader->enable(true);
+        
+        ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
+        
+        ImVec2 uv0 (0,0);
+        ImVec2 uv1 (1.f/impl->zoom.zoomFactor,1.f/impl->zoom.zoomFactor);
+        ImVec2 uvRoiCenter = (uv0 + uv1) * 0.5f;
+        uv0 += impl->zoom.uvCenter - uvRoiCenter;
+        uv1 += impl->zoom.uvCenter - uvRoiCenter;
+        
+        // Make sure the ROI fits in the image.
+        ImVec2 deltaToAdd (0,0);
+        if (uv0.x < 0) deltaToAdd.x = -uv0.x;
+        if (uv0.y < 0) deltaToAdd.y = -uv0.y;
+        if (uv1.x > 1.f) deltaToAdd.x = 1.f-uv1.x;
+        if (uv1.y > 1.f) deltaToAdd.y = 1.f-uv1.y;
+        uv0 += deltaToAdd;
+        uv1 += deltaToAdd;
+        
+        ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
+                     impl->windowSize.current.imSize(),
+                     uv0,
+                     uv1);
+        
+        ImVec2 mousePosInImage (0,0);
+        ImVec2 mousePosInTexture (0,0);
         {
-            impl->currentShader->enable();
+            ImVec2 widgetPos = io.MousePos - widgetTopLeft;
+            ImVec2 uv_window = widgetPos / impl->windowSize.current.imSize();
+            mousePosInTexture = (uv1-uv0)*uv_window + uv0;
+            mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()), impl->windowSize.current.imSize());
+        if (ImGui::IsItemHovered() && io.KeyAlt && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
+            ImGui::BeginTooltip();
+            const auto sRgb = impl->im(mousePosInImage.x, mousePosInImage.y);
+            ImGui::Text("MousePosInImage: (%d, %d)", (int)mousePosInImage.x, (int)mousePosInImage.y);
+            ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+            ImGui::EndTooltip();
+            ImGui::PopStyleVar();
+        }
+        
+//        dl_dbg ("Got click: %d", ImGui::IsItemClicked(ImGuiMouseButton_Left));
+//        dl_dbg ("io.KeyCtrl: %d", io.KeyCtrl);
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && io.KeyCtrl)
+        {
+            if ((impl->im.width() / float(impl->zoom.zoomFactor)) > 16.f
+                 && (impl->im.height() / float(impl->zoom.zoomFactor)) > 16.f)
+            {
+                impl->zoom.zoomFactor *= 2;
+                impl->zoom.uvCenter = mousePosInTexture;
+            }
+        }
+        
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && io.KeyCtrl)
+        {
+            if (impl->zoom.zoomFactor >= 2)
+                impl->zoom.zoomFactor /= 2;
+        }
         
         if (impl->currentShader)
         {

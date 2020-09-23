@@ -41,6 +41,8 @@ namespace dl
         inline size_t bitsPerPixel () const { return sizeof(T)*8; }
         inline size_t sizeInBytes () const { return _bytesPerRow * _height; }
         inline size_t bytesPerRow () const { return _bytesPerRow; }
+        
+        bool contains(int c, int r) const { return c >= 0 && c < _width && r >= 0 && r < _height; }
      
     public:
         using ReleaseFuncType = std::function<void(uint8_t** ptr)>;
