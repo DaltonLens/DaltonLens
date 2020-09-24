@@ -119,7 +119,12 @@ const GLchar *fragmentShader_FlipRedBlue_glsl_130 = R"(
     void main()
     {
         vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
-        Out_Color = vec4(srgb.b, srgb.g, srgb.r, srgb.a);
+        vec3 yCbCr = yCbCrFromSRGBA(srgb);
+        vec3 transformedYCbCr = yCbCr;
+        transformedYCbCr.x = yCbCr.x;
+        transformedYCbCr.y = yCbCr.z;
+        transformedYCbCr.z = yCbCr.y;
+        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
     }
 )";
 
@@ -131,15 +136,166 @@ const GLchar *fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
     void main()
     {
         vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
-        Out_Color = vec4(1.0-srgb.b, srgb.g, srgb.r, srgb.a);
+        vec3 yCbCr = yCbCrFromSRGBA(srgb);
+        vec3 transformedYCbCr = yCbCr;
+        transformedYCbCr.x = yCbCr.x;
+        transformedYCbCr.y = -yCbCr.z; // flip Cb
+        transformedYCbCr.z = yCbCr.y;
+        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
+    }
+)";
+
+const GLchar *fragmentShader_DaltonizeV1_Protanope_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+        vec3 lms = lmsFromSRGBA(srgba);
+        vec3 lmsSimulated = applyProtanope(lms);
+        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
+        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
+        Out_Color = srgbaOut;
+    }
+)";
+
+const GLchar *fragmentShader_DaltonizeV1_Deuteranope_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+        vec3 lms = lmsFromSRGBA(srgba);
+        vec3 lmsSimulated = applyDeuteranope(lms);
+        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
+        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
+        Out_Color = srgbaOut;
+    }
+)";
+
+const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    in vec4 Frag_Color;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+        vec3 lms = lmsFromSRGBA(srgba);
+        vec3 lmsSimulated = applyTritanope(lms);
+        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
+        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
+        Out_Color = srgbaOut;
     }
 )";
 
 class GLShader
 {
 public:
-    void initialize(const char* glslVersionString, const GLchar* vertexShader, const GLchar* fragmentShader)
+    const std::string& name() const { return _name; }
+    
+    static const GLchar* fragmentLibrary() {
+        return R"(
+             vec3 yCbCrFromSRGBA (vec4 srgba)
+             {
+                 // FIXME: this is ignoring gamma and treating it like linearRGB
+                 float y =   0.57735027*srgba.r + 0.57735027*srgba.g + 0.57735027*srgba.b;
+                 float cr =  0.70710678*srgba.r - 0.70710678*srgba.g;
+                 float cb = -0.40824829*srgba.r - 0.40824829*srgba.g + 0.81649658*srgba.b;
+                 return vec3(y,cb,cr);
+             }
+
+             vec4 sRGBAfromYCbCr (vec3 yCbCr, float alpha)
+             {
+                 // FIXME: this is ignoring gamma and treating it like linearRGB
+                 
+                 vec4 srgbaOut;
+                 
+                 float y = yCbCr.x;
+                 float cb = yCbCr.y;
+                 float cr = yCbCr.z;
+                 
+                 srgbaOut.r = clamp(5.77350269e-01*y + 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
+                 srgbaOut.g = clamp(5.77350269e-01*y - 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
+                 srgbaOut.b = clamp(5.77350269e-01*y +            0.0*cr + 8.16496581e-01*cb, 0.0, 1.0);
+                 srgbaOut.a = alpha;
+                 return srgbaOut;
+             }
+        
+             vec3 lmsFromSRGBA (vec4 srgba)
+             {
+                 //    17.8824, 43.5161, 4.11935,
+                 //    3.45565, 27.1554, 3.86714,
+                 //    0.0299566, 0.184309, 1.46709
+             
+                 vec3 lms;
+                 lms[0] = 17.8824*srgba.r + 43.5161*srgba.g + 4.11935*srgba.b;
+                 lms[1] = 3.45565*srgba.r + 27.1554*srgba.g + 3.86714*srgba.b;
+                 lms[2] = 0.0299566*srgba.r + 0.184309*srgba.g + 1.46709*srgba.b;
+                 return lms;
+             }
+
+             vec4 sRGBAFromLms (vec3 lms, float alpha)
+             {
+                 //    0.0809445    -0.130504     0.116721
+                 //    -0.0102485    0.0540193    -0.113615
+                 //    -0.000365297  -0.00412162     0.693511
+             
+                 vec4 srgbaOut;
+                 srgbaOut.r = clamp(0.0809445*lms[0] - 0.130504*lms[1] + 0.116721*lms[2], 0.0, 1.0);
+                 srgbaOut.g = clamp(-0.0102485*lms[0] + 0.0540193*lms[1] - 0.113615*lms[2], 0.0, 1.0);
+                 srgbaOut.b = clamp(-0.000365297*lms[0] - 0.00412162*lms[1] + 0.693511*lms[2], 0.0, 1.0);
+                 srgbaOut.a = alpha;
+                 return srgbaOut;
+             }
+        
+             vec3 applyProtanope (vec3 lms)
+             {
+                 //    p.l = /* 0*p.l + */ 2.02344*p.m - 2.52581*p.s;
+                 vec3 lmsTransformed = lms;
+                 lmsTransformed[0] = 2.02344*lms[1] - 2.52581*lms[2];
+                 return lmsTransformed;
+             }
+
+             vec3 applyDeuteranope (vec3 lms)
+             {
+                 //    p.m = 0.494207*p.l /* + 0*p.m */ + 1.24827*p.s;
+                 vec3 lmsTransformed = lms;
+                 lmsTransformed[1] = 0.494207*lms[0] + 1.24827*lms[2];
+                 return lmsTransformed;
+             }
+
+             vec3 applyTritanope (vec3 lms)
+             {
+                 //    p.s = -0.395913*p.l + 0.801109*p.m /* + 0*p.s */;
+                 vec3 lmsTransformed = lms;
+                 lmsTransformed[2] = -0.395913*lms[0] + 0.801109*lms[1];
+                 return lmsTransformed;
+             }
+        
+             vec4 daltonizeV1 (vec4 srgba, vec4 srgbaSimulated)
+             {
+                 vec3 error = srgba.rgb - srgbaSimulated.rgb;
+            
+                 float updatedG = srgba.g + 0.7*error.r + 1.0*error.g + 0.0*error.b;
+                 float updatedB = srgba.b + 0.7*error.r + 0.0*error.g + 1.0*error.b;
+            
+                 vec4 srgbaOut = srgba;
+                 srgbaOut.g = clamp(updatedG, 0.0, 1.0);
+                 srgbaOut.b = clamp(updatedB, 0.0, 1.0);
+                 return srgbaOut;
+             }
+        )";
+    }
+    
+    void initialize(const std::string& name, const char* glslVersionString, const GLchar* vertexShader, const GLchar* fragmentShader)
     {
+        _name = name;
+        
         const GLchar *defaultVertexShader_glsl_130 =
             "uniform mat4 ProjMtx;\n"
             "in vec2 Position;\n"
@@ -178,9 +334,9 @@ public:
         glCompileShader(_vertHandle);
         gl_checkShader(_vertHandle, "vertex shader");
 
-        const GLchar *fragment_shader_with_version[3] = {glslVersionString, "\n", fragmentShader};
+        const GLchar *fragment_shader_with_version[4] = {glslVersionString, "\n", fragmentLibrary(), fragmentShader};
         _fragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(_fragHandle, 3, fragment_shader_with_version, NULL);
+        glShaderSource(_fragHandle, 4, fragment_shader_with_version, NULL);
         glCompileShader(_fragHandle);
         gl_checkShader(_fragHandle, "fragment shader");
 
@@ -279,6 +435,8 @@ private:
 
     ImGuiViewport* _viewportWhenEnabled = nullptr;
     bool _useNearestInterpolation = true;
+    
+    std::string _name = "Unknown";
 };
 
 struct Rect
@@ -299,7 +457,7 @@ struct DaltonViewer::Impl
     
     GLTexture gpuTexture;
 
-    std::array<GLShader, 3> shaders;
+    std::array<GLShader, 6> shaders;
     int currentShaderIndex = 0;
     GLShader* currentShader = &shaders[0];
     
@@ -556,9 +714,12 @@ bool DaltonViewer::initialize (int argc, char** argv)
     impl->gpuTexture.initialize();
     impl->gpuTexture.upload (impl->im);
 
-    impl->shaders[0].initialize(glsl_version, nullptr, fragmentShader_Normal_glsl_130);
-    impl->shaders[1].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->shaders[2].initialize(glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->shaders[0].initialize("Original", glsl_version, nullptr, fragmentShader_Normal_glsl_130);
+    impl->shaders[1].initialize("Daltonize - Protanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
+    impl->shaders[2].initialize("Daltonize - Deuteranope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
+    impl->shaders[3].initialize("Daltonize - Tritanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
+    impl->shaders[4].initialize("Flip Red/Blue", glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->shaders[5].initialize("Flip Red/Blue and Invert Red", glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
     return true;
 }
 
@@ -690,7 +851,7 @@ void DaltonViewer::runOnce ()
                             | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
-    if (ImGui::Begin((impl->imagePath + "###Image").c_str(), &isOpen, flags))
+    if (ImGui::Begin((impl->imagePath + " - " + impl->currentShader->name() + "###Image").c_str(), &isOpen, flags))
     {
         // Horrible hack to make sure that our window has the focus once we hide the main window.
         // Otherwise Ctrl+Click might not work right away.
@@ -748,7 +909,10 @@ void DaltonViewer::runOnce ()
         ImVec2 mousePosInImage (0,0);
         ImVec2 mousePosInTexture (0,0);
         {
-            ImVec2 widgetPos = io.MousePos - widgetTopLeft;
+            // This 0.5 offset is important since the mouse coordinate is an integer.
+            // So when we are in the center of a pixel we'll return 0,0 instead of
+            // 0.5,0.5.
+            ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - widgetTopLeft;
             ImVec2 uv_window = widgetPos / impl->windowSize.current.imSize();
             mousePosInTexture = (uv1-uv0)*uv_window + uv0;
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
@@ -758,8 +922,27 @@ void DaltonViewer::runOnce ()
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
             ImGui::BeginTooltip();
-            const auto sRgb = impl->im(mousePosInImage.x, mousePosInImage.y);
-            ImGui::Text("MousePosInImage: (%d, %d)", (int)mousePosInImage.x, (int)mousePosInImage.y);
+            const auto sRgb = impl->im((int)mousePosInImage.x, (int)mousePosInImage.y);
+            const int zoomLenInPixels = 5; // most be odd
+            const ImVec2 zoomLen_uv (float(zoomLenInPixels) / impl->im.width(), float(zoomLenInPixels) / impl->im.height());
+            ImVec2 zoom_uv0 = mousePosInTexture - zoomLen_uv*0.5f;
+            ImVec2 zoom_uv1 = mousePosInTexture + zoomLen_uv*0.5f;
+            
+            ImVec2 zoomItemSize (64,64);
+            ImVec2 pixelSizeInZoom = zoomItemSize / ImVec2(zoomLenInPixels,zoomLenInPixels);
+            
+            ImVec2 zoomTopLeft = ImGui::GetCursorScreenPos();
+            ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
+                         zoomItemSize,
+                         zoom_uv0,
+                         zoom_uv1);
+            
+            auto* drawList = ImGui::GetWindowDrawList();
+            ImVec2 p1 = pixelSizeInZoom * (zoomLenInPixels / 2) + zoomTopLeft;
+            ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomTopLeft;
+            drawList->AddRect(p1, p2, IM_COL32(255,0,0,255));
+            
+            ImGui::Text("MousePosInImage: (%.2f, %.2f)", mousePosInImage.x, mousePosInImage.y);
             ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
             ImGui::EndTooltip();
             ImGui::PopStyleVar();
