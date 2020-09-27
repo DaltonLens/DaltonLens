@@ -43,4 +43,19 @@ namespace dl
         return std::max (std::min(v, 255.f), 0.f);
     };
 
+    struct vec2i
+    {
+        vec2i (int x = 0, int y = 0) : x(x), y(y) {}
+        
+        union {
+            int v[2];
+            struct { int x, y; };
+            struct { int col, row; };
+        };
+    };
+
+    inline bool operator== (const vec2i& lhs, const vec2i& rhs){
+        return lhs.x == rhs.x && lhs.y == rhs.y;
+    }
+
 } // dl

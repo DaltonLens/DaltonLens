@@ -8,6 +8,7 @@
 
 #include <Dalton/Image.h>
 #include <Dalton/Utils.h>
+#include <Dalton/MathUtils.h>
 
 // #include <GL/glew.h>
 #include <GL/gl3w.h>            // Initialize with gl3wInit()
@@ -354,8 +355,15 @@ public:
 
         checkGLError();
     }
+    
+    GLuint shaderHandle() const { return _shaderHandle; }
 
-    void enable (bool useNearestInterpolation)
+    void setExtraUserCallback (const std::function<void(GLShader&)>& extraRenderCallback)
+    {
+        _extraRenderCallback = extraRenderCallback;
+    }
+    
+    void enable ()
     {
         // We need to store the viewport to check its display size later on.
         ImGuiViewport* viewport = ImGui::GetWindowViewport();
@@ -364,7 +372,6 @@ public:
         dl_assert (viewport != nullptr, "Invalid viewport.");
 
         _viewportWhenEnabled = viewport;
-        _useNearestInterpolation = useNearestInterpolation;
 
         auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
         {
@@ -411,6 +418,9 @@ private:
         glUniformMatrix4fv(_attribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
         glUniform1i(_attribLocationTex, 0);
         
+        if (_extraRenderCallback)
+            _extraRenderCallback(*this);
+        
         checkGLError();
     }
 
@@ -434,7 +444,8 @@ private:
     GLint _prevShaderHandle = 0;
 
     ImGuiViewport* _viewportWhenEnabled = nullptr;
-    bool _useNearestInterpolation = true;
+    
+    std::function<void(GLShader&)> _extraRenderCallback = nullptr;
     
     std::string _name = "Unknown";
 };
@@ -450,16 +461,131 @@ struct Rect
     ImVec2 imSize() const { return ImVec2(width,height); }
 };
 
+enum class DaltonViewerMode {
+    Main = 0,
+    HighlightRegions,
+};
+
+struct HighlightRegion
+{
+    void initialize (const char* glsl_version, dl::ImageSRGBA& im)
+    {
+        _im = &im;
+        
+        const GLchar *fragmentShader_highlightSameColor = R"(
+            uniform sampler2D Texture;
+            uniform vec3 u_refColor;
+            uniform float u_deltaThreshold;
+            uniform int u_frameCount;
+            in vec2 Frag_UV;
+            in vec4 Frag_Color;
+            out vec4 Out_Color;
+            void main()
+            {
+                vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+                vec3 delta = abs(srgba.rgb - u_refColor.rgb);
+                float maxDelta = max(delta.r, max(delta.g, delta.b));
+                float isSame = float(maxDelta < u_deltaThreshold);
+                
+                vec3 yCbCr = yCbCrFromSRGBA(srgba);
+                yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
+                
+                float t = u_frameCount;
+                float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
+                timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(yCbCr.x > 0.86));
+                float timeWeightedIntensity = yCbCr.x + timeWeight;
+                yCbCr.x = mix (yCbCr.x, timeWeightedIntensity, isSame);
+        
+                vec3 transformedSRGB = sRGBAfromYCbCr(yCbCr, 1.0).rgb;
+                Out_Color = vec4 (transformedSRGB, 1.0);
+            }
+        )";
+        
+        _highlightSameColorShader.initialize("Highlight Same Color", glsl_version, nullptr, fragmentShader_highlightSameColor);
+        GLuint shaderHandle = _highlightSameColorShader.shaderHandle();
+                
+        _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
+        _attribLocationDeltaThreshold = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaThreshold");
+        _attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
+        
+        _highlightSameColorShader.setExtraUserCallback([this](GLShader& shader) {
+            glUniform3f(_attribLocationRefColor, _activeColor.x, _activeColor.y, _activeColor.z);
+            glUniform1f(_attribLocationDeltaThreshold, _deltaColorThreshold/255.f);
+            glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
+        });
+    }
+    
+    void enableShader ()
+    {
+        if (_hasActiveColor)
+            _highlightSameColorShader.enable();
+    }
+    
+    void disableShader ()
+    {
+        if (_hasActiveColor)
+            _highlightSameColorShader.disable();
+    }
+    
+    void setSelectedPixel (float x, float y)
+    {
+        const auto newPixel = dl::vec2i((int)x, (int)y);
+        
+        if (_selectedPixel == newPixel)
+        {
+            // Toggle it.
+            _hasActiveColor = false;
+            _selectedPixel = dl::vec2i(-1,-1);
+            return;
+        }
+        
+        _selectedPixel = newPixel;
+        dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
+        _activeColor.x = srgba.r / 255.f;
+        _activeColor.y = srgba.g / 255.f;
+        _activeColor.z = srgba.b / 255.f;
+        _hasActiveColor = true;
+    }
+    
+    void render ()
+    {
+        if (ImGui::Begin("Highlight Regions"))
+        {
+            ImGui::Text("Has active color = %d", _hasActiveColor);
+            ImGui::Text("Active color = %d %d %d", (int)(255.f*_activeColor.x), (int)(255.f*_activeColor.y), (int)(255.f*_activeColor.z));
+            ImGui::SliderInt("Max Delta Color", &_deltaColorThreshold, 0, 32);
+        }
+        ImGui::End();
+    }
+    
+private:
+    bool _hasActiveColor = false;
+    ImVec4 _activeColor = ImVec4(0,0,0,1);
+    int _deltaColorThreshold = 10;
+    GLShader _highlightSameColorShader;
+    
+    GLuint _attribLocationRefColor = 0;
+    GLuint _attribLocationDeltaThreshold = 0;
+    GLuint _attribLocationFrameCount = 0;
+    
+    dl::ImageSRGBA* _im = nullptr;
+    dl::vec2i _selectedPixel = dl::vec2i(0,0);
+};
+
 struct DaltonViewer::Impl
 {
+    DaltonViewerMode currentMode = DaltonViewerMode::Main;
+    
+    HighlightRegion highlightRegion;
+    
     bool shouldExit = false;
     GLFWwindow* window = nullptr;
     
     GLTexture gpuTexture;
 
-    std::array<GLShader, 6> shaders;
-    int currentShaderIndex = 0;
-    GLShader* currentShader = &shaders[0];
+    std::array<GLShader, 6> visualizationShaders;
+    int currentVisualizationShaderIndex = 0;
+    GLShader* currentVisualizationShader = &visualizationShaders[0];
     
     dl::ImageSRGBA im;
     std::string imagePath;
@@ -714,12 +840,15 @@ bool DaltonViewer::initialize (int argc, char** argv)
     impl->gpuTexture.initialize();
     impl->gpuTexture.upload (impl->im);
 
-    impl->shaders[0].initialize("Original", glsl_version, nullptr, fragmentShader_Normal_glsl_130);
-    impl->shaders[1].initialize("Daltonize - Protanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
-    impl->shaders[2].initialize("Daltonize - Deuteranope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
-    impl->shaders[3].initialize("Daltonize - Tritanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
-    impl->shaders[4].initialize("Flip Red/Blue", glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->shaders[5].initialize("Flip Red/Blue and Invert Red", glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->visualizationShaders[0].initialize("Original", glsl_version, nullptr, fragmentShader_Normal_glsl_130);
+    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
+    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
+    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
+    impl->visualizationShaders[4].initialize("Flip Red/Blue", glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    
+    impl->highlightRegion.initialize(glsl_version, impl->im);
+    
     return true;
 }
 
@@ -768,25 +897,25 @@ void DaltonViewer::runOnce ()
         }
 
         auto updateCurrentShader = [&]() {
-            impl->currentShader = &impl->shaders[impl->currentShaderIndex];
+            impl->currentVisualizationShader = &impl->visualizationShaders[impl->currentVisualizationShaderIndex];
         };
 
         if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
         {
-            --impl->currentShaderIndex;
-            if (impl->currentShaderIndex < 0)
+            --impl->currentVisualizationShaderIndex;
+            if (impl->currentVisualizationShaderIndex < 0)
             {
-                impl->currentShaderIndex = impl->shaders.size()-1;
+                impl->currentVisualizationShaderIndex = impl->visualizationShaders.size()-1;
             }
             updateCurrentShader();
         }
 
         if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT))
         {
-            ++impl->currentShaderIndex;
-            if (impl->currentShaderIndex == impl->shaders.size())
+            ++impl->currentVisualizationShaderIndex;
+            if (impl->currentVisualizationShaderIndex == impl->visualizationShaders.size())
             {
-                impl->currentShaderIndex = 0;
+                impl->currentVisualizationShaderIndex = 0;
             }
             updateCurrentShader ();
         }
@@ -813,6 +942,18 @@ void DaltonViewer::runOnce ()
             impl->windowSize.current.width = ratioY * impl->windowSize.normal.width;
         }
         shouldUpdateWindowSize = true;
+    }
+    
+    if (ImGui::IsKeyPressed(GLFW_KEY_D))
+    {
+        if (impl->currentMode == DaltonViewerMode::HighlightRegions)
+        {
+            impl->currentMode = DaltonViewerMode::Main;
+        }
+        else
+        {
+            impl->currentMode = DaltonViewerMode::HighlightRegions;
+        }
     }
     
     if (io.InputQueueCharacters.contains('<'))
@@ -851,7 +992,23 @@ void DaltonViewer::runOnce ()
                             | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
-    if (ImGui::Begin((impl->imagePath + " - " + impl->currentShader->name() + "###Image").c_str(), &isOpen, flags))
+    
+    std::string mainWindowName = "Invalid";
+    switch (impl->currentMode)
+    {
+        case DaltonViewerMode::Main:
+        {
+            mainWindowName = impl->imagePath + " - " + impl->currentVisualizationShader->name();
+            break;
+        }
+        case DaltonViewerMode::HighlightRegions:
+        {
+            mainWindowName = "Highlight Regions";
+            break;
+        }
+    }
+    
+    if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
         // Horrible hack to make sure that our window has the focus once we hide the main window.
         // Otherwise Ctrl+Click might not work right away.
@@ -881,9 +1038,7 @@ void DaltonViewer::runOnce ()
         const auto contentSize = ImGui::GetContentRegionAvail();
         // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
         // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
-        
-        impl->currentShader->enable(true);
-        
+                
         ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
         
         ImVec2 uv0 (0,0);
@@ -901,10 +1056,40 @@ void DaltonViewer::runOnce ()
         uv0 += deltaToAdd;
         uv1 += deltaToAdd;
         
+        switch (impl->currentMode)
+        {
+            case DaltonViewerMode::Main:
+            {
+                impl->currentVisualizationShader->enable();
+                break;
+            }
+                
+            case DaltonViewerMode::HighlightRegions:
+            {
+                impl->highlightRegion.enableShader();
+                break;
+            }
+        }
+        
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
                      impl->windowSize.current.imSize(),
                      uv0,
                      uv1);
+        
+        switch (impl->currentMode)
+        {
+            case DaltonViewerMode::Main:
+            {
+                impl->currentVisualizationShader->disable();
+                break;
+            }
+                
+            case DaltonViewerMode::HighlightRegions:
+            {
+                impl->highlightRegion.disableShader();
+                break;
+            }
+        }
         
         ImVec2 mousePosInImage (0,0);
         ImVec2 mousePosInTexture (0,0);
@@ -965,10 +1150,25 @@ void DaltonViewer::runOnce ()
             if (impl->zoom.zoomFactor >= 2)
                 impl->zoom.zoomFactor /= 2;
         }
+                
+        const bool noModifiers = !io.KeyCtrl && !io.KeyAlt && !io.KeySuper && !io.KeyShift;
         
-        if (impl->currentShader)
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && noModifiers)
         {
-            impl->currentShader->disable();
+            switch (impl->currentMode)
+            {
+                case DaltonViewerMode::HighlightRegions:
+                {
+                    impl->highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
+                    break;
+                }
+                    
+                case DaltonViewerMode::Main:
+                {
+                    // nothing yet, will be selection / crop later on?
+                    break;
+                }
+            }
         }
     }
     ImGui::End();
@@ -976,6 +1176,9 @@ void DaltonViewer::runOnce ()
 
     // ImGui::ShowDemoWindow();
 
+    if (impl->currentMode == DaltonViewerMode::HighlightRegions)
+        impl->highlightRegion.render();
+    
     // Rendering
     ImGui::Render();
 
