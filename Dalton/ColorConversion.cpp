@@ -161,5 +161,13 @@ namespace dl
             
         });
     }
+
+    PixelYCbCr convertToYCbCr(const PixelSRGBA& srgba)
+    {
+        float y =   0.57735027*srgba.r + 0.57735027*srgba.g + 0.57735027*srgba.b;
+        float cr =  0.70710678*srgba.r - 0.70710678*srgba.g;
+        float cb = -0.40824829*srgba.r - 0.40824829*srgba.g + 0.81649658*srgba.b;
+        return PixelYCbCr(y, cb, cr);
+    }
     
 } // dl

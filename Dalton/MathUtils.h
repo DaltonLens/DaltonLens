@@ -43,6 +43,16 @@ namespace dl
         return std::max (std::min(v, 255.f), 0.f);
     };
 
+    template <class T>
+    T keepInRange (T value, T min, T max)
+    {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
+    }
+
     struct vec2i
     {
         vec2i (int x = 0, int y = 0) : x(x), y(y) {}

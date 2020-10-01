@@ -31,5 +31,7 @@ namespace dl
         void switchCbCr (ImageSRGBA& srgbaImage);
         void switchAndFlipCbCr (ImageSRGBA& srgbaImage);
     };
+
+    PixelYCbCr convertToYCbCr(const PixelSRGBA& p);
     
 } // dl

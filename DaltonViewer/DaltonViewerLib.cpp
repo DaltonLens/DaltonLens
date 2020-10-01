@@ -9,6 +9,7 @@
 #include <Dalton/Image.h>
 #include <Dalton/Utils.h>
 #include <Dalton/MathUtils.h>
+#include <Dalton/ColorConversion.h>
 
 // #include <GL/glew.h>
 #include <GL/gl3w.h>            // Initialize with gl3wInit()
@@ -201,6 +202,8 @@ public:
     
     static const GLchar* fragmentLibrary() {
         return R"(
+             const float hsxEpsilon = 1e-10;
+        
              vec3 yCbCrFromSRGBA (vec4 srgba)
              {
                  // FIXME: this is ignoring gamma and treating it like linearRGB
@@ -252,6 +255,45 @@ public:
                  srgbaOut.b = clamp(-0.000365297*lms[0] - 0.00412162*lms[1] + 0.693511*lms[2], 0.0, 1.0);
                  srgbaOut.a = alpha;
                  return srgbaOut;
+             }
+        
+             // H in [0,1]
+             // C in [0,1]
+             // V in [0,1]
+             vec3 HCVFromRGB(vec3 RGB)
+             {
+                 // Based on work by Sam Hocevar and Emil Persson
+                 vec4 P = (RGB.g < RGB.b) ? vec4(RGB.bg, -1.0, 2.0/3.0) : vec4(RGB.gb, 0.0, -1.0/3.0);
+                 vec4 Q = (RGB.r < P.x) ? vec4(P.xyw, RGB.r) : vec4(RGB.r, P.yzx);
+                 float C = Q.x - min(Q.w, Q.y);
+                 float H = abs((Q.w - Q.y) / (6 * C + hsxEpsilon) + Q.z);
+                 return vec3(H, C, Q.x);
+             }
+             
+             // H in [0,1]
+             // C in [0,1]
+             // V in [0,1]
+             vec3 HSVFromSRGB (vec3 srgb)
+             {
+                 // FIXME: this is ignoring gamma and treating it like linearRGB
+             
+                 vec3 HCV = HCVFromRGB(srgb.xyz);
+                 float S = HCV.y / (HCV.z + hsxEpsilon);
+                 return vec3(HCV.x, S, HCV.z);
+             }
+         
+             vec3 RGBFromHUE(float H)
+             {
+                 float R = abs(H * 6 - 3) - 1;
+                 float G = 2 - abs(H * 6 - 2);
+                 float B = 2 - abs(H * 6 - 4);
+                 return clamp(vec3(R,G,B), 0, 1);
+             }
+        
+             vec4 sRGBAFromHSV(vec3 HSV, float alpha)
+             {
+                 vec3 RGB = RGBFromHUE(HSV.x);
+                 return vec4(((RGB - 1) * HSV.y + 1) * HSV.z, alpha);
              }
         
              vec3 applyProtanope (vec3 lms)
@@ -480,24 +522,38 @@ struct HighlightRegion
             in vec2 Frag_UV;
             in vec4 Frag_Color;
             out vec4 Out_Color;
+        
+            float hsvDist_max(vec3 hsv1, vec3 hsv2)
+            {
+                // hue is modulo 1.0 (360 degrees)
+                float h_dist = min (abs(hsv1.x - hsv2.x), min(abs(hsv1.x-1.0-hsv2.x), abs(hsv1.x+1.0-hsv2.x)));
+                h_dist *= 32.0;
+                float s_dist = abs(hsv1.y - hsv2.y) * 0.5;
+                float v_dist = abs(hsv1.z - hsv2.z) * 0.25;
+                return max(h_dist, max(s_dist, v_dist));
+            }
+        
             void main()
             {
                 vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-                vec3 delta = abs(srgba.rgb - u_refColor.rgb);
-                float maxDelta = max(delta.r, max(delta.g, delta.b));
-                float isSame = float(maxDelta < u_deltaThreshold);
+                vec3 hsv = HSVFromSRGB(srgba.rgb);                
+                vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
                 
-                vec3 yCbCr = yCbCrFromSRGBA(srgba);
-                yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
+                // vec3 delta = abs(srgba.rgb - u_refColor.rgb);
+                // float maxDelta = max(delta.r, max(delta.g, delta.b));
+                float maxDelta = hsvDist_max(ref_hsv, hsv);
+                float isSame = float(maxDelta < u_deltaThreshold);
+                                
+                // yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
                 
                 float t = u_frameCount;
                 float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
-                timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(yCbCr.x > 0.86));
-                float timeWeightedIntensity = yCbCr.x + timeWeight;
-                yCbCr.x = mix (yCbCr.x, timeWeightedIntensity, isSame);
+                timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(hsv.z > 0.86));
+                float timeWeightedIntensity = hsv.z + timeWeight;
+                hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
         
-                vec3 transformedSRGB = sRGBAfromYCbCr(yCbCr, 1.0).rgb;
-                Out_Color = vec4 (transformedSRGB, 1.0);
+                vec4 transformedSRGB = sRGBAFromHSV(hsv, 1.0);
+                Out_Color = transformedSRGB;
             }
         )";
         
@@ -510,7 +566,7 @@ struct HighlightRegion
         
         _highlightSameColorShader.setExtraUserCallback([this](GLShader& shader) {
             glUniform3f(_attribLocationRefColor, _activeColor.x, _activeColor.y, _activeColor.z);
-            glUniform1f(_attribLocationDeltaThreshold, _deltaColorThreshold/255.f);
+            glUniform1f(_attribLocationDeltaThreshold, _deltaColorThreshold/100.f);
             glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
         });
     }
@@ -546,6 +602,13 @@ struct HighlightRegion
         _activeColor.z = srgba.b / 255.f;
         _hasActiveColor = true;
     }
+ 
+    void addSliderDelta (float delta)
+    {
+        dl_dbg ("delta = %f", delta);
+        _deltaColorThreshold -= delta;
+        _deltaColorThreshold = dl::keepInRange(_deltaColorThreshold, 1.f, 32.f);
+    }
     
     void render ()
     {
@@ -553,7 +616,14 @@ struct HighlightRegion
         {
             ImGui::Text("Has active color = %d", _hasActiveColor);
             ImGui::Text("Active color = %d %d %d", (int)(255.f*_activeColor.x), (int)(255.f*_activeColor.y), (int)(255.f*_activeColor.z));
-            ImGui::SliderInt("Max Delta Color", &_deltaColorThreshold, 0, 32);
+            float h,s,v;
+            ImGui::ColorConvertRGBtoHSV(255.f*_activeColor.x, 255.f*_activeColor.y, 255.f*_activeColor.z, h, s, v);
+            ImGui::Text("Active color HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
+            int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
+            int deltaInt = prevDeltaInt;
+            ImGui::SliderInt("Max Delta Color", &deltaInt, 1, 32);
+            if (deltaInt != prevDeltaInt)
+                _deltaColorThreshold = deltaInt;
         }
         ImGui::End();
     }
@@ -561,7 +631,7 @@ struct HighlightRegion
 private:
     bool _hasActiveColor = false;
     ImVec4 _activeColor = ImVec4(0,0,0,1);
-    int _deltaColorThreshold = 10;
+    float _deltaColorThreshold = 10.f;
     GLShader _highlightSameColorShader;
     
     GLuint _attribLocationRefColor = 0;
@@ -1129,6 +1199,11 @@ void DaltonViewer::runOnce ()
             
             ImGui::Text("MousePosInImage: (%.2f, %.2f)", mousePosInImage.x, mousePosInImage.y);
             ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+            const auto ycbcr = dl::convertToYCbCr(sRgb);
+            ImGui::Text("yCbCr: [%d %d %d]", int(ycbcr.x), int(ycbcr.y), int(ycbcr.z));
+            float h,s,v;
+            ImGui::ColorConvertRGBtoHSV(sRgb.r, sRgb.g, sRgb.b, h, s, v);
+            ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
             ImGui::EndTooltip();
             ImGui::PopStyleVar();
         }
@@ -1153,27 +1228,23 @@ void DaltonViewer::runOnce ()
                 
         const bool noModifiers = !io.KeyCtrl && !io.KeyAlt && !io.KeySuper && !io.KeyShift;
         
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && noModifiers)
+        if (impl->currentMode == DaltonViewerMode::HighlightRegions)
         {
-            switch (impl->currentMode)
+            // Accept Alt in case the user is still zooming in.
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !io.KeyCtrl && !io.KeySuper && !io.KeyShift)
             {
-                case DaltonViewerMode::HighlightRegions:
-                {
-                    impl->highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
-                    break;
-                }
-                    
-                case DaltonViewerMode::Main:
-                {
-                    // nothing yet, will be selection / crop later on?
-                    break;
-                }
+                impl->highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
+            }
+            
+            if (io.MouseWheel != 0.f)
+            {
+                impl->highlightRegion.addSliderDelta (io.MouseWheel * 5.f);
             }
         }
     }
     ImGui::End();
     ImGui::PopStyleVar();
-
+    
     // ImGui::ShowDemoWindow();
 
     if (impl->currentMode == DaltonViewerMode::HighlightRegions)

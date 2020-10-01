@@ -344,6 +344,7 @@ namespace dl
     
     struct PixelLinearRGB : public PixelXYZ { using PixelXYZ::PixelXYZ; };
     struct PixelLMS : public PixelXYZ { using PixelXYZ::PixelXYZ; };
+    struct PixelYCbCr : public PixelXYZ { using PixelXYZ::PixelXYZ; };
     
     // Strong types to avoid confusion.
     using ImageSRGBA = Image<PixelSRGBA>;
