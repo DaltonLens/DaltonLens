@@ -517,20 +517,20 @@ struct HighlightRegion
         const GLchar *fragmentShader_highlightSameColor = R"(
             uniform sampler2D Texture;
             uniform vec3 u_refColor;
-            uniform float u_deltaThreshold;
+            uniform float u_distThreshold;
             uniform int u_frameCount;
             in vec2 Frag_UV;
             in vec4 Frag_Color;
             out vec4 Out_Color;
         
-            float hsvDist_max(vec3 hsv1, vec3 hsv2)
+            float hsvDist_AA(vec3 hsv1, vec3 hsv2)
             {
                 // hue is modulo 1.0 (360 degrees)
-                float h_dist = min (abs(hsv1.x - hsv2.x), min(abs(hsv1.x-1.0-hsv2.x), abs(hsv1.x+1.0-hsv2.x)));
-                h_dist *= 32.0;
-                float s_dist = abs(hsv1.y - hsv2.y) * 0.5;
-                float v_dist = abs(hsv1.z - hsv2.z) * 0.25;
-                return max(h_dist, max(s_dist, v_dist));
+                float dh = abs(hsv1.x - hsv2.x);
+                float h_dist = min (dh, 1.0-dh);
+                float s_dist = abs(hsv1.y - hsv2.y) * 0.1;
+                float v_dist = abs(hsv1.z - hsv2.z) * 0.05;
+                return 255.0 * sqrt(h_dist*h_dist + s_dist*s_dist + v_dist*v_dist);
             }
         
             void main()
@@ -541,15 +541,16 @@ struct HighlightRegion
                 
                 // vec3 delta = abs(srgba.rgb - u_refColor.rgb);
                 // float maxDelta = max(delta.r, max(delta.g, delta.b));
-                float maxDelta = hsvDist_max(ref_hsv, hsv);
-                float isSame = float(maxDelta < u_deltaThreshold);
+                float dist = hsvDist_AA(ref_hsv, hsv);
+                float isSame = float(dist < u_distThreshold);
                                 
                 // yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
                 
                 float t = u_frameCount;
                 float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
-                timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(hsv.z > 0.86));
-                float timeWeightedIntensity = hsv.z + timeWeight;
+                // timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(hsv.z > 0.86));
+                // float timeWeightedIntensity = hsv.z + timeWeight;
+                float timeWeightedIntensity = timeWeight;
                 hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
         
                 vec4 transformedSRGB = sRGBAFromHSV(hsv, 1.0);
@@ -561,12 +562,12 @@ struct HighlightRegion
         GLuint shaderHandle = _highlightSameColorShader.shaderHandle();
                 
         _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
-        _attribLocationDeltaThreshold = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaThreshold");
+        _attribLocationDistThreshold = (GLuint)glGetUniformLocation(shaderHandle, "u_distThreshold");
         _attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
         
         _highlightSameColorShader.setExtraUserCallback([this](GLShader& shader) {
             glUniform3f(_attribLocationRefColor, _activeColor.x, _activeColor.y, _activeColor.z);
-            glUniform1f(_attribLocationDeltaThreshold, _deltaColorThreshold/100.f);
+            glUniform1f(_attribLocationDistThreshold, _deltaColorThreshold);
             glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
         });
     }
@@ -635,7 +636,7 @@ private:
     GLShader _highlightSameColorShader;
     
     GLuint _attribLocationRefColor = 0;
-    GLuint _attribLocationDeltaThreshold = 0;
+    GLuint _attribLocationDistThreshold = 0;
     GLuint _attribLocationFrameCount = 0;
     
     dl::ImageSRGBA* _im = nullptr;
