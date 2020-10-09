@@ -6,6 +6,7 @@
 
 import Cocoa
 import ServiceManagement
+import GLKit
 
 // @NSApplicationMain
 
@@ -20,7 +21,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var window : DaltonWindow?
     private var daltonView : DaltonView?
     
+    private var monitor: Any?
+    
     private var daltonViewer : DaltonViewerMacOS?
+    private var daltonPointerOverlay : DaltonPointerOverlayMacOS?
     
     var statusItem : NSStatusItem?
     
@@ -297,11 +301,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem!.menu = menu
     }
     
-    func createGlobalShortcuts () {
+    func handleFlagsChangedEvent (event: NSEvent) -> NSEvent? {
         
         let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
             NSEvent.ModifierFlags.control.rawValue |
             NSEvent.ModifierFlags.option.rawValue
+        
+        print("flags event detected: \(event)")
+        
+        if ((event.modifierFlags.rawValue & (cmdControlAlt | NSEvent.ModifierFlags.shift.rawValue)) == cmdControlAlt) {
+            self.daltonPointerOverlay!.enabled = true
+            print ("CMD + CTRL + ALT!!!")
+        }
+        else {
+            self.daltonPointerOverlay!.enabled = false
+        }
+        
+        return event
+    }
+    
+    func createGlobalShortcuts () {
+                
+        let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
+            NSEvent.ModifierFlags.control.rawValue |
+            NSEvent.ModifierFlags.option.rawValue
+        
+        // https://stackoverflow.com/questions/47181412/monitoring-nsevents-using-addglobalmonitorforevents-missing-gesture-events
+        let mask = NSEvent.EventTypeMask.flagsChanged;
+        self.monitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { event in let _ = self.handleFlagsChangedEvent(event:event); }
+        NSEvent.addLocalMonitorForEvents(matching: mask, handler: self.handleFlagsChangedEvent)
         
         let controlShift = NSEvent.ModifierFlags.control.rawValue |
             NSEvent.ModifierFlags.shift.rawValue
@@ -333,8 +361,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let shortcutDown = MASShortcut(keyCode:UInt(kVK_DownArrow),
                                        modifierFlags:cmdControlAlt);
         
-        let shortcutGrabScreenArea = MASShortcut(keyCode:UInt(kVK_ANSI_D),
-                                       modifierFlags:controlShift);
+        let shortcutGrabScreenArea = MASShortcut(keyCode:UInt(kVK_Space),
+                                       modifierFlags:cmdControlAlt);
         
         func incrProcessingMode (currentMode: DLProcessingMode) -> DLProcessingMode {
             let nextMode = (currentMode.rawValue + 1) % (NumProcessingModes.rawValue)
@@ -480,6 +508,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // window!.delegate = daltonView;
     }
     
+    func launchDaltonPointerOverlay () {
+        
+        self.daltonPointerOverlay = DaltonPointerOverlayMacOS.init()
+        self.daltonPointerOverlay!.initialize()
+        
+        Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
+            if (self.daltonPointerOverlay!.enabled)
+            {
+                let mousePos = NSEvent.mouseLocation
+                
+                self.daltonPointerOverlay!.runOnce(withMousePosX: Float(mousePos.x), mousePosY: Float(NSScreen.main!.frame.size.height - mousePos.y)) {
+                    let display = CGMainDisplayID()
+                    let displayRect = CGDisplayBounds(display)
+                    let focusRect = CGRect.init(x: mousePos.x - 6.5, y: displayRect.size.height - mousePos.y - 6.5, width: 15, height: 15)
+                    
+                    // Capture a screeshot of the other windows.
+                    let screenImage : CGImage? = CGWindowListCreateImage(focusRect,
+                                                                         [CGWindowListOption.optionOnScreenOnly],
+                                                                         // [CGWindowListOption.optionAll],
+                                                                         kCGNullWindowID,
+                                                                         []);
+                                    
+                    if (screenImage == nil)
+                    {
+                        print ("ERROR: cannot grab screen!");
+                        return 0;
+                    }
+
+                    do {
+                        let textureInfo = try GLKTextureLoader.texture(with: screenImage!)
+                        return textureInfo.name
+                    }
+                    catch {
+                        return 0;
+                    }
+                }
+            }
+        }
+        
+    }
+    
     func launchDaltonViewer (argc:Int32, argv:[String]) {
                 
         self.daltonViewer = DaltonViewerMacOS.init()
@@ -524,6 +593,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let enabled = defaults.bool(forKey:"LaunchAtStartup")
             launchAtStartupMenuItem.state = enabled ? NSControl.StateValue.on : NSControl.StateValue.off;
         }
+        
+        launchDaltonPointerOverlay ()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
