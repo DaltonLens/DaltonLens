@@ -1,4 +1,4 @@
-#include "DaltonViewerLib.h"
+#include "DaltonGUI/DaltonViewerLib.h"
 
 int main(int argc, char** argv)
 {

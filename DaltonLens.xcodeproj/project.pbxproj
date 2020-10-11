@@ -10,6 +10,10 @@
 		2D0C83862517FA7900EB76AD /* libDaltonViewerLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */; };
 		2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83AC2517FE4300EB76AD /* libglfw3.a */; };
 		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
+		2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */; };
+		2D1973432532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */; };
+		2D1973442532DBFD00D1FBD4 /* DaltonViewerLib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */; };
+		2D1973462532DC7B00D1FBD4 /* DaltonLens.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */; };
 		2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */; };
 		2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9B1DAAC0B400AA97BC /* MASHotKey.m */; };
 		2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9E1DAAC0B400AA97BC /* MASLocalization.m */; };
@@ -142,6 +146,12 @@
 		2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DaltonViewer.xcodeproj; path = DaltonViewer/DaltonViewer.xcodeproj; sourceTree = "<group>"; };
 		2D0C83AC2517FE4300EB76AD /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = build/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
 		2D0C83B12517FE4D00EB76AD /* libclip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclip.a; path = build/clip/lib/libclip.a; sourceTree = "<group>"; };
+		2D19733A2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonViewerLib_macOS.h; sourceTree = "<group>"; };
+		2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		2D19733C2532DBFD00D1FBD4 /* DaltonViewerLib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonViewerLib.h; sourceTree = "<group>"; };
+		2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonViewerLib_macOS.mm; sourceTree = "<group>"; };
+		2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DaltonViewerLib.cpp; sourceTree = "<group>"; };
+		2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = DaltonLens.xcconfig; sourceTree = "<group>"; };
 		2D240D981DAAC0B400AA97BC /* MASDictionaryTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASDictionaryTransformer.h; sourceTree = "<group>"; };
 		2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MASDictionaryTransformer.m; sourceTree = "<group>"; };
 		2D240D9A1DAAC0B400AA97BC /* MASHotKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASHotKey.h; sourceTree = "<group>"; };
@@ -272,6 +282,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
+			isa = PBXGroup;
+			children = (
+				2D19733A2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.h */,
+				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
+				2D19733C2532DBFD00D1FBD4 /* DaltonViewerLib.h */,
+				2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */,
+				2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */,
+			);
+			path = DaltonGUI;
+			sourceTree = "<group>";
+		};
 		2D240D971DAAC0B400AA97BC /* MASShortcut */ = {
 			isa = PBXGroup;
 			children = (
@@ -400,6 +422,7 @@
 		2DCBB8CA1D3BEAA60035D461 = {
 			isa = PBXGroup;
 			children = (
+				2D1973392532DBFD00D1FBD4 /* DaltonGUI */,
 				2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */,
 				2DD5424C251789EA00EAB8A8 /* default.metallib */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
@@ -429,6 +452,7 @@
 		2DCBB8D51D3BEAA60035D461 /* DaltonLens */ = {
 			isa = PBXGroup;
 			children = (
+				2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */,
 				2D4C76BB1E7730EC00DCBBB7 /* DaltonLens.entitlements */,
 				2D240D971DAAC0B400AA97BC /* MASShortcut */,
 				2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */,
@@ -643,6 +667,8 @@
 			files = (
 				2D28D1411F7C552D00BD8040 /* LICENSE in Resources */,
 				2DCBB8DB1D3BEAA60035D461 /* Assets.xcassets in Resources */,
+				2D1973462532DC7B00D1FBD4 /* DaltonLens.xcconfig in Resources */,
+				2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -711,6 +737,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
+				2D1973442532DBFD00D1FBD4 /* DaltonViewerLib.cpp in Sources */,
 				2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */,
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
 				2D240DB11DAAC0B400AA97BC /* MASShortcutMonitor.m in Sources */,
@@ -721,6 +748,7 @@
 				2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */,
 				2D240DB01DAAC0B400AA97BC /* MASShortcutBinder.m in Sources */,
 				2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */,
+				2D1973432532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm in Sources */,
 				2DEC0DAD1D3C08C100E8D962 /* DaltonView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -878,10 +906,11 @@
 		};
 		2DCBB8EB1D3BEAA60035D461 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -936,10 +965,11 @@
 		};
 		2DCBB8EC1D3BEAA60035D461 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -995,18 +1025,9 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/DaltonViewer",
-				);
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/build/glfw/lib",
-					"$(PROJECT_DIR)/build/clip/lib",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1027,18 +1048,9 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/DaltonViewer",
-				);
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/build/glfw/lib",
-					"$(PROJECT_DIR)/build/clip/lib",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";

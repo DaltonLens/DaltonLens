@@ -1,0 +1,4 @@
+HEADER_SEARCH_PATHS = $(PROJECT_DIR) $(PROJECT_DIR)/deps $(PROJECT_DIR)/deps/other $(PROJECT_DIR)/deps/imgui $(PROJECT_DIR)/deps/imgui/examples $(PROJECT_DIR)/deps/imgui/examples/libs/gl3w $(PROJECT_DIR)/build/glfw/include
+
+// You should build them first with CMake.
+LIBRARY_SEARCH_PATHS = $(PROJECT_DIR)/build/glfw/lib $(PROJECT_DIR)/build/clip/lib

@@ -15,11 +15,8 @@
 		2D0C82F72517EB2700EB76AD /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C82F62517EB2700EB76AD /* AppKit.framework */; };
 		2D0C83022517EB9D00EB76AD /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83012517EB9D00EB76AD /* libDalton.dylib */; };
 		2D0C831C2517EE8600EB76AD /* libDalton.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2D0C83012517EB9D00EB76AD /* libDalton.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		2D0C83382517F7CA00EB76AD /* DaltonViewerLib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C832F2517F48B00EB76AD /* DaltonViewerLib.cpp */; };
 		2D0C833A2517F7CE00EB76AD /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82C42517E91800EB76AD /* main.cpp */; };
 		2D0C833C2517F7F900EB76AD /* libDaltonViewerLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */; };
-		2D0C838C2517FADB00EB76AD /* DaltonViewerLib_macOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D0C838A2517FADB00EB76AD /* DaltonViewerLib_macOS.h */; };
-		2D0C838D2517FADB00EB76AD /* DaltonViewerLib_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C838B2517FADB00EB76AD /* DaltonViewerLib_macOS.mm */; };
 		2D0C83A32517FDF400EB76AD /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82D92517EA9700EB76AD /* imgui_widgets.cpp */; };
 		2D0C83A42517FDF400EB76AD /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82DB2517EA9700EB76AD /* imgui.cpp */; };
 		2D0C83A52517FDF400EB76AD /* imgui_impl_opengl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82E82517EABE00EB76AD /* imgui_impl_opengl3.cpp */; };
@@ -72,11 +69,7 @@
 		2D0C82FC2517EB7000EB76AD /* glcorearb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = glcorearb.h; path = ../deps/imgui/examples/libs/gl3w/GL/glcorearb.h; sourceTree = "<group>"; };
 		2D0C83012517EB9D00EB76AD /* libDalton.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; path = libDalton.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libDaltonViewerLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		2D0C832E2517F48A00EB76AD /* DaltonViewerLib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonViewerLib.h; sourceTree = SOURCE_ROOT; };
-		2D0C832F2517F48B00EB76AD /* DaltonViewerLib.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DaltonViewerLib.cpp; sourceTree = SOURCE_ROOT; };
 		2D0C833E2517F86C00EB76AD /* DaltonViewer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = DaltonViewer.xcconfig; sourceTree = SOURCE_ROOT; };
-		2D0C838A2517FADB00EB76AD /* DaltonViewerLib_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DaltonViewerLib_macOS.h; path = ../DaltonViewerLib_macOS.h; sourceTree = "<group>"; };
-		2D0C838B2517FADB00EB76AD /* DaltonViewerLib_macOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = DaltonViewerLib_macOS.mm; path = ../DaltonViewerLib_macOS.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,10 +125,6 @@
 				2D0C82C42517E91800EB76AD /* main.cpp */,
 				2D0C82B02517E8D800EB76AD /* Info.plist */,
 				2D0C82B32517E8D800EB76AD /* DaltonViewer.entitlements */,
-				2D0C838A2517FADB00EB76AD /* DaltonViewerLib_macOS.h */,
-				2D0C838B2517FADB00EB76AD /* DaltonViewerLib_macOS.mm */,
-				2D0C832F2517F48B00EB76AD /* DaltonViewerLib.cpp */,
-				2D0C832E2517F48A00EB76AD /* DaltonViewerLib.h */,
 			);
 			path = DaltonViewer;
 			sourceTree = "<group>";
@@ -192,7 +181,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D0C838C2517FADB00EB76AD /* DaltonViewerLib_macOS.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,13 +280,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D0C83382517F7CA00EB76AD /* DaltonViewerLib.cpp in Sources */,
 				2D0C83A72517FDF400EB76AD /* imgui_draw.cpp in Sources */,
 				2D0C83A42517FDF400EB76AD /* imgui.cpp in Sources */,
 				2D0C83A52517FDF400EB76AD /* imgui_impl_opengl3.cpp in Sources */,
 				2D0C83AA2517FDFB00EB76AD /* gl3w.c in Sources */,
 				2D0C83A32517FDF400EB76AD /* imgui_widgets.cpp in Sources */,
-				2D0C838D2517FADB00EB76AD /* DaltonViewerLib_macOS.mm in Sources */,
 				2D0C83A62517FDF400EB76AD /* imgui_impl_glfw.cpp in Sources */,
 				2D8E7F8A251A995500B87020 /* imgui_demo.cpp in Sources */,
 			);
