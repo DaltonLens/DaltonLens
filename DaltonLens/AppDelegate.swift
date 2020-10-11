@@ -18,13 +18,14 @@ class DaltonWindow: NSWindow {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
+    private var glfwAppDelegate : NSApplicationDelegate?
+    
     private var window : DaltonWindow?
     private var daltonView : DaltonView?
     
     private var monitor: Any?
     
-    private var daltonViewer : DaltonViewerMacOS?
-    private var daltonPointerOverlay : DaltonPointerOverlayMacOS?
+    private var daltonGUI : DaltonLensGUIMacOS
     
     var statusItem : NSStatusItem?
     
@@ -133,6 +134,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         for (menuItem, blindnessType) in menuItemsToBlindnessType {
             blindnessTypeToMenuItem[blindnessType.rawValue] = menuItem;
         }
+        
+        self.daltonGUI = DaltonLensGUIMacOS.init()
         
         super.init()
         
@@ -303,19 +306,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func handleFlagsChangedEvent (event: NSEvent) -> NSEvent? {
         
-        let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
-            NSEvent.ModifierFlags.control.rawValue |
-            NSEvent.ModifierFlags.option.rawValue
-        
-        print("flags event detected: \(event)")
-        
-        if ((event.modifierFlags.rawValue & (cmdControlAlt | NSEvent.ModifierFlags.shift.rawValue)) == cmdControlAlt) {
-            self.daltonPointerOverlay!.enabled = true
-            print ("CMD + CTRL + ALT!!!")
-        }
-        else {
-            self.daltonPointerOverlay!.enabled = false
-        }
+//        let cmdControlAlt = NSEvent.ModifierFlags.command.rawValue |
+//            NSEvent.ModifierFlags.control.rawValue |
+//            NSEvent.ModifierFlags.option.rawValue
+//
+//        print("flags event detected: \(event)")
+//
+//        if ((event.modifierFlags.rawValue & (cmdControlAlt | NSEvent.ModifierFlags.shift.rawValue)) == cmdControlAlt) {
+//            self.daltonPointerOverlay!.enabled = true
+//            print ("CMD + CTRL + ALT!!!")
+//        }
+//        else {
+//            self.daltonPointerOverlay!.enabled = false
+//        }
         
         return event
     }
@@ -441,16 +444,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         
-        MASShortcutMonitor.shared().register(shortcutGrabScreenArea) {
-            if (self.daltonViewer != nil)
-            {
-                return;
-            }
-            
-            updateProcessingMode() {prevMode in
-                return GrabScreenArea
-            };
-        }
+//        MASShortcutMonitor.shared().register(shortcutGrabScreenArea) {
+//            if (self.daltonViewer != nil)
+//            {
+//                return;
+//            }
+//
+//            updateProcessingMode() {prevMode in
+//                return GrabScreenArea
+//            };
+//        }
     }
     
     func makeClosableWindow () {
@@ -508,64 +511,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // window!.delegate = daltonView;
     }
     
-    func launchDaltonPointerOverlay () {
+    func launchDaltonLensGUI () {
+        assert (NSApp.delegate === self)
+        self.daltonGUI.initialize ()
+        assert (NSApp.delegate !== self)
         
-        self.daltonPointerOverlay = DaltonPointerOverlayMacOS.init()
-        self.daltonPointerOverlay!.initialize()
-        
-        Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
-            if (self.daltonPointerOverlay!.enabled)
-            {
-                let mousePos = NSEvent.mouseLocation
-                
-                self.daltonPointerOverlay!.runOnce(withMousePosX: Float(mousePos.x), mousePosY: Float(NSScreen.main!.frame.size.height - mousePos.y)) {
-                    let display = CGMainDisplayID()
-                    let displayRect = CGDisplayBounds(display)
-                    let focusRect = CGRect.init(x: mousePos.x - 6.5, y: displayRect.size.height - mousePos.y - 6.5, width: 15, height: 15)
-                    
-                    // Capture a screeshot of the other windows.
-                    let screenImage : CGImage? = CGWindowListCreateImage(focusRect,
-                                                                         [CGWindowListOption.optionOnScreenOnly],
-                                                                         // [CGWindowListOption.optionAll],
-                                                                         kCGNullWindowID,
-                                                                         []);
-                                    
-                    if (screenImage == nil)
-                    {
-                        print ("ERROR: cannot grab screen!");
-                        return 0;
-                    }
-
-                    do {
-                        let textureInfo = try GLKTextureLoader.texture(with: screenImage!)
-                        return textureInfo.name
-                    }
-                    catch {
-                        return 0;
-                    }
-                }
-            }
-        }
-        
-    }
-    
-    func launchDaltonViewer (argc:Int32, argv:[String]) {
-                
-        self.daltonViewer = DaltonViewerMacOS.init()
-        self.daltonViewer!.initialize(withArgc: argc, argv: argv)
-        
-        NSApp.setActivationPolicy(.regular)
-        
-        Timer.scheduledTimer(withTimeInterval: 0.0016, repeats: true) { timer in
-            self.daltonViewer!.runOnce()
-            if (self.daltonViewer!.shouldExit())
-            {
-                timer.invalidate()
-                self.daltonViewer = nil
-                NSApp.delegate = self
-                NSApp.setActivationPolicy(.accessory)
-            }
-        }
+        self.glfwAppDelegate = NSApp.delegate
+        NSApp.delegate = self
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -594,11 +546,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             launchAtStartupMenuItem.state = enabled ? NSControl.StateValue.on : NSControl.StateValue.off;
         }
         
-        launchDaltonPointerOverlay ()
+        launchDaltonLensGUI()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
+    }
+    
+    func applicationDidChangeScreenParameters(_ notification: Notification)
+    {
+        if let glfwAppDelegate = self.glfwAppDelegate {
+            if glfwAppDelegate.applicationDidChangeScreenParameters != nil {
+                glfwAppDelegate.applicationDidChangeScreenParameters!(notification)
+            }
+        }
+    }
+
+    func applicationDidHide(_ notification: Notification)
+    {
+        if let glfwAppDelegate = self.glfwAppDelegate
+        {
+            if glfwAppDelegate.applicationDidHide != nil {
+                glfwAppDelegate.applicationDidHide!(notification)
+            }
+        }
     }
     
     @objc func quit () {

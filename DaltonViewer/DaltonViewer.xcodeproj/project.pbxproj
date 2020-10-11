@@ -16,7 +16,7 @@
 		2D0C83022517EB9D00EB76AD /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83012517EB9D00EB76AD /* libDalton.dylib */; };
 		2D0C831C2517EE8600EB76AD /* libDalton.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2D0C83012517EB9D00EB76AD /* libDalton.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		2D0C833A2517F7CE00EB76AD /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82C42517E91800EB76AD /* main.cpp */; };
-		2D0C833C2517F7F900EB76AD /* libDaltonViewerLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */; };
+		2D0C833C2517F7F900EB76AD /* libDaltonGUI.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83212517F45900EB76AD /* libDaltonGUI.a */; };
 		2D0C83A32517FDF400EB76AD /* imgui_widgets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82D92517EA9700EB76AD /* imgui_widgets.cpp */; };
 		2D0C83A42517FDF400EB76AD /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82DB2517EA9700EB76AD /* imgui.cpp */; };
 		2D0C83A52517FDF400EB76AD /* imgui_impl_opengl3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C82E82517EABE00EB76AD /* imgui_impl_opengl3.cpp */; };
@@ -68,7 +68,7 @@
 		2D0C82FB2517EB6F00EB76AD /* gl3w.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl3w.h; path = ../deps/imgui/examples/libs/gl3w/GL/gl3w.h; sourceTree = "<group>"; };
 		2D0C82FC2517EB7000EB76AD /* glcorearb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = glcorearb.h; path = ../deps/imgui/examples/libs/gl3w/GL/glcorearb.h; sourceTree = "<group>"; };
 		2D0C83012517EB9D00EB76AD /* libDalton.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; path = libDalton.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libDaltonViewerLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		2D0C83212517F45900EB76AD /* libDaltonGUI.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libDaltonGUI.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D0C833E2517F86C00EB76AD /* DaltonViewer.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = DaltonViewer.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -77,7 +77,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D0C833C2517F7F900EB76AD /* libDaltonViewerLib.a in Frameworks */,
+				2D0C833C2517F7F900EB76AD /* libDaltonGUI.a in Frameworks */,
 				2D0C83022517EB9D00EB76AD /* libDalton.dylib in Frameworks */,
 				2D0C82D52517EA7700EB76AD /* libclip.a in Frameworks */,
 				2D0C82F22517EB1600EB76AD /* OpenGL.framework in Frameworks */,
@@ -113,7 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				2D0C82A52517E8D700EB76AD /* DaltonViewer.app */,
-				2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */,
+				2D0C83212517F45900EB76AD /* libDaltonGUI.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -205,9 +205,9 @@
 			productReference = 2D0C82A52517E8D700EB76AD /* DaltonViewer.app */;
 			productType = "com.apple.product-type.application";
 		};
-		2D0C83202517F45900EB76AD /* DaltonViewerLib */ = {
+		2D0C83202517F45900EB76AD /* DaltonGUI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2D0C83292517F45900EB76AD /* Build configuration list for PBXNativeTarget "DaltonViewerLib" */;
+			buildConfigurationList = 2D0C83292517F45900EB76AD /* Build configuration list for PBXNativeTarget "DaltonGUI" */;
 			buildPhases = (
 				2D0C831D2517F45900EB76AD /* Headers */,
 				2D0C831E2517F45900EB76AD /* Sources */,
@@ -217,9 +217,9 @@
 			);
 			dependencies = (
 			);
-			name = DaltonViewerLib;
-			productName = DaltonViewerLib;
-			productReference = 2D0C83212517F45900EB76AD /* libDaltonViewerLib.a */;
+			name = DaltonGUI;
+			productName = DaltonGUI;
+			productReference = 2D0C83212517F45900EB76AD /* libDaltonGUI.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -252,7 +252,7 @@
 			projectRoot = "";
 			targets = (
 				2D0C82A42517E8D700EB76AD /* DaltonViewer */,
-				2D0C83202517F45900EB76AD /* DaltonViewerLib */,
+				2D0C83202517F45900EB76AD /* DaltonGUI */,
 			);
 		};
 /* End PBXProject section */
@@ -493,7 +493,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2D0C83292517F45900EB76AD /* Build configuration list for PBXNativeTarget "DaltonViewerLib" */ = {
+		2D0C83292517F45900EB76AD /* Build configuration list for PBXNativeTarget "DaltonGUI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2D0C832A2517F45900EB76AD /* Debug */,

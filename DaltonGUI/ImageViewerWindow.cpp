@@ -1,4 +1,7 @@
-#include "DaltonViewerLib.h"
+#include "ImageViewerWindow.h"
+
+#include "Graphics.h"
+#include "ImGuiUtils.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -11,8 +14,6 @@
 #include <Dalton/MathUtils.h>
 #include <Dalton/ColorConversion.h>
 
-// #include <GL/glew.h>
-#include <GL/gl3w.h>            // Initialize with gl3wInit()
 #include <GLFW/glfw3.h>
 
 #include <argparse.hpp>
@@ -21,85 +22,8 @@
 
 #include <cstdio>
 
-static void glfw_error_callback(int error, const char* description)
+namespace dl
 {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
-static void checkGLError ()
-{
-    GLenum err = glGetError();
-    dl_assert (err == GL_NO_ERROR, "GL Error! 0x%x", (int)err);
-}
-
-class GLTexture
-{
-public:
-    void initialize ()
-    {
-        GLint prevTexture;
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
-        
-        glGenTextures(1, &_textureId);
-        glBindTexture(GL_TEXTURE_2D, _textureId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glBindTexture(GL_TEXTURE_2D, prevTexture);
-    }
-
-    void upload (const dl::ImageSRGBA& im)
-    {
-        GLint prevTexture;
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
-        
-        glBindTexture(GL_TEXTURE_2D, _textureId);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, im.bytesPerRow()/im.bytesPerPixel());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.width(), im.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        
-        glBindTexture(GL_TEXTURE_2D, prevTexture);
-    }
-
-    GLuint textureId() const { return _textureId; }
-
-private:
-    GLuint _textureId = 0;
-};
-
-bool gl_checkProgram(GLint handle, const char* desc, const char* glsl_version)
-{
-    GLint status = 0, log_length = 0;
-    glGetProgramiv(handle, GL_LINK_STATUS, &status);
-    glGetProgramiv(handle, GL_INFO_LOG_LENGTH, &log_length);
-    if ((GLboolean)status == GL_FALSE)
-        fprintf(stderr, "ERROR: GLShader: failed to link %s! (with GLSL '%s')\n", desc, glsl_version);
-    if (log_length > 1)
-    {
-        ImVector<char> buf;
-        buf.resize((int)(log_length + 1));
-        glGetProgramInfoLog(handle, log_length, NULL, (GLchar *)buf.begin());
-        fprintf(stderr, "%s\n", buf.begin());
-    }
-    return (GLboolean)status == GL_TRUE;
-}
-
-bool gl_checkShader(GLuint handle, const char *desc)
-{
-    GLint status = 0, log_length = 0;
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
-    glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length);
-    if ((GLboolean)status == GL_FALSE)
-        fprintf(stderr, "ERROR: GLShader: failed to compile %s!\n", desc);
-    if (log_length > 1)
-    {
-        ImVector<char> buf;
-        buf.resize((int)(log_length + 1));
-        glGetShaderInfoLog(handle, log_length, NULL, (GLchar *)buf.begin());
-        fprintf(stderr, "%s\n", buf.begin());
-    }
-    return (GLboolean)status == GL_TRUE;
-}
 
 const GLchar *fragmentShader_Normal_glsl_130 = R"(
     uniform sampler2D Texture;
@@ -195,313 +119,6 @@ const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
     }
 )";
 
-class GLShader
-{
-public:
-    const std::string& name() const { return _name; }
-    
-    static const GLchar* fragmentLibrary() {
-        return R"(
-             const float hsxEpsilon = 1e-10;
-        
-             vec3 yCbCrFromSRGBA (vec4 srgba)
-             {
-                 // FIXME: this is ignoring gamma and treating it like linearRGB
-                 float y =   0.57735027*srgba.r + 0.57735027*srgba.g + 0.57735027*srgba.b;
-                 float cr =  0.70710678*srgba.r - 0.70710678*srgba.g;
-                 float cb = -0.40824829*srgba.r - 0.40824829*srgba.g + 0.81649658*srgba.b;
-                 return vec3(y,cb,cr);
-             }
-
-             vec4 sRGBAfromYCbCr (vec3 yCbCr, float alpha)
-             {
-                 // FIXME: this is ignoring gamma and treating it like linearRGB
-                 
-                 vec4 srgbaOut;
-                 
-                 float y = yCbCr.x;
-                 float cb = yCbCr.y;
-                 float cr = yCbCr.z;
-                 
-                 srgbaOut.r = clamp(5.77350269e-01*y + 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
-                 srgbaOut.g = clamp(5.77350269e-01*y - 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
-                 srgbaOut.b = clamp(5.77350269e-01*y +            0.0*cr + 8.16496581e-01*cb, 0.0, 1.0);
-                 srgbaOut.a = alpha;
-                 return srgbaOut;
-             }
-        
-             vec3 lmsFromSRGBA (vec4 srgba)
-             {
-                 //    17.8824, 43.5161, 4.11935,
-                 //    3.45565, 27.1554, 3.86714,
-                 //    0.0299566, 0.184309, 1.46709
-             
-                 vec3 lms;
-                 lms[0] = 17.8824*srgba.r + 43.5161*srgba.g + 4.11935*srgba.b;
-                 lms[1] = 3.45565*srgba.r + 27.1554*srgba.g + 3.86714*srgba.b;
-                 lms[2] = 0.0299566*srgba.r + 0.184309*srgba.g + 1.46709*srgba.b;
-                 return lms;
-             }
-
-             vec4 sRGBAFromLms (vec3 lms, float alpha)
-             {
-                 //    0.0809445    -0.130504     0.116721
-                 //    -0.0102485    0.0540193    -0.113615
-                 //    -0.000365297  -0.00412162     0.693511
-             
-                 vec4 srgbaOut;
-                 srgbaOut.r = clamp(0.0809445*lms[0] - 0.130504*lms[1] + 0.116721*lms[2], 0.0, 1.0);
-                 srgbaOut.g = clamp(-0.0102485*lms[0] + 0.0540193*lms[1] - 0.113615*lms[2], 0.0, 1.0);
-                 srgbaOut.b = clamp(-0.000365297*lms[0] - 0.00412162*lms[1] + 0.693511*lms[2], 0.0, 1.0);
-                 srgbaOut.a = alpha;
-                 return srgbaOut;
-             }
-        
-             // H in [0,1]
-             // C in [0,1]
-             // V in [0,1]
-             vec3 HCVFromRGB(vec3 RGB)
-             {
-                 // Based on work by Sam Hocevar and Emil Persson
-                 vec4 P = (RGB.g < RGB.b) ? vec4(RGB.bg, -1.0, 2.0/3.0) : vec4(RGB.gb, 0.0, -1.0/3.0);
-                 vec4 Q = (RGB.r < P.x) ? vec4(P.xyw, RGB.r) : vec4(RGB.r, P.yzx);
-                 float C = Q.x - min(Q.w, Q.y);
-                 float H = abs((Q.w - Q.y) / (6 * C + hsxEpsilon) + Q.z);
-                 return vec3(H, C, Q.x);
-             }
-             
-             // H in [0,1]
-             // C in [0,1]
-             // V in [0,1]
-             vec3 HSVFromSRGB (vec3 srgb)
-             {
-                 // FIXME: this is ignoring gamma and treating it like linearRGB
-             
-                 vec3 HCV = HCVFromRGB(srgb.xyz);
-                 float S = HCV.y / (HCV.z + hsxEpsilon);
-                 return vec3(HCV.x, S, HCV.z);
-             }
-         
-             vec3 RGBFromHUE(float H)
-             {
-                 float R = abs(H * 6 - 3) - 1;
-                 float G = 2 - abs(H * 6 - 2);
-                 float B = 2 - abs(H * 6 - 4);
-                 return clamp(vec3(R,G,B), 0, 1);
-             }
-        
-             vec4 sRGBAFromHSV(vec3 HSV, float alpha)
-             {
-                 vec3 RGB = RGBFromHUE(HSV.x);
-                 return vec4(((RGB - 1) * HSV.y + 1) * HSV.z, alpha);
-             }
-        
-             vec3 applyProtanope (vec3 lms)
-             {
-                 //    p.l = /* 0*p.l + */ 2.02344*p.m - 2.52581*p.s;
-                 vec3 lmsTransformed = lms;
-                 lmsTransformed[0] = 2.02344*lms[1] - 2.52581*lms[2];
-                 return lmsTransformed;
-             }
-
-             vec3 applyDeuteranope (vec3 lms)
-             {
-                 //    p.m = 0.494207*p.l /* + 0*p.m */ + 1.24827*p.s;
-                 vec3 lmsTransformed = lms;
-                 lmsTransformed[1] = 0.494207*lms[0] + 1.24827*lms[2];
-                 return lmsTransformed;
-             }
-
-             vec3 applyTritanope (vec3 lms)
-             {
-                 //    p.s = -0.395913*p.l + 0.801109*p.m /* + 0*p.s */;
-                 vec3 lmsTransformed = lms;
-                 lmsTransformed[2] = -0.395913*lms[0] + 0.801109*lms[1];
-                 return lmsTransformed;
-             }
-        
-             vec4 daltonizeV1 (vec4 srgba, vec4 srgbaSimulated)
-             {
-                 vec3 error = srgba.rgb - srgbaSimulated.rgb;
-            
-                 float updatedG = srgba.g + 0.7*error.r + 1.0*error.g + 0.0*error.b;
-                 float updatedB = srgba.b + 0.7*error.r + 0.0*error.g + 1.0*error.b;
-            
-                 vec4 srgbaOut = srgba;
-                 srgbaOut.g = clamp(updatedG, 0.0, 1.0);
-                 srgbaOut.b = clamp(updatedB, 0.0, 1.0);
-                 return srgbaOut;
-             }
-        )";
-    }
-    
-    void initialize(const std::string& name, const char* glslVersionString, const GLchar* vertexShader, const GLchar* fragmentShader)
-    {
-        _name = name;
-        
-        const GLchar *defaultVertexShader_glsl_130 =
-            "uniform mat4 ProjMtx;\n"
-            "in vec2 Position;\n"
-            "in vec2 UV;\n"
-            "in vec4 Color;\n"
-            "out vec2 Frag_UV;\n"
-            "out vec4 Frag_Color;\n"
-            "void main()\n"
-            "{\n"
-            "    Frag_UV = UV;\n"
-            "    Frag_Color = Color;\n"
-            "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-            "}\n";
-
-        const GLchar *defaultFragmentShader_glsl_130 =
-            "uniform sampler2D Texture;\n"
-            "in vec2 Frag_UV;\n"
-            "in vec4 Frag_Color;\n"
-            "out vec4 Out_Color;\n"
-            "void main()\n"
-            "{\n"
-            "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
-            "}\n";
-
-        // Select shaders matching our GLSL versions
-        if (vertexShader == nullptr)
-            vertexShader = defaultVertexShader_glsl_130;
-
-        if (fragmentShader == nullptr)
-            fragmentShader = defaultFragmentShader_glsl_130;
-
-        // Create shaders
-        const GLchar *vertex_shader_with_version[3] = {glslVersionString, "\n", vertexShader};
-        _vertHandle = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(_vertHandle, 3, vertex_shader_with_version, NULL);
-        glCompileShader(_vertHandle);
-        gl_checkShader(_vertHandle, "vertex shader");
-
-        const GLchar *fragment_shader_with_version[4] = {glslVersionString, "\n", fragmentLibrary(), fragmentShader};
-        _fragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(_fragHandle, 4, fragment_shader_with_version, NULL);
-        glCompileShader(_fragHandle);
-        gl_checkShader(_fragHandle, "fragment shader");
-
-        _shaderHandle = glCreateProgram();
-        glAttachShader(_shaderHandle, _vertHandle);
-        glAttachShader(_shaderHandle, _fragHandle);
-        glLinkProgram(_shaderHandle);
-        gl_checkProgram(_shaderHandle, "shader program", glslVersionString);
-
-        _attribLocationTex = glGetUniformLocation(_shaderHandle, "Texture");
-        _attribLocationProjMtx = glGetUniformLocation(_shaderHandle, "ProjMtx");
-        _attribLocationVtxPos = (GLuint)glGetAttribLocation(_shaderHandle, "Position");
-        _attribLocationVtxUV = (GLuint)glGetAttribLocation(_shaderHandle, "UV");
-        _attribLocationVtxColor = (GLuint)glGetAttribLocation(_shaderHandle, "Color");
-
-        checkGLError();
-    }
-    
-    GLuint shaderHandle() const { return _shaderHandle; }
-
-    void setExtraUserCallback (const std::function<void(GLShader&)>& extraRenderCallback)
-    {
-        _extraRenderCallback = extraRenderCallback;
-    }
-    
-    void enable ()
-    {
-        // We need to store the viewport to check its display size later on.
-        ImGuiViewport* viewport = ImGui::GetWindowViewport();
-        dl_assert (_viewportWhenEnabled == nullptr || viewport == _viewportWhenEnabled, 
-                   "You can't enable it multiple times for windows that are not in the same viewport");
-        dl_assert (viewport != nullptr, "Invalid viewport.");
-
-        _viewportWhenEnabled = viewport;
-
-        auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
-        {
-            GLShader* that = reinterpret_cast<GLShader*>(cmd->UserCallbackData);
-            dl_assert (that, "Invalid user data");
-            that->onRenderEnable (parent_list, cmd);
-        };
-
-        ImGui::GetWindowDrawList()->AddCallback(shaderCallback, this);
-    }
-
-    void disable ()
-    {
-        auto shaderCallback = [](const ImDrawList *parent_list, const ImDrawCmd *cmd) 
-        {
-            GLShader* that = reinterpret_cast<GLShader*>(cmd->UserCallbackData);
-            dl_assert (that, "Invalid user data");
-            that->onRenderDisable (parent_list, cmd);
-        };
-
-        ImGui::GetWindowDrawList()->AddCallback(shaderCallback, this);
-    }
-
-private:
-    void onRenderEnable (const ImDrawList *parent_list, const ImDrawCmd *drawCmd)
-    {
-        auto* drawData = _viewportWhenEnabled->DrawData;
-        float L = drawData->DisplayPos.x;
-        float R = drawData->DisplayPos.x + drawData->DisplaySize.x;
-        float T = drawData->DisplayPos.y;
-        float B = drawData->DisplayPos.y + drawData->DisplaySize.y;
-
-        const float ortho_projection[4][4] =
-        {
-            { 2.0f/(R-L),   0.0f,         0.0f,   0.0f },
-            { 0.0f,         2.0f/(T-B),   0.0f,   0.0f },
-            { 0.0f,         0.0f,        -1.0f,   0.0f },
-            { (R+L)/(L-R),  (T+B)/(B-T),  0.0f,   1.0f },
-        };
-
-        glGetIntegerv(GL_CURRENT_PROGRAM, &_prevShaderHandle);
-        glUseProgram (_shaderHandle);
-
-        glUniformMatrix4fv(_attribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
-        glUniform1i(_attribLocationTex, 0);
-        
-        if (_extraRenderCallback)
-            _extraRenderCallback(*this);
-        
-        checkGLError();
-    }
-
-    void onRenderDisable (const ImDrawList *parent_list, const ImDrawCmd *drawCmd)
-    {
-        glUseProgram (_prevShaderHandle);
-        _prevShaderHandle = 0;
-        _viewportWhenEnabled = nullptr;
-    }
-
-private:
-    GLuint _shaderHandle = 0;
-    GLuint _vertHandle = 0;
-    GLuint _fragHandle = 0;
-    GLuint _attribLocationTex = 0;
-    GLuint _attribLocationProjMtx = 0;
-    GLuint _attribLocationVtxPos = 0;
-    GLuint _attribLocationVtxUV = 0;
-    GLuint _attribLocationVtxColor = 0;
-
-    GLint _prevShaderHandle = 0;
-
-    ImGuiViewport* _viewportWhenEnabled = nullptr;
-    
-    std::function<void(GLShader&)> _extraRenderCallback = nullptr;
-    
-    std::string _name = "Unknown";
-};
-
-struct DLRect
-{
-    float x = -1.f;
-    float y = -1.f;
-    float width = -1.f;
-    float height = -1.f;
-    
-    ImVec2 imPos() const { return ImVec2(x,y); }
-    ImVec2 imSize() const { return ImVec2(width,height); }
-};
 
 enum class DaltonViewerMode {
     Main = 0,
@@ -510,7 +127,7 @@ enum class DaltonViewerMode {
 
 struct HighlightRegion
 {
-    void initialize (const char* glsl_version, dl::ImageSRGBA& im)
+    void initialize (const char* glslVersion, dl::ImageSRGBA& im)
     {
         _im = &im;
         
@@ -558,7 +175,7 @@ struct HighlightRegion
             }
         )";
         
-        _highlightSameColorShader.initialize("Highlight Same Color", glsl_version, nullptr, fragmentShader_highlightSameColor);
+        _highlightSameColorShader.initialize("Highlight Same Color", glslVersion, nullptr, fragmentShader_highlightSameColor);
         GLuint shaderHandle = _highlightSameColorShader.shaderHandle();
                 
         _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
@@ -643,8 +260,10 @@ private:
     dl::vec2i _selectedPixel = dl::vec2i(0,0);
 };
 
-struct DaltonViewer::Impl
+struct ImageViewerWindow::Impl
 {
+    ImGuiContext* imGuiContext = nullptr;
+    
     DaltonViewerMode currentMode = DaltonViewerMode::Main;
     
     HighlightRegion highlightRegion;
@@ -664,8 +283,8 @@ struct DaltonViewer::Impl
     ImVec2 monitorSize = ImVec2(-1,-1);
     
     struct {
-        DLRect normal;
-        DLRect current;
+        dl::Rect normal;
+        dl::Rect current;
     } windowSize;
     
     struct {
@@ -681,27 +300,30 @@ struct DaltonViewer::Impl
 //    }
 };
 
-DaltonViewer::DaltonViewer()
+ImageViewerWindow::ImageViewerWindow()
 : impl (new Impl())
 {}
 
-DaltonViewer::~DaltonViewer()
+ImageViewerWindow::~ImageViewerWindow()
 {
-    dl_dbg("DaltonViewer::~DaltonViewer");
+    dl_dbg("ImageViewerWindow::~ImageViewerWindow");
     
+    shutdown();
+}
+
+void ImageViewerWindow::shutdown()
+{
     if (impl->window)
     {
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        
-        glfwDestroyWindow(impl->window);
-        glfwTerminate();
+        ImGui::DestroyContext(impl->imGuiContext);
+        impl->imGuiContext = nullptr;
     }
 }
 
-bool DaltonViewer::initialize (int argc, char** argv)
+bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWindow)
 {
     dl::ScopeTimer initTimer ("Init");
 
@@ -756,10 +378,10 @@ bool DaltonViewer::initialize (int argc, char** argv)
         const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y);
         if (count == 4)
         {
-            impl->windowSize.normal.width = w;
-            impl->windowSize.normal.height = h;
-            impl->windowSize.normal.x = x;
-            impl->windowSize.normal.y = y;
+            impl->windowSize.normal.size.x = w;
+            impl->windowSize.normal.size.y = h;
+            impl->windowSize.normal.origin.x = x;
+            impl->windowSize.normal.origin.y = y;
         }
         else
         {
@@ -823,46 +445,24 @@ bool DaltonViewer::initialize (int argc, char** argv)
         }
     }
 
-    // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return false;
-
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
     dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
 
-    if (impl->windowSize.normal.width < 0) impl->windowSize.normal.width = impl->im.width();
-    if (impl->windowSize.normal.height < 0) impl->windowSize.normal.height = impl->im.height();
-    if (impl->windowSize.normal.x < 0) impl->windowSize.normal.x = impl->monitorSize.x * 0.10;
-    if (impl->windowSize.normal.y < 0) impl->windowSize.normal.y = impl->monitorSize.y * 0.10;
+    if (impl->windowSize.normal.size.x < 0) impl->windowSize.normal.size.x = impl->im.width();
+    if (impl->windowSize.normal.size.y < 0) impl->windowSize.normal.size.y = impl->im.height();
+    if (impl->windowSize.normal.origin.x < 0) impl->windowSize.normal.origin.x = impl->monitorSize.x * 0.10;
+    if (impl->windowSize.normal.origin.y < 0) impl->windowSize.normal.origin.y = impl->monitorSize.y * 0.10;
     impl->windowSize.current = impl->windowSize.normal;
     
-    // Decide GL+GLSL versions
-#if __APPLE__
-    // GL 3.2 + GLSL 150
-    const char* glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-#else
-    // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
-
     // Create window with graphics context.
     // We create a dummy window just because ImGui needs a main window, but we don't really
     // want any, because we prefer to rely on ImGui handling the viewport. This way we can
     // let the ImGui window resizeable, and the platform window will just get resized
     // accordingly. This way we can remove the decorations AND support resize.
     glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
 
@@ -871,18 +471,9 @@ bool DaltonViewer::initialize (int argc, char** argv)
     glfwMakeContextCurrent(impl->window);
     glfwSwapInterval(1); // Enable vsync
     
-    // Initialize OpenGL loader
-    // bool err = glewInit() != GLEW_OK;
-    bool err = gl3wInit() != 0;
-    if (err)
-    {
-        fprintf(stderr, "Failed to initialize OpenGL loader!\n");
-        return false;
-    }
-
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    impl->imGuiContext = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -906,24 +497,24 @@ bool DaltonViewer::initialize (int argc, char** argv)
 
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL3_Init(glslVersion());
 
     impl->gpuTexture.initialize();
     impl->gpuTexture.upload (impl->im);
 
-    impl->visualizationShaders[0].initialize("Original", glsl_version, nullptr, fragmentShader_Normal_glsl_130);
-    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
-    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
-    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glsl_version, nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
-    impl->visualizationShaders[4].initialize("Flip Red/Blue", glsl_version, nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glsl_version, nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->visualizationShaders[0].initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
+    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
+    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
+    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
+    impl->visualizationShaders[4].initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
     
-    impl->highlightRegion.initialize(glsl_version, impl->im);
+    impl->highlightRegion.initialize(glslVersion(), impl->im);
     
     return true;
 }
 
-void DaltonViewer::runOnce ()
+void ImageViewerWindow::runOnce ()
 {
     if (glfwWindowShouldClose(impl->window))
     {
@@ -1002,15 +593,15 @@ void DaltonViewer::runOnce ()
     
     if (ImGui::IsKeyPressed(GLFW_KEY_A))
     {
-        float ratioX = impl->windowSize.current.width / impl->windowSize.normal.width;
-        float ratioY = impl->windowSize.current.height / impl->windowSize.normal.height;
+        float ratioX = impl->windowSize.current.size.x / impl->windowSize.normal.size.x;
+        float ratioY = impl->windowSize.current.size.y / impl->windowSize.normal.size.y;
         if (ratioX < ratioY)
         {
-            impl->windowSize.current.height = ratioX * impl->windowSize.normal.height;
+            impl->windowSize.current.size.y = ratioX * impl->windowSize.normal.size.y;
         }
         else
         {
-            impl->windowSize.current.width = ratioY * impl->windowSize.normal.width;
+            impl->windowSize.current.size.x = ratioY * impl->windowSize.normal.size.x;
         }
         shouldUpdateWindowSize = true;
     }
@@ -1029,25 +620,25 @@ void DaltonViewer::runOnce ()
     
     if (io.InputQueueCharacters.contains('<'))
     {
-        if (impl->windowSize.current.width > 64 && impl->windowSize.current.height > 64)
+        if (impl->windowSize.current.size.x > 64 && impl->windowSize.current.size.y > 64)
         {
-            impl->windowSize.current.width *= 0.5f;
-            impl->windowSize.current.height *= 0.5f;
+            impl->windowSize.current.size.x *= 0.5f;
+            impl->windowSize.current.size.y *= 0.5f;
             shouldUpdateWindowSize = true;
         }
     }
     
     if (io.InputQueueCharacters.contains('>'))
     {
-        impl->windowSize.current.width *= 2.f;
-        impl->windowSize.current.height *= 2.f;
+        impl->windowSize.current.size.x *= 2.f;
+        impl->windowSize.current.size.y *= 2.f;
         shouldUpdateWindowSize = true;
     }
     
     if (shouldUpdateWindowSize)
     {
-        ImGui::SetNextWindowPos(ImVec2(impl->windowSize.current.x, impl->windowSize.current.y - titleBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(impl->windowSize.current.width, impl->windowSize.current.height + titleBarHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowPos(ImVec2(impl->windowSize.current.origin.x, impl->windowSize.current.origin.y - titleBarHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(impl->windowSize.current.size.x, impl->windowSize.current.size.y + titleBarHeight), ImGuiCond_Always);
     }
 
     ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
@@ -1095,10 +686,10 @@ void DaltonViewer::runOnce ()
         }
                 
         // Make sure we remain up-to-date in case the user resizes it.
-        impl->windowSize.current.width = ImGui::GetWindowWidth();
-        impl->windowSize.current.height = ImGui::GetWindowHeight() - titleBarHeight;
-        impl->windowSize.current.x = ImGui::GetWindowPos().x;
-        impl->windowSize.current.y = ImGui::GetWindowPos().y + titleBarHeight;
+        impl->windowSize.current.size.x = ImGui::GetWindowWidth();
+        impl->windowSize.current.size.y = ImGui::GetWindowHeight() - titleBarHeight;
+        impl->windowSize.current.origin.x = ImGui::GetWindowPos().x;
+        impl->windowSize.current.origin.y = ImGui::GetWindowPos().y + titleBarHeight;
         
         // ImGuiViewport* vp = ImGui::GetWindowViewport();
         // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
@@ -1143,7 +734,7 @@ void DaltonViewer::runOnce ()
         }
         
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
-                     impl->windowSize.current.imSize(),
+                     imSize(impl->windowSize.current),
                      uv0,
                      uv1);
         
@@ -1169,7 +760,7 @@ void DaltonViewer::runOnce ()
             // So when we are in the center of a pixel we'll return 0,0 instead of
             // 0.5,0.5.
             ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - widgetTopLeft;
-            ImVec2 uv_window = widgetPos / impl->windowSize.current.imSize();
+            ImVec2 uv_window = widgetPos / imSize(impl->windowSize.current);
             mousePosInTexture = (uv1-uv0)*uv_window + uv0;
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
@@ -1275,242 +866,9 @@ void DaltonViewer::runOnce ()
     glfwSwapBuffers(impl->window);
 }
 
-bool DaltonViewer::shouldExit() const
+bool ImageViewerWindow::shouldExit() const
 {
     return impl->shouldExit;
 }
 
-struct DaltonPointerOverlay::Impl
-{
-    bool enabled = false;
-    GLFWwindow* window = nullptr;
-};
-
-DaltonPointerOverlay::DaltonPointerOverlay()
-: impl(new Impl())
-{
-    
-}
-
-DaltonPointerOverlay::~DaltonPointerOverlay()
-{
-    if (impl->window)
-    {
-        // Cleanup
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-        
-        glfwDestroyWindow(impl->window);
-        glfwTerminate();
-    }
-}
-
-
-bool DaltonPointerOverlay::initialize ()
-{
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return false;
-    
-    // Decide GL+GLSL versions
-#if __APPLE__
-    // GL 3.2 + GLSL 150
-    const char* glsl_version = "#version 150";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-#else
-    // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
-
-    // Create window with graphics context.
-    // We create a dummy window just because ImGui needs a main window, but we don't really
-    // want any, because we prefer to rely on ImGui handling the viewport. This way we can
-    // let the ImGui window resizeable, and the platform window will just get resized
-    // accordingly. This way we can remove the decorations AND support resize.
-    glfwWindowHint(GLFW_DECORATED, false);
-    
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
-    
-    // Always on top.
-    glfwWindowHint(GLFW_FOCUS_ON_SHOW, false);
-    
-    glfwWindowHint(GLFW_FLOATING, true);
-    
-    impl->window = glfwCreateWindow(256, 128, "DaltonLens overlay", NULL, NULL);
-    if (impl->window == NULL)
-        return false;
-
-    glfwSetWindowPos(impl->window, 0, 0);
-    
-    glfwMakeContextCurrent(impl->window);
-    glfwSwapInterval(1); // Enable vsync
-    
-    // Initialize OpenGL loader
-    // bool err = glewInit() != GLEW_OK;
-    bool err = gl3wInit() != 0;
-    if (err)
-    {
-        fprintf(stderr, "Failed to initialize OpenGL loader!\n");
-        return false;
-    }
-
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-    
-    return true;
-}
-
-void DaltonPointerOverlay::runOnce (float mousePosX, float mousePosY, const std::function<unsigned(void)>& allocateTextureUnderCursor)
-{
-    if (!impl->enabled)
-        return;
-        
-    glfwMakeContextCurrent(impl->window);
-    
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-    glfwPollEvents();
-
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    auto& io = ImGui::GetIO();
-    
-    ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
-                            | ImGuiWindowFlags_NoResize
-                            | ImGuiWindowFlags_NoMove
-                            | ImGuiWindowFlags_NoScrollbar
-                            | ImGuiWindowFlags_NoScrollWithMouse
-                            | ImGuiWindowFlags_NoCollapse
-                            // | ImGuiWindowFlags_NoBackground
-                            | ImGuiWindowFlags_NoSavedSettings
-                            | ImGuiWindowFlags_HorizontalScrollbar
-                            | ImGuiWindowFlags_NoDocking
-                            | ImGuiWindowFlags_NoNav);
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    bool isOpen = true;
-    
-    dl_dbg ("Rendering the window.");
-    
-    glfwSetWindowPos(impl->window, mousePosX + 32, mousePosY + 32);
-    
-    GLuint underCursorTexture = allocateTextureUnderCursor();
-    {
-        GLint prevTexture;
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
-        glBindTexture(GL_TEXTURE_2D, underCursorTexture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    }
-    
-    std::string mainWindowName = "Invalid";
-    ImGui::SetNextWindowPos(ImVec2(0,0));
-    ImGui::SetNextWindowSize(ImVec2(256,128));
-    if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
-    {
-        if (!isOpen)
-        {
-            glfwSetWindowShouldClose(impl->window, true);
-        }
-                       
-        if (underCursorTexture > 0)
-        {
-            ImGui::Image(reinterpret_cast<ImTextureID>(underCursorTexture), ImVec2(64,64));
-        }
-        
-        ImGui::Text("sRGB: [%d %d %d]", 127, 127, 127);
-        ImGui::Text("RED");
-        
-        // ImGuiViewport* vp = ImGui::GetWindowViewport();
-        // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
-        // {
-        //     ImGui::GetPlatformIO().Platform_SetWindowFocus(vp);
-        // }
-    }
-    ImGui::End();
-    // ImGui::PopStyleVar();
-        
-    // Rendering
-    ImGui::Render();
-    
-    // Not rendering any main window anymore.
-    int display_w, display_h;
-    glfwGetFramebufferSize(impl->window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    
-    // Update and Render additional Platform Windows
-    // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-    //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        GLFWwindow* backup_current_context = glfwGetCurrentContext();
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup_current_context);
-    }
-
-    glDeleteTextures (1, &underCursorTexture);
-    
-    glfwSwapBuffers(impl->window);
-}
-
-bool DaltonPointerOverlay::isEnabled () const
-{
-    return impl->enabled;
-}
-
-void DaltonPointerOverlay::setEnabled (bool enabled)
-{
-    impl->enabled = enabled;
-    
-    if (enabled)
-    {
-        glfwShowWindow(impl->window);
-    }
-    else
-    {
-        glfwHideWindow(impl->window);
-    }
-}
+} // dl

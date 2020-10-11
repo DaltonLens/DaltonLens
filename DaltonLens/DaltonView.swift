@@ -474,7 +474,7 @@ class DaltonView: MTKView {
             copyCGImageRectToClipboard(inImage:screenImage!, rect:rectInImage)
             
             let geometry = String(format: "%dx%d+%d+%d", Int32(xmax-xmin), Int32(ymax-ymin), Int32(xmin), Int32(ymin));
-            daltonAppDelegate!.launchDaltonViewer(argc: 4, argv: ["DaltonViewer", "--paste", "--geometry", geometry])
+            // daltonAppDelegate!.launchDaltonViewer(argc: 4, argv: ["DaltonViewer", "--paste", "--geometry", geometry])
             daltonAppDelegate!.setProcessingMode (mode: Nothing)
         }
         

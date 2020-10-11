@@ -7,7 +7,7 @@
 #import "Dalton/macOS/ColorUnderCursorAnalyzer.h"
 #import "Dalton/macOS/MetalRenderer.h"
 
-#import "DaltonGUI/DaltonViewerLib_macOS.h"
+#import "DaltonGUI/DaltonLensGUI_macOS.h"
 
 #import <Cocoa/Cocoa.h>
 #import "MASShortcut/Shortcut.h"

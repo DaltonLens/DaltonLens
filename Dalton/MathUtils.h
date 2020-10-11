@@ -68,4 +68,16 @@ namespace dl
         return lhs.x == rhs.x && lhs.y == rhs.y;
     }
 
+    struct Point
+    {
+        double x;
+        double y;
+    };
+
+    struct Rect
+    {
+        Point origin;
+        Point size;
+    };
+
 } // dl

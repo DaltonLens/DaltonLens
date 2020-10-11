@@ -1,8 +1,8 @@
-#include "DaltonGUI/DaltonViewerLib.h"
+#include "DaltonGUI/DaltonGUI.h"
 
 int main(int argc, char** argv)
 {
-    DaltonViewer viewer;
+    ImageViewer viewer;
     if (!viewer.initialize(argc, argv))
         return 1;
     

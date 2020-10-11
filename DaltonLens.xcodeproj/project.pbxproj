@@ -7,13 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2D0C83862517FA7900EB76AD /* libDaltonViewerLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */; };
+		2D0C83862517FA7900EB76AD /* libDaltonGUI.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83852517FA7300EB76AD /* libDaltonGUI.a */; };
 		2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83AC2517FE4300EB76AD /* libglfw3.a */; };
 		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
 		2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */; };
-		2D1973432532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */; };
-		2D1973442532DBFD00D1FBD4 /* DaltonViewerLib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */; };
+		2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */; };
 		2D1973462532DC7B00D1FBD4 /* DaltonLens.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */; };
+		2D19734B2532DEF600D1FBD4 /* CrossPlatformUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973492532DEF600D1FBD4 /* CrossPlatformUtils.cpp */; };
+		2D1973522532F2A500D1FBD4 /* Graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973502532F2A500D1FBD4 /* Graphics.cpp */; };
+		2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */; };
+		2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */; };
+		2D19735D2532FE3900D1FBD4 /* PointerOverlayWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */; };
+		2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */; };
 		2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */; };
 		2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9B1DAAC0B400AA97BC /* MASHotKey.m */; };
 		2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9E1DAAC0B400AA97BC /* MASLocalization.m */; };
@@ -78,7 +83,7 @@
 			containerPortal = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 2D0C83212517F45900EB76AD;
-			remoteInfo = DaltonViewerLib;
+			remoteInfo = DaltonGUI;
 		};
 		2D4C76E01E77405000DCBBB7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -146,12 +151,25 @@
 		2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DaltonViewer.xcodeproj; path = DaltonViewer/DaltonViewer.xcodeproj; sourceTree = "<group>"; };
 		2D0C83AC2517FE4300EB76AD /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = build/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
 		2D0C83B12517FE4D00EB76AD /* libclip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclip.a; path = build/clip/lib/libclip.a; sourceTree = "<group>"; };
-		2D19733A2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonViewerLib_macOS.h; sourceTree = "<group>"; };
+		2D19733A2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonLensGUI_macOS.h; sourceTree = "<group>"; };
 		2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
-		2D19733C2532DBFD00D1FBD4 /* DaltonViewerLib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonViewerLib.h; sourceTree = "<group>"; };
-		2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonViewerLib_macOS.mm; sourceTree = "<group>"; };
-		2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DaltonViewerLib.cpp; sourceTree = "<group>"; };
+		2D19733C2532DBFD00D1FBD4 /* DaltonGUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonGUI.h; sourceTree = "<group>"; };
+		2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonLensGUI_macOS.mm; sourceTree = "<group>"; };
+		2D19733E2532DBFD00D1FBD4 /* DaltonGUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DaltonGUI.cpp; sourceTree = "<group>"; };
 		2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = DaltonLens.xcconfig; sourceTree = "<group>"; };
+		2D1973492532DEF600D1FBD4 /* CrossPlatformUtils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = CrossPlatformUtils.cpp; sourceTree = "<group>"; };
+		2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CrossPlatformUtils.h; sourceTree = "<group>"; };
+		2D19734F2532F1AE00D1FBD4 /* ImGuiUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImGuiUtils.h; sourceTree = "<group>"; };
+		2D1973502532F2A500D1FBD4 /* Graphics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Graphics.cpp; sourceTree = "<group>"; };
+		2D1973512532F2A500D1FBD4 /* Graphics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Graphics.h; sourceTree = "<group>"; };
+		2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GrabScreenAreaWindow.h; sourceTree = "<group>"; };
+		2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerWindow.h; sourceTree = "<group>"; };
+		2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImageViewerWindow.cpp; sourceTree = "<group>"; };
+		2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GrabScreenAreaWindow.cpp; sourceTree = "<group>"; };
+		2D1973592532FE3800D1FBD4 /* PointerOverlayWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PointerOverlayWindow.h; sourceTree = "<group>"; };
+		2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = PointerOverlayWindow.cpp; sourceTree = "<group>"; };
+		2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DaltonLensGUI.cpp; sourceTree = "<group>"; };
+		2D19735F2532FFF000D1FBD4 /* DaltonLensGUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DaltonLensGUI.h; sourceTree = "<group>"; };
 		2D240D981DAAC0B400AA97BC /* MASDictionaryTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASDictionaryTransformer.h; sourceTree = "<group>"; };
 		2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MASDictionaryTransformer.m; sourceTree = "<group>"; };
 		2D240D9A1DAAC0B400AA97BC /* MASHotKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASHotKey.h; sourceTree = "<group>"; };
@@ -264,7 +282,7 @@
 			files = (
 				2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */,
 				2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */,
-				2D0C83862517FA7900EB76AD /* libDaltonViewerLib.a in Frameworks */,
+				2D0C83862517FA7900EB76AD /* libDaltonGUI.a in Frameworks */,
 				2D7F49231F003BB500919399 /* libDalton.dylib in Frameworks */,
 				2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */,
 			);
@@ -277,7 +295,7 @@
 			isa = PBXGroup;
 			children = (
 				2D0C82BE2517E8D900EB76AD /* DaltonViewer.app */,
-				2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */,
+				2D0C83852517FA7300EB76AD /* libDaltonGUI.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -285,11 +303,24 @@
 		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
 			isa = PBXGroup;
 			children = (
-				2D19733A2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.h */,
 				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
-				2D19733C2532DBFD00D1FBD4 /* DaltonViewerLib.h */,
-				2D19733D2532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm */,
-				2D19733E2532DBFD00D1FBD4 /* DaltonViewerLib.cpp */,
+				2D1973492532DEF600D1FBD4 /* CrossPlatformUtils.cpp */,
+				2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */,
+				2D19733E2532DBFD00D1FBD4 /* DaltonGUI.cpp */,
+				2D19733C2532DBFD00D1FBD4 /* DaltonGUI.h */,
+				2D19733A2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.h */,
+				2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */,
+				2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */,
+				2D19735F2532FFF000D1FBD4 /* DaltonLensGUI.h */,
+				2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */,
+				2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */,
+				2D1973502532F2A500D1FBD4 /* Graphics.cpp */,
+				2D1973512532F2A500D1FBD4 /* Graphics.h */,
+				2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */,
+				2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */,
+				2D19734F2532F1AE00D1FBD4 /* ImGuiUtils.h */,
+				2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */,
+				2D1973592532FE3800D1FBD4 /* PointerOverlayWindow.h */,
 			);
 			path = DaltonGUI;
 			sourceTree = "<group>";
@@ -633,10 +664,10 @@
 			remoteRef = 2D0C82BD2517E8D900EB76AD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		2D0C83852517FA7300EB76AD /* libDaltonViewerLib.a */ = {
+		2D0C83852517FA7300EB76AD /* libDaltonGUI.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
-			path = libDaltonViewerLib.a;
+			path = libDaltonGUI.a;
 			remoteRef = 2D0C83842517FA7300EB76AD /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
@@ -737,18 +768,23 @@
 			buildActionMask = 2147483647;
 			files = (
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
-				2D1973442532DBFD00D1FBD4 /* DaltonViewerLib.cpp in Sources */,
+				2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */,
 				2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */,
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
 				2D240DB11DAAC0B400AA97BC /* MASShortcutMonitor.m in Sources */,
+				2D19734B2532DEF600D1FBD4 /* CrossPlatformUtils.cpp in Sources */,
+				2D19735D2532FE3900D1FBD4 /* PointerOverlayWindow.cpp in Sources */,
 				2DEC11031DC684970095C4A0 /* main.swift in Sources */,
 				2D240DB21DAAC0B400AA97BC /* MASShortcutValidator.m in Sources */,
 				2D240DB31DAAC0B400AA97BC /* MASShortcutView+Bindings.m in Sources */,
 				2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */,
 				2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */,
 				2D240DB01DAAC0B400AA97BC /* MASShortcutBinder.m in Sources */,
+				2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */,
 				2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */,
-				2D1973432532DBFD00D1FBD4 /* DaltonViewerLib_macOS.mm in Sources */,
+				2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */,
+				2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */,
+				2D1973522532F2A500D1FBD4 /* Graphics.cpp in Sources */,
 				2DEC0DAD1D3C08C100E8D962 /* DaltonView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

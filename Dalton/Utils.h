@@ -29,7 +29,7 @@ namespace dl
     std::string formatted (const char* fmt, ...);
 
     void handle_assert_failure(const char* cond, const char* fileName, int line, const char* fmt, ...);
-    
+        
 } // dl
 
 namespace dl
