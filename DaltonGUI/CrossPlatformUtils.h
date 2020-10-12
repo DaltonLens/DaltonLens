@@ -17,7 +17,9 @@ namespace dl
 
 // CrossPlatform APIs
 
-void grabScreenArea (const dl::Rect& gpuRect, const dl::Rect& cpuRect, dl::ImageSRGBA& cpuArea, GLTexture& gpuArea);
+bool grabScreenArea (const dl::Rect& gpuRect, const dl::Rect& cpuRect, dl::ImageSRGBA& cpuArea, GLTexture& gpuTexture);
+
+dl::Point getMouseCursor();
 
 class DisplayLinkTimer
 {
@@ -25,8 +27,7 @@ public:
     DisplayLinkTimer ();
     ~DisplayLinkTimer ();
     
-    void setCallback (std::function<void(void)>);
-    void setEnabled (bool enabled);
+    void setCallback (const std::function<void(void)>& callback);
     
 private:
     struct Impl;
@@ -40,15 +41,15 @@ public:
     KeyboardMonitor ();
     ~KeyboardMonitor ();
     
-    void setKeyboardCtrlAltCmdFlagsCallback (bool keysDown);
-    void setKeyboardCtrlAltCmdSpaceCallback ();
+    // Bool to know if pressed or released.
+    void setKeyboardCtrlAltCmdFlagsCallback (const std::function<void(bool)>& callback);
+    
+    void setKeyboardCtrlAltCmdSpaceCallback (const std::function<void(void)>& callback);
     
 private:
     struct Impl;
     friend struct Impl;
     std::unique_ptr<Impl> impl;
 };
-
-dl::Point getMouseCursor();
 
 } // dl

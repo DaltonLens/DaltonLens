@@ -40,7 +40,10 @@ struct DaltonLensGUI::Impl
     void onDisplayLinkRefresh ()
     {
         if (pointerOverlayWindow.isEnabled())
-            pointerOverlayWindow.runOnce(0, 0, [](){ return 0; });
+            pointerOverlayWindow.runOnce();
+        
+        if (imageViewerWindow.isEnabled())
+            imageViewerWindow.runOnce();
     }
 };
 
@@ -123,12 +126,13 @@ bool DaltonLensGUI::initialize ()
         impl->onDisplayLinkRefresh();
     });
     
-//    impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
-//        if (enabled)
-//        {
-//            impl->pointerOverlayWindow.setEnabled(true);
-//        }
-//    });
+    impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
+        impl->pointerOverlayWindow.setEnabled(enabled);
+    });
+    
+    // Enabling that we lose the pointer overlay entirely.
+//    char* argv[] = { "dummy" };
+//    impl->imageViewerWindow.initialize(1, argv, impl->mainContextWindow);
     
     return true;
 }

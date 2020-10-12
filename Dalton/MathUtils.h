@@ -70,8 +70,11 @@ namespace dl
 
     struct Point
     {
-        double x;
-        double y;
+        Point() = default;
+        Point (double x, double y) : x(x), y(y) {}
+        
+        double x = NAN;
+        double y = NAN;
     };
 
     struct Rect

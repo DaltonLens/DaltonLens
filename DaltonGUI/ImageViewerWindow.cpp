@@ -121,6 +121,7 @@ const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
 
 
 enum class DaltonViewerMode {
+    None = -1,
     Main = 0,
     HighlightRegions,
 };
@@ -264,7 +265,7 @@ struct ImageViewerWindow::Impl
 {
     ImGuiContext* imGuiContext = nullptr;
     
-    DaltonViewerMode currentMode = DaltonViewerMode::Main;
+    DaltonViewerMode currentMode = DaltonViewerMode::None;
     
     HighlightRegion highlightRegion;
     
@@ -309,6 +310,11 @@ ImageViewerWindow::~ImageViewerWindow()
     dl_dbg("ImageViewerWindow::~ImageViewerWindow");
     
     shutdown();
+}
+
+bool ImageViewerWindow::isEnabled () const
+{
+    return impl->currentMode != DaltonViewerMode::None;
 }
 
 void ImageViewerWindow::shutdown()
@@ -474,6 +480,8 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     impl->imGuiContext = ImGui::CreateContext();
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -531,6 +539,8 @@ void ImageViewerWindow::runOnce ()
     // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
 
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();

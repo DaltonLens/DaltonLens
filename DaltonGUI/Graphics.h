@@ -20,7 +20,11 @@ const char* glslVersion();
 class GLTexture
 {
 public:
+    ~GLTexture();
+    
     void initialize ();
+    void initializeWithExistingTextureID (uint32_t textureId);
+    void releaseGL ();
 
     void upload (const dl::ImageSRGBA& im);
 

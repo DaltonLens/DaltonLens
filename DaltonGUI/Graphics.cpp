@@ -35,6 +35,25 @@ const char* glslVersion()
 #endif
 }
 
+GLTexture::~GLTexture ()
+{
+    releaseGL ();
+}
+
+void GLTexture::initializeWithExistingTextureID (uint32_t textureId)
+{
+    if (_textureId != 0)
+        releaseGL();
+    
+    _textureId = textureId;
+}
+
+void GLTexture::releaseGL ()
+{
+    glDeleteTextures(1, &_textureId);
+    _textureId = 0;
+}
+
 void GLTexture::initialize ()
 {
     GLint prevTexture;

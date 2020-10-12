@@ -20,7 +20,7 @@ public:
     bool isEnabled () const;
     void setEnabled (bool enabled);
     
-    void runOnce (float mousePosX, float mousePosY, const std::function<unsigned(void)>& allocateTextureUnderCursor);
+    void runOnce ();
     
 private:
     struct Impl;

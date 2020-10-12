@@ -19,6 +19,8 @@ public:
     void runOnce ();
     bool shouldExit () const;
     
+    bool isEnabled () const;
+    
 private:
     struct Impl;
     friend struct Impl;
