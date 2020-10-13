@@ -17,9 +17,22 @@ namespace dl
 
 // CrossPlatform APIs
 
-bool grabScreenArea (const dl::Rect& gpuRect, const dl::Rect& cpuRect, dl::ImageSRGBA& cpuArea, GLTexture& gpuTexture);
-
 dl::Point getMouseCursor();
+
+class ScreenGrabber
+{
+public:
+    ScreenGrabber ();
+    ~ScreenGrabber ();
+    
+public:
+    bool grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& cpuArea, GLTexture& gpuTexture);
+    
+private:
+    struct Impl;
+    friend struct Impl;
+    std::unique_ptr<Impl> impl;
+};
 
 class DisplayLinkTimer
 {

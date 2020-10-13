@@ -11,6 +11,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 namespace  dl
 {
@@ -23,6 +24,8 @@ struct PointerOverlayWindow::Impl
     GLFWwindow* window = nullptr;
     
     ImVec2 monitorSize = ImVec2(-1,-1);
+    
+    dl::ScreenGrabber pointerScreenGrabber;
 };
 
 PointerOverlayWindow::PointerOverlayWindow()
@@ -66,7 +69,7 @@ bool PointerOverlayWindow::initialize (GLFWwindow* parentContext)
     
     glfwWindowHint(GLFW_FLOATING, true);
     
-    impl->window = glfwCreateWindow(256, 128, "DaltonLens overlay", NULL, parentContext);
+    impl->window = glfwCreateWindow(256, 256, "DaltonLens overlay", NULL, parentContext);
     if (impl->window == NULL)
         return false;
     
@@ -161,15 +164,13 @@ void PointerOverlayWindow::runOnce ()
     screenRect.size.x = 15;
     screenRect.size.y = 15;
     
-    dl::Rect cpuRect = screenRect; // not used yet.
+    // FIXME: only grab the screen if the mouser pointer location has changed, otherwise just reuse the textures.
     dl::ImageSRGBA cpuScreenGrab;
     GLTexture gpuScreenGrab;
-    
-    dl::grabScreenArea(screenRect,
-                       cpuRect,
-                       cpuScreenGrab,
-                       gpuScreenGrab);
-    
+    impl->pointerScreenGrabber.grabScreenArea(screenRect,
+                                              cpuScreenGrab,
+                                              gpuScreenGrab);
+       
     GLuint underCursorTexture = gpuScreenGrab.textureId();
     {
         GLint prevTexture;
@@ -181,7 +182,7 @@ void PointerOverlayWindow::runOnce ()
     
     std::string mainWindowName = "Invalid";
     ImGui::SetNextWindowPos(ImVec2(0,0));
-    ImGui::SetNextWindowSize(ImVec2(256,128));
+    ImGui::SetNextWindowSize(ImVec2(256,256));
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
         if (!isOpen)
@@ -191,11 +192,27 @@ void PointerOverlayWindow::runOnce ()
                        
         if (underCursorTexture > 0)
         {
-            ImGui::Image(reinterpret_cast<ImTextureID>(underCursorTexture), ImVec2(64,64));
+            const int zoomLenInPixels = int(screenRect.size.x);
+            ImVec2 zoomItemSize (128,128);
+            ImVec2 pixelSizeInZoom = zoomItemSize / ImVec2(zoomLenInPixels,zoomLenInPixels);
+                       
+            ImVec2 zoomTopLeft = ImGui::GetCursorScreenPos();
+            ImGui::Image(reinterpret_cast<ImTextureID>(underCursorTexture), zoomItemSize);
+            
+            auto* drawList = ImGui::GetWindowDrawList();
+            ImVec2 p1 = pixelSizeInZoom * (zoomLenInPixels / 2) + zoomTopLeft;
+            ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomTopLeft;
+            drawList->AddRect(p1, p2, IM_COL32(0,0,0,255));
+            drawList->AddRect(p1 - ImVec2(1,1), p2 + ImVec2(1,1), IM_COL32(255,255,255,255));
         }
         
-        ImGui::Text("sRGB: [%d %d %d]", 127, 127, 127);
-        ImGui::Text("RED");
+        dl::PixelSRGBA sRgb = cpuScreenGrab(cpuScreenGrab.width()/2, cpuScreenGrab.height()/2);
+        
+        ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+        
+        float h,s,v;
+        ImGui::ColorConvertRGBtoHSV(sRgb.r, sRgb.g, sRgb.b, h, s, v);
+        ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
         
         // ImGuiViewport* vp = ImGui::GetWindowViewport();
         // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
