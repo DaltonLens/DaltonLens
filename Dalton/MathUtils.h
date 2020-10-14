@@ -43,6 +43,25 @@ namespace dl
         return std::max (std::min(v, 255.f), 0.f);
     };
 
+    inline uint8_t roundAndSaturateToUint8 (float v)
+    {
+        return (uint8_t)std::max (std::min(v + 0.5f, 255.f), 0.f);
+    };
+
+    inline double pow7 (double x)
+    {
+        double pow3 = x*x*x;
+        return pow3*pow3*x;
+    }
+
+    inline double sqr(double x)
+    {
+        return x*x;
+    }
+
+    static constexpr double Rad2Deg = 57.29577951308232;
+    static constexpr double Deg2Rad = 0.017453292519943295;
+
     template <class T>
     T keepInRange (T value, T min, T max)
     {

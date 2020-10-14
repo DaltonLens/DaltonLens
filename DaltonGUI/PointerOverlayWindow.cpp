@@ -4,8 +4,12 @@
 #include "CrossPlatformUtils.h"
 
 #include <Dalton/Utils.h>
+#include <Dalton/ColorConversion.h>
 
 #include <GLFW/glfw3.h>
+
+#define GLFW_EXPOSE_NATIVE_COCOA 1
+#include <GLFW/glfw3native.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -18,6 +22,9 @@ namespace  dl
 
 struct PointerOverlayWindow::Impl
 {
+    const int windowWidth = 640;
+    const int windowHeight = 384;
+    
     ImGuiContext* imGuiContext = nullptr;
     bool enabled = false;
     bool justGotEnabled = false;
@@ -69,9 +76,18 @@ bool PointerOverlayWindow::initialize (GLFWwindow* parentContext)
     
     glfwWindowHint(GLFW_FLOATING, true);
     
-    impl->window = glfwCreateWindow(256, 256, "DaltonLens overlay", NULL, parentContext);
+    impl->window = glfwCreateWindow(impl->windowWidth, impl->windowHeight, "DaltonLens overlay", NULL, parentContext);
     if (impl->window == NULL)
         return false;
+    
+    NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(impl->window);
+    dl_assert (nsWindow, "Not working?");
+    nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorIgnoresCycle;
+    
+//    window.collectionBehavior = [NSWindow.CollectionBehavior.stationary,
+//                                 // NSWindowCollectionBehavior.canJoinAllSpaces,
+//                                NSWindow.CollectionBehavior.moveToActiveSpace,
+//                                NSWindow.CollectionBehavior.ignoresCycle];
     
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -120,7 +136,19 @@ void PointerOverlayWindow::runOnce ()
     
     glfwMakeContextCurrent(impl->window);
     
-    glfwSetWindowPos(impl->window, globalMousePos.x + 32, globalMousePos.y + 32);
+    double xOffset = 32;
+    if (globalMousePos.x + xOffset + impl->windowWidth > impl->monitorSize.x)
+    {
+        xOffset = - impl->windowWidth - 32;
+    }
+    
+    double yOffset = 32;
+    if (globalMousePos.y + yOffset + impl->windowHeight > impl->monitorSize.y)
+    {
+        yOffset = - impl->windowHeight - 32;
+    }
+    
+    glfwSetWindowPos(impl->window, globalMousePos.x + xOffset, globalMousePos.y + yOffset);
 
     if (impl->justGotEnabled)
     {
@@ -171,6 +199,8 @@ void PointerOverlayWindow::runOnce ()
                                               cpuScreenGrab,
                                               gpuScreenGrab);
        
+    dl::PixelSRGBA sRgb = cpuScreenGrab(cpuScreenGrab.width()/2, cpuScreenGrab.height()/2);
+    
     GLuint underCursorTexture = gpuScreenGrab.textureId();
     {
         GLint prevTexture;
@@ -182,7 +212,7 @@ void PointerOverlayWindow::runOnce ()
     
     std::string mainWindowName = "Invalid";
     ImGui::SetNextWindowPos(ImVec2(0,0));
-    ImGui::SetNextWindowSize(ImVec2(256,256));
+    ImGui::SetNextWindowSize(ImVec2(impl->windowWidth,impl->windowHeight));
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
         if (!isOpen)
@@ -204,15 +234,66 @@ void PointerOverlayWindow::runOnce ()
             ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomTopLeft;
             drawList->AddRect(p1, p2, IM_COL32(0,0,0,255));
             drawList->AddRect(p1 - ImVec2(1,1), p2 + ImVec2(1,1), IM_COL32(255,255,255,255));
+            
+            ImGui::SameLine();
+            {
+                ImVec2 topLeft = ImGui::GetCursorScreenPos() + ImVec2(8,0);
+                ImVec2 bottomRight = topLeft + ImVec2(128,128);
+                auto* drawList = ImGui::GetWindowDrawList();
+                drawList->AddRectFilled(topLeft, bottomRight, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
+                ImGui::SetCursorPosX(bottomRight.x + 8);
+            }
         }
-        
-        dl::PixelSRGBA sRgb = cpuScreenGrab(cpuScreenGrab.width()/2, cpuScreenGrab.height()/2);
-        
+            
+        ImGui::NewLine();
         ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+
+        PixelLinearRGB lrgb = convertToLinearRGB(sRgb);
+        ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
         
-        float h,s,v;
-        ImGui::ColorConvertRGBtoHSV(sRgb.r, sRgb.g, sRgb.b, h, s, v);
-        ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
+        auto hsv = dl::convertToHSV(sRgb);
+        ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
+        
+        PixelLab lab = dl::convertToLab(sRgb);
+        ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
+        
+        PixelXYZ xyz = convertToXYZ(sRgb);
+        ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
+        
+        ImGui::NewLine();
+        
+        auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
+        
+        {
+            ImVec2 topLeft = ImGui::GetCursorScreenPos();
+            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft, bottomRight, IM_COL32(closestColors[0].entry->r, closestColors[0].entry->g, closestColors[0].entry->b, 255));
+            ImGui::SetCursorPosX(bottomRight.x + 8);
+        }
+        ImGui::Text("1st Closest Color (dist=%.5f): %s / %s [%d %d %d]",
+                    closestColors[0].distance,
+                    closestColors[0].entry->className,
+                    closestColors[0].entry->colorName,
+                    closestColors[0].entry->r,
+                    closestColors[0].entry->g,
+                    closestColors[0].entry->b);
+        
+        ImGui::NewLine();
+        {
+            ImVec2 topLeft = ImGui::GetCursorScreenPos();
+            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft, bottomRight, IM_COL32(closestColors[1].entry->r, closestColors[1].entry->g, closestColors[1].entry->b, 255));
+            ImGui::SetCursorPosX(bottomRight.x + 8);
+        }
+        ImGui::Text("2nd Closest Color (dist=%.5f): %s / %s [%d %d %d]",
+                    closestColors[1].distance,
+                    closestColors[1].entry->className,
+                    closestColors[1].entry->colorName,
+                    closestColors[1].entry->r,
+                    closestColors[1].entry->g,
+                    closestColors[1].entry->b);
         
         // ImGuiViewport* vp = ImGui::GetWindowViewport();
         // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)

@@ -330,6 +330,13 @@ namespace dl
                 float s;
             };
             
+            // For Lab
+            struct {
+                float _l; // l
+                float a;
+                float _b; // b
+            };
+            
             struct {
                 float r;
                 float g;
@@ -345,6 +352,8 @@ namespace dl
     struct PixelLinearRGB : public PixelXYZ { using PixelXYZ::PixelXYZ; };
     struct PixelLMS : public PixelXYZ { using PixelXYZ::PixelXYZ; };
     struct PixelYCbCr : public PixelXYZ { using PixelXYZ::PixelXYZ; };
+    struct PixelHSV : public PixelXYZ { using PixelXYZ::PixelXYZ; };
+    struct PixelLab : public PixelXYZ { using PixelXYZ::PixelXYZ; };
     
     // Strong types to avoid confusion.
     using ImageSRGBA = Image<PixelSRGBA>;
