@@ -230,6 +230,11 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
 namespace dl
 {
 
+void setAppFocusEnabled (bool enabled)
+{
+    NSApp.activationPolicy = enabled ? NSApplicationActivationPolicyRegular : NSApplicationActivationPolicyAccessory;
+}
+
 dl::Point getMouseCursor()
 {
     NSPoint mousePos = [NSEvent mouseLocation];

@@ -19,6 +19,8 @@ namespace dl
 
 dl::Point getMouseCursor();
 
+void setAppFocusEnabled (bool enabled);
+
 class ScreenGrabber
 {
 public:

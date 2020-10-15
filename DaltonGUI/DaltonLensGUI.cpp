@@ -27,6 +27,120 @@
 namespace dl
 {
 
+struct OverlayTriggerEventDetector
+{
+    enum State {
+        Initial = 0,
+        GotFirstPress = 1,
+        GotFirstRelease = 2,
+        GotSecondPress = 3,
+        GotSecondRelease = 4
+    };
+    
+    void onCtrlAltCmdFlagsChanged(bool enabled)
+    {
+        ctrlAltCmdWasLastEnabled = enabled;
+        
+        // 500ms to consider a keypress and not a keyhold.
+        const double maxKeyPressTime = 0.5;
+        const double maxTimeBetweenPresses = 0.5;
+        
+        const double nowSeconds = dl::currentDateInSeconds();
+        
+        dl_dbg ("BEFORE _currentState = %d", _currentState);
+        
+        // Make sure to go back to initial if we haven't seen any event for too long.
+        if (_currentState != GotSecondRelease && nowSeconds - timeWhenLastStateChanged > maxTimeBetweenPresses)
+        {
+            _currentState = Initial;
+        }
+        
+        switch (_currentState)
+        {
+            case Initial:
+            {
+                if (enabled)
+                {
+                    _currentState = GotFirstPress;
+                    timeWhenLastStateChanged = nowSeconds;
+                }
+                break;
+            }
+                
+            case GotFirstPress:
+            {
+                if (enabled) { _currentState = Initial; break; }
+
+                if ((nowSeconds - timeWhenLastStateChanged) > maxKeyPressTime)
+                {
+                    _currentState = Initial;
+                }
+                else
+                {
+                    timeWhenLastStateChanged = nowSeconds;
+                    _currentState = GotFirstRelease;
+                }
+                break;
+            }
+                
+            case GotFirstRelease:
+            {
+                // We get multiple release events since we don't release the keys all at once.
+                if (!enabled) { break; }
+                
+                dl_dbg("nowSeconds = %f", nowSeconds);
+                dl_dbg("timeWhenLastStateChanged = %f", timeWhenLastStateChanged);
+                
+                if ((nowSeconds - timeWhenLastStateChanged) > maxTimeBetweenPresses)
+                {
+                    _currentState = Initial; break;
+                }
+                
+                _currentState = GotSecondPress;
+                timeWhenLastStateChanged = nowSeconds;
+                break;
+            }
+                
+            case GotSecondPress:
+            {
+                if (enabled) { _currentState = Initial; break; }
+
+                if ((nowSeconds - timeWhenLastStateChanged) > maxKeyPressTime)
+                {
+                    _currentState = Initial;
+                }
+                else
+                {
+                    _currentState = GotSecondRelease;
+                    timeWhenLastStateChanged = nowSeconds;
+                }
+                break;
+            }
+                
+            case GotSecondRelease:
+            {
+                if (enabled)
+                {
+                    _currentState = Initial;
+                }
+                break;
+            }
+        }
+        
+        dl_dbg ("AFTER _currentState = %d", _currentState);
+    }
+    
+    bool isEnabled () const
+    {
+        return _currentState == GotSecondRelease;
+    }
+    
+private:
+    State _currentState = State::Initial;
+    bool ctrlAltCmdWasLastEnabled = false;
+    double timeWhenLastStateChanged = NAN;
+};
+
 struct DaltonLensGUI::Impl
 {
     GLFWwindow* mainContextWindow = nullptr;
@@ -37,13 +151,31 @@ struct DaltonLensGUI::Impl
     DisplayLinkTimer displayLinkTimer;
     KeyboardMonitor keyboardMonitor;
     
+    OverlayTriggerEventDetector overlayTriggerDetector;
+    
+    bool appFocusWasEnabled = false;
+    
     void onDisplayLinkRefresh ()
     {
+        bool appFocusRequested = false;
+        
         if (pointerOverlayWindow.isEnabled())
+        {
+            appFocusRequested = true;
             pointerOverlayWindow.runOnce();
+        }
         
         if (imageViewerWindow.isEnabled())
+        {
+            appFocusRequested = true;
             imageViewerWindow.runOnce();
+        }
+        
+        if (appFocusRequested != appFocusWasEnabled)
+        {
+            dl::setAppFocusEnabled (appFocusRequested);
+            appFocusWasEnabled = appFocusRequested;
+        }
     }
 };
 
@@ -127,7 +259,8 @@ bool DaltonLensGUI::initialize ()
     });
     
     impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
-        impl->pointerOverlayWindow.setEnabled(enabled);
+        impl->overlayTriggerDetector.onCtrlAltCmdFlagsChanged(enabled);
+        impl->pointerOverlayWindow.setEnabled(impl->overlayTriggerDetector.isEnabled());
     });
     
     // Enabling that we lose the pointer overlay entirely.
