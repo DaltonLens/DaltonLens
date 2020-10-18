@@ -46,6 +46,15 @@ void GLTexture::initializeWithExistingTextureID (uint32_t textureId)
         releaseGL();
     
     _textureId = textureId;
+    
+    GLint prevTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+    
+    glBindTexture(GL_TEXTURE_2D, _textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, prevTexture);
 }
 
 void GLTexture::releaseGL ()

@@ -143,10 +143,18 @@ private:
 
 struct DaltonLensGUI::Impl
 {
+    enum class State {
+        Disabled,
+        GrabScreen,
+        ImageViewer,
+    };
+    State currentState = State::Disabled;
+    
     GLFWwindow* mainContextWindow = nullptr;
     
     ImageViewerWindow imageViewerWindow;
     PointerOverlayWindow pointerOverlayWindow;
+    GrabScreenAreaWindow grabScreenWindow;
     
     DisplayLinkTimer displayLinkTimer;
     KeyboardMonitor keyboardMonitor;
@@ -159,16 +167,46 @@ struct DaltonLensGUI::Impl
     {
         bool appFocusRequested = false;
         
-        if (pointerOverlayWindow.isEnabled())
+        switch (currentState)
         {
-            appFocusRequested = true;
-            pointerOverlayWindow.runOnce();
-        }
-        
-        if (imageViewerWindow.isEnabled())
-        {
-            appFocusRequested = true;
-            imageViewerWindow.runOnce();
+            case State::Disabled:
+            {
+                appFocusRequested = false;
+                break;
+            }
+                
+            case State::GrabScreen:
+            {
+                appFocusRequested = false;
+                grabScreenWindow.runOnce();
+                if (grabScreenWindow.grabbingFinished())
+                {
+                    if (grabScreenWindow.grabbedData().isValid)
+                    {
+                        // FIXME: start ImageViewer
+                    }
+                    else
+                    {
+                        currentState = State::Disabled;
+                    }
+                }
+                break;
+            }
+            
+            case State::ImageViewer:
+            {
+                if (imageViewerWindow.isEnabled())
+                {
+                    appFocusRequested = true;
+                    imageViewerWindow.runOnce();
+                }
+                else
+                {
+                    appFocusRequested = false;
+                    currentState = State::Disabled;
+                }
+                break;
+            }
         }
         
         if (appFocusRequested != appFocusWasEnabled)
@@ -189,6 +227,7 @@ DaltonLensGUI::~DaltonLensGUI()
 {
     impl->imageViewerWindow.shutdown();
     impl->pointerOverlayWindow.shutdown();
+    impl->grabScreenWindow.shutdown();
     
     if (impl->mainContextWindow)
     {
@@ -253,14 +292,23 @@ bool DaltonLensGUI::initialize ()
     glfwHideWindow (impl->mainContextWindow);
         
     impl->pointerOverlayWindow.initialize(impl->mainContextWindow);
+    impl->grabScreenWindow.initialize(impl->mainContextWindow);
     
     impl->displayLinkTimer.setCallback([this]() {
         impl->onDisplayLinkRefresh();
     });
     
-    impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
-        impl->overlayTriggerDetector.onCtrlAltCmdFlagsChanged(enabled);
-        impl->pointerOverlayWindow.setEnabled(impl->overlayTriggerDetector.isEnabled());
+    //    impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
+    //        impl->overlayTriggerDetector.onCtrlAltCmdFlagsChanged(enabled);
+    //        impl->pointerOverlayWindow.setEnabled(impl->overlayTriggerDetector.isEnabled());
+    //    });
+    
+    impl->keyboardMonitor.setKeyboardCtrlAltCmdSpaceCallback([this]() {
+        bool couldGrab = impl->grabScreenWindow.startGrabbing();
+        if (couldGrab)
+        {
+            impl->currentState = Impl::State::GrabScreen;
+        }
     });
     
     // Enabling that we lose the pointer overlay entirely.

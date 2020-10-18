@@ -80,6 +80,8 @@ bool PointerOverlayWindow::initialize (GLFWwindow* parentContext)
     if (impl->window == NULL)
         return false;
     
+    glfwHideWindow(impl->window);
+    
     NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(impl->window);
     dl_assert (nsWindow, "Not working?");
     nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorIgnoresCycle;
@@ -128,7 +130,9 @@ void PointerOverlayWindow::runOnce ()
 {
     if (!impl->enabled)
         return;
-        
+ 
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    
     dl_dbg ("Rendering the pointer overlay.");
     
     dl::Point globalMousePos = dl::getMouseCursor();
@@ -162,8 +166,6 @@ void PointerOverlayWindow::runOnce ()
     // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
     // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
-
-    ImGui::SetCurrentContext(impl->imGuiContext);
     
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();

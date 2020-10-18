@@ -1,3 +1,7 @@
+#include <Dalton/Image.h>
+#include <Dalton/MathUtils.h>
+#include "Graphics.h"
+
 #include <memory>
 #include <functional>
 
@@ -5,6 +9,14 @@ class GLFWwindow;
 
 namespace dl
 {
+
+struct GrabScreenData
+{
+    bool isValid = false;
+    dl::Rect capturedRect;
+    std::shared_ptr<dl::ImageSRGBA> srgbaImage;
+    std::shared_ptr<GLTexture> texture;
+};
 
 // Manages a single ImGui window.
 class GrabScreenAreaWindow
@@ -16,9 +28,11 @@ public:
 public:
     bool initialize (GLFWwindow* parentContext);
     void shutdown ();
-    void runOnce (float mousePosX, float mousePosY, const std::function<unsigned(void)>& allocateTextureUnderCursor);
-    bool isEnabled () const;
-    void setEnabled (bool enabled);
+    void runOnce ();
+    bool startGrabbing ();
+    
+    bool grabbingFinished() const;
+    const GrabScreenData& grabbedData () const;
     
 private:
     struct Impl;
