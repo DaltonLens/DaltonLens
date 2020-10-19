@@ -225,6 +225,35 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
     return true;
 }
 
+dl::Rect getFrontWindowGeometry()
+{
+    dl::Rect output;
+    output.origin = dl::Point(64,64);
+    output.size = dl::Point(640,480);
+    
+    CFArrayRef windowList_cf = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+    NSArray* windowList = CFBridgingRelease(windowList_cf);
+    const unsigned windowCount = windowList.count;
+    
+    //Iterate through the CFArrayRef and fill the vector
+    for (int i = 0; i < windowCount ; ++i)
+    {
+        NSDictionary* dict = (NSDictionary*)[windowList objectAtIndex:i];
+        int layer = [(NSNumber*)[dict objectForKey:@"kCGWindowLayer"] intValue];
+        if (layer == 0)
+        {
+            NSDictionary* bounds = (NSDictionary*)[dict objectForKey:@"kCGWindowBounds"];
+            output.size.x = [(NSNumber*)bounds[@"Width"] intValue];
+            output.size.y = [(NSNumber*)bounds[@"Height"] intValue];
+            output.origin.x = [(NSNumber*)bounds[@"X"] intValue];
+            output.origin.y = [(NSNumber*)bounds[@"Y"] intValue];
+            break;
+        }
+    }
+    
+    return output;
+}
+
 } // dl
 
 namespace dl

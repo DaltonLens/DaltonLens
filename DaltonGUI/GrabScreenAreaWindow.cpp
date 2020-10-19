@@ -19,6 +19,12 @@
 namespace  dl
 {
 
+struct RectSelection
+{
+    ImVec2 topLeft = ImVec2(-1,-1);
+    ImVec2 bottomRight = ImVec2(-1,-1);
+};
+
 struct GrabScreenAreaWindow::Impl
 {
     ImGuiContext* imGuiContext = nullptr;
@@ -33,6 +39,8 @@ struct GrabScreenAreaWindow::Impl
     ImVec2 monitorWorkAreaTopLeft = ImVec2(-1,-1);
     
     ScreenGrabber grabber;
+    
+    RectSelection currentSelectionInScreen;
 };
 
 GrabScreenAreaWindow::GrabScreenAreaWindow()
@@ -327,8 +335,25 @@ void GrabScreenAreaWindow::runOnce ()
                                        imageWidgetTopLeft,
                                        imageWidgetSize);
         
+        ImVec2 selectionTopLeftInWindow = impl->currentSelectionInScreen.topLeft - impl->monitorWorkAreaTopLeft;
+        ImVec2 selectionBottomRightInWindow = impl->currentSelectionInScreen.bottomRight - impl->monitorWorkAreaTopLeft;
+        
         auto* drawList = ImGui::GetWindowDrawList();
-        drawList->AddRect(ImVec2(0,0), impl->monitorWorkAreaSize, IM_COL32(255, 0, 0, 255), 0.0f, ImDrawCornerFlags_All, 8.0f);
+                
+        // Border around the selected area.
+        drawList->AddRect(selectionTopLeftInWindow, selectionBottomRightInWindow, IM_COL32(255, 0, 0, 255), 4.0f, ImDrawCornerFlags_All, 4.0f);
+        
+        // Left rectangle
+        drawList->AddRectFilled(ImVec2(0,0), ImVec2(selectionTopLeftInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+        
+        // Right rectangle
+        drawList->AddRectFilled(ImVec2(selectionBottomRightInWindow.x,0), ImVec2(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+        
+        // Top rectangle
+        drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,0), ImVec2(selectionBottomRightInWindow.x, selectionTopLeftInWindow.y), IM_COL32(0, 0, 0, 127));
+        
+        // Bottom rectangle
+        drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,selectionBottomRightInWindow.y), ImVec2(selectionBottomRightInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -360,6 +385,10 @@ bool GrabScreenAreaWindow::startGrabbing ()
 {
     impl->justGotEnabled = true;
     impl->grabbingFinished = false;
+    
+    dl::Rect frontWindowRect = dl::getFrontWindowGeometry();
+    impl->currentSelectionInScreen.topLeft = imPos(frontWindowRect);
+    impl->currentSelectionInScreen.bottomRight = impl->currentSelectionInScreen.topLeft + imSize(frontWindowRect);
     
     dl::Rect screenRect;
     screenRect.origin = dl::Point(impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y);

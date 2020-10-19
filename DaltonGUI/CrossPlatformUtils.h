@@ -19,6 +19,8 @@ namespace dl
 
 dl::Point getMouseCursor();
 
+dl::Rect getFrontWindowGeometry();
+
 void setAppFocusEnabled (bool enabled);
 
 class ScreenGrabber
