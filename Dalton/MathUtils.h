@@ -91,15 +91,35 @@ namespace dl
     {
         Point() = default;
         Point (double x, double y) : x(x), y(y) {}
+    
+        inline Point& operator-=(const Point& rhs)
+        {
+            x -= rhs.x;
+            y -= rhs.y;
+            return *this;
+        }
         
         double x = NAN;
         double y = NAN;
     };
 
+    inline Point operator-(const Point& p1, const Point& p2)
+    {
+        Point p = p1; p -= p2; return p;
+    }
+
     struct Rect
     {
         Point origin;
         Point size;
+        
+        bool contains (const Point& p) const
+        {
+            return (p.x >= origin.x
+                    && p.x < origin.x + size.x
+                    && p.y >= origin.y
+                    && p.y < origin.y + size.y);
+        }
     };
 
 } // dl

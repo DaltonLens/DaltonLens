@@ -228,26 +228,49 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
 dl::Rect getFrontWindowGeometry()
 {
     dl::Rect output;
-    output.origin = dl::Point(64,64);
-    output.size = dl::Point(640,480);
+    output.origin = dl::Point(-1,-1);
+    output.size = dl::Point(-1,-1);
     
     CFArrayRef windowList_cf = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
     NSArray* windowList = CFBridgingRelease(windowList_cf);
     const unsigned windowCount = windowList.count;
+    
+    dl::Point mousePos = getMouseCursor();
+    mousePos.y = NSScreen.mainScreen.frame.size.height - mousePos.y;
+    
+    NSLog(@"Window list = %@", windowList);
+    NSLog(@"mousePos = %f %f", mousePos.x, mousePos.y);
     
     //Iterate through the CFArrayRef and fill the vector
     for (int i = 0; i < windowCount ; ++i)
     {
         NSDictionary* dict = (NSDictionary*)[windowList objectAtIndex:i];
         int layer = [(NSNumber*)[dict objectForKey:@"kCGWindowLayer"] intValue];
+        
+        NSString* owner = (NSString*)[dict objectForKey:@"kCGWindowOwnerName"];
+        if ([owner isEqualToString:@"DaltonLens"])
+            continue;
+        
         if (layer == 0)
         {
             NSDictionary* bounds = (NSDictionary*)[dict objectForKey:@"kCGWindowBounds"];
-            output.size.x = [(NSNumber*)bounds[@"Width"] intValue];
-            output.size.y = [(NSNumber*)bounds[@"Height"] intValue];
-            output.origin.x = [(NSNumber*)bounds[@"X"] intValue];
-            output.origin.y = [(NSNumber*)bounds[@"Y"] intValue];
-            break;
+            dl::Rect windowRect;
+            windowRect.size.x = [(NSNumber*)bounds[@"Width"] intValue];
+            windowRect.size.y = [(NSNumber*)bounds[@"Height"] intValue];
+            windowRect.origin.x = [(NSNumber*)bounds[@"X"] intValue];
+            windowRect.origin.y = [(NSNumber*)bounds[@"Y"] intValue];
+            
+            if (windowRect.contains(mousePos))
+            {
+                output = windowRect;
+                break;
+            }
+            else if (output.size.x < 0)
+            {
+                // If the mouse is not over any window, save at least first window that had valid bounds
+                // since the windows come in order, the front-most first.
+                output = windowRect;
+            }
         }
     }
     

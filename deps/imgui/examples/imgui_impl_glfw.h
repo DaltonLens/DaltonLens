@@ -23,6 +23,12 @@
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
 
+struct ImGui_ImplGlfw_Context;
+
+ImGui_ImplGlfw_Context* ImGui_ImplGlfw_CreateContext();
+void ImGui_ImplGlfw_SetCurrentContext(ImGui_ImplGlfw_Context* context);
+void ImGui_ImplGlfw_DestroyContext(ImGui_ImplGlfw_Context* context);
+
 struct GLFWwindow;
 struct GLFWmonitor;
 

@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <string>
 
+#include "MathUtils.h"
+
 namespace dl
 {
     
@@ -103,7 +105,7 @@ namespace dl
         Image& operator= (Image&& rhs)
         {
             releaseData ();
-            _data = rhs.data;
+            _data = rhs._data;
             _width = rhs._width;
             _height = rhs._height;
             _bytesPerRow = rhs._bytesPerRow;
@@ -366,5 +368,23 @@ namespace dl
     
     bool writePngImage (const std::string& filePath,
                         const ImageSRGBA& image);
+
+    template <class T>
+    Image<T> crop (const Image<T>& input, const dl::Rect& rawRoi)
+    {
+        dl::Rect finalRoi = rawRoi;
+        finalRoi.origin.x = std::max(0., finalRoi.origin.x);
+        finalRoi.origin.y = std::max(0., finalRoi.origin.y);
+        finalRoi.size.x = std::min(input.width() - finalRoi.origin.x, finalRoi.size.x);
+        finalRoi.size.y = std::min(input.height() - finalRoi.origin.y, finalRoi.size.y);
+        
+        Image<T> output (finalRoi.size.x, finalRoi.size.y);
+        for (int r = 0; r < output.height(); ++r)
+        for (int c = 0; c < output.width(); ++c)
+        {
+            output(c,r) = input(c + finalRoi.origin.x, r + finalRoi.origin.y);
+        }
+        return output;
+    }
     
 } // dl

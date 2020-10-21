@@ -181,9 +181,11 @@ struct DaltonLensGUI::Impl
                 grabScreenWindow.runOnce();
                 if (grabScreenWindow.grabbingFinished())
                 {
-                    if (grabScreenWindow.grabbedData().isValid)
+                    const auto& grabbedData = grabScreenWindow.grabbedData();
+                    if (grabbedData.isValid)
                     {
-                        // FIXME: start ImageViewer
+                        imageViewerWindow.showGrabbedData(grabbedData);
+                        currentState = State::ImageViewer;
                     }
                     else
                     {
@@ -291,8 +293,9 @@ bool DaltonLensGUI::initialize ()
     // Don't show that dummy window.
     glfwHideWindow (impl->mainContextWindow);
         
-    impl->pointerOverlayWindow.initialize(impl->mainContextWindow);
+    // impl->pointerOverlayWindow.initialize(impl->mainContextWindow);
     impl->grabScreenWindow.initialize(impl->mainContextWindow);
+    impl->imageViewerWindow.initialize (impl->mainContextWindow);
     
     impl->displayLinkTimer.setCallback([this]() {
         impl->onDisplayLinkRefresh();
@@ -310,11 +313,6 @@ bool DaltonLensGUI::initialize ()
             impl->currentState = Impl::State::GrabScreen;
         }
     });
-    
-    // Enabling that we lose the pointer overlay entirely.
-//    char* argv[] = { "dummy" };
-//    impl->imageViewerWindow.initialize(1, argv, impl->mainContextWindow);
-    
     return true;
 }
 

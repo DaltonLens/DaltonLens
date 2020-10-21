@@ -13,7 +13,7 @@ namespace dl
 struct GrabScreenData
 {
     bool isValid = false;
-    dl::Rect capturedRect;
+    dl::Rect capturedScreenRect;
     std::shared_ptr<dl::ImageSRGBA> srgbaImage;
     std::shared_ptr<GLTexture> texture;
 };

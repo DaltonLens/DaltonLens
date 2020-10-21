@@ -21,13 +21,33 @@ namespace  dl
 
 struct RectSelection
 {
+    bool isValid () const { return topLeft.x >= 0.; }
+    
+    dl::Rect asDL () const
+    {
+        dl::Rect dlRect;
+        dlRect.origin = dl::Point(topLeft.x, topLeft.y);
+        dlRect.size = dl::Point(bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+        return dlRect;
+    }
+    
     ImVec2 topLeft = ImVec2(-1,-1);
     ImVec2 bottomRight = ImVec2(-1,-1);
 };
 
 struct GrabScreenAreaWindow::Impl
 {
+    enum class State
+    {
+        Initial,
+        MouseDragging
+    };
+    State currentState = State::Initial;
+    
     ImGuiContext* imGuiContext = nullptr;
+    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
+    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
+    
     GLFWwindow* window = nullptr;
 
     bool justGotEnabled = false;
@@ -41,7 +61,24 @@ struct GrabScreenAreaWindow::Impl
     ScreenGrabber grabber;
     
     RectSelection currentSelectionInScreen;
+    
+    void finishGrabbing ();
 };
+
+void GrabScreenAreaWindow::Impl::finishGrabbing ()
+{
+    this->grabbingFinished = true;
+    this->grabbedData.isValid = this->currentSelectionInScreen.isValid();
+    if (this->grabbedData.isValid)
+    {
+        this->grabbedData.capturedScreenRect = this->currentSelectionInScreen.asDL();
+        dl::Rect capturedImageRect = this->grabbedData.capturedScreenRect;
+        capturedImageRect.origin -= dl::Point(this->monitorWorkAreaTopLeft.x, this->monitorWorkAreaTopLeft.y);
+        *this->grabbedData.srgbaImage = dl::crop (*this->grabbedData.srgbaImage, capturedImageRect);
+    }
+    ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+    glfwHideWindow(this->window);
+}
 
 GrabScreenAreaWindow::GrabScreenAreaWindow()
 : impl(new Impl())
@@ -69,6 +106,9 @@ void GrabScreenAreaWindow::shutdown()
     if (impl->window)
     {
         ImGui::SetCurrentContext(impl->imGuiContext);
+        ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+        ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+        
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
@@ -136,6 +176,12 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     
     ImGui::StyleColorsDark();
     
+    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    
+    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+        
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
     ImGui_ImplOpenGL3_Init(glslVersion());
@@ -278,6 +324,8 @@ void showImageCursorOverlayTooptip (const dl::ImageSRGBA& image,
 void GrabScreenAreaWindow::runOnce ()
 {
     ImGui::SetCurrentContext(impl->imGuiContext);
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
     
     glfwMakeContextCurrent(impl->window);
     
@@ -297,11 +345,44 @@ void GrabScreenAreaWindow::runOnce ()
     
     if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
     {
-        impl->grabbingFinished = true;
-        impl->grabbedData.isValid = false;
-        glfwHideWindow(impl->window);
+        impl->finishGrabbing ();
         ImGui::Render();
         return;
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_SPACE))
+    {
+        dl::Rect frontWindowRect = dl::getFrontWindowGeometry();
+        if (frontWindowRect.size.x >= 0)
+        {
+            impl->currentSelectionInScreen.topLeft = imPos(frontWindowRect);
+            impl->currentSelectionInScreen.bottomRight = impl->currentSelectionInScreen.topLeft + imSize(frontWindowRect);
+        }
+    }
+    
+    if (ImGui::IsKeyReleased(GLFW_KEY_SPACE))
+    {
+        impl->finishGrabbing ();
+        ImGui::Render();
+        return;
+    }
+    
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+    {
+        impl->currentState = Impl::State::MouseDragging;
+        ImVec2 deltaFromInitial = ImGui::GetMouseDragDelta();
+        impl->currentSelectionInScreen.topLeft = io.MousePos - deltaFromInitial + impl->monitorWorkAreaTopLeft;
+        impl->currentSelectionInScreen.bottomRight = io.MousePos + impl->monitorWorkAreaTopLeft;
+    }
+    
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+        if (impl->currentState == Impl::State::MouseDragging)
+        {
+            impl->finishGrabbing ();
+            ImGui::Render();
+            return;
+        }
     }
     
     ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
@@ -326,6 +407,14 @@ void GrabScreenAreaWindow::runOnce ()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), nullptr, flags))
     {
+        {
+            auto* drawList = ImGui::GetForegroundDrawList();
+            drawList->AddCircleFilled(io.MousePos, 12, IM_COL32(0,0,0,64));
+            drawList->AddLine(io.MousePos - ImVec2(16,0), io.MousePos + ImVec2(16,0), IM_COL32(0,0,0,255));
+            drawList->AddLine(io.MousePos - ImVec2(0,16), io.MousePos + ImVec2(0,16), IM_COL32(0,0,0,255));
+            drawList->AddRectFilled(io.MousePos, io.MousePos + ImVec2(1,1), IM_COL32_WHITE);
+        }
+        
         const auto imageWidgetTopLeft = ImGui::GetCursorPos();
         const auto imageWidgetSize = impl->monitorWorkAreaSize;
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->grabbedData.texture->textureId()), imageWidgetSize);
@@ -337,23 +426,26 @@ void GrabScreenAreaWindow::runOnce ()
         
         ImVec2 selectionTopLeftInWindow = impl->currentSelectionInScreen.topLeft - impl->monitorWorkAreaTopLeft;
         ImVec2 selectionBottomRightInWindow = impl->currentSelectionInScreen.bottomRight - impl->monitorWorkAreaTopLeft;
-        
-        auto* drawList = ImGui::GetWindowDrawList();
-                
-        // Border around the selected area.
-        drawList->AddRect(selectionTopLeftInWindow, selectionBottomRightInWindow, IM_COL32(255, 0, 0, 255), 4.0f, ImDrawCornerFlags_All, 4.0f);
-        
-        // Left rectangle
-        drawList->AddRectFilled(ImVec2(0,0), ImVec2(selectionTopLeftInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
-        
-        // Right rectangle
-        drawList->AddRectFilled(ImVec2(selectionBottomRightInWindow.x,0), ImVec2(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
-        
-        // Top rectangle
-        drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,0), ImVec2(selectionBottomRightInWindow.x, selectionTopLeftInWindow.y), IM_COL32(0, 0, 0, 127));
-        
-        // Bottom rectangle
-        drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,selectionBottomRightInWindow.y), ImVec2(selectionBottomRightInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+            
+        if (impl->currentSelectionInScreen.isValid())
+        {
+            auto* drawList = ImGui::GetWindowDrawList();
+            
+            // Border around the selected area.
+            drawList->AddRectFilled(selectionTopLeftInWindow, selectionBottomRightInWindow, IM_COL32(0, 0, 127, 64));
+            
+            //            // Left rectangle
+            //            drawList->AddRectFilled(ImVec2(0,0), ImVec2(selectionTopLeftInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+            //
+            //            // Right rectangle
+            //            drawList->AddRectFilled(ImVec2(selectionBottomRightInWindow.x,0), ImVec2(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+            //
+            //            // Top rectangle
+            //            drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,0), ImVec2(selectionBottomRightInWindow.x, selectionTopLeftInWindow.y), IM_COL32(0, 0, 0, 127));
+            //
+            //            // Bottom rectangle
+            //            drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,selectionBottomRightInWindow.y), ImVec2(selectionBottomRightInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
+        }
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -376,6 +468,7 @@ void GrabScreenAreaWindow::runOnce ()
     
     if (impl->justGotEnabled)
     {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         glfwShowWindow(impl->window);
         impl->justGotEnabled = false;
     }
@@ -383,18 +476,25 @@ void GrabScreenAreaWindow::runOnce ()
 
 bool GrabScreenAreaWindow::startGrabbing ()
 {
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+    
+    glfwMakeContextCurrent(impl->window);
+    
     impl->justGotEnabled = true;
     impl->grabbingFinished = false;
     
-    dl::Rect frontWindowRect = dl::getFrontWindowGeometry();
-    impl->currentSelectionInScreen.topLeft = imPos(frontWindowRect);
-    impl->currentSelectionInScreen.bottomRight = impl->currentSelectionInScreen.topLeft + imSize(frontWindowRect);
+    impl->currentSelectionInScreen = {};
     
     dl::Rect screenRect;
     screenRect.origin = dl::Point(impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y);
     screenRect.size = dl::Point(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y);
+    
+    impl->grabbedData = {};
     impl->grabbedData.srgbaImage = std::make_shared<dl::ImageSRGBA>();
     impl->grabbedData.texture = std::make_shared<GLTexture>();
+    
     return (impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture));
 }
 

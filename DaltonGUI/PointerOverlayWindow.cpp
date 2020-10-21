@@ -26,6 +26,9 @@ struct PointerOverlayWindow::Impl
     const int windowHeight = 384;
     
     ImGuiContext* imGuiContext = nullptr;
+    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
+    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
+    
     bool enabled = false;
     bool justGotEnabled = false;
     GLFWwindow* window = nullptr;
@@ -51,6 +54,8 @@ void PointerOverlayWindow::shutdown()
     if (impl->window)
     {
         ImGui::SetCurrentContext(impl->imGuiContext);
+        ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+        ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
@@ -119,6 +124,12 @@ bool PointerOverlayWindow::initialize (GLFWwindow* parentContext)
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
     
+    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+    
+    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
     ImGui_ImplOpenGL3_Init(glslVersion());
@@ -132,6 +143,8 @@ void PointerOverlayWindow::runOnce ()
         return;
  
     ImGui::SetCurrentContext(impl->imGuiContext);
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
     
     dl_dbg ("Rendering the pointer overlay.");
     

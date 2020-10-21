@@ -1,4 +1,5 @@
 #include "ImageViewerWindow.h"
+#include "GrabScreenAreaWindow.h"
 
 #include "Graphics.h"
 #include "ImGuiUtils.h"
@@ -128,10 +129,8 @@ enum class DaltonViewerMode {
 
 struct HighlightRegion
 {
-    void initialize (const char* glslVersion, dl::ImageSRGBA& im)
+    void initializeGL (const char* glslVersion)
     {
-        _im = &im;
-        
         const GLchar *fragmentShader_highlightSameColor = R"(
             uniform sampler2D Texture;
             uniform vec3 u_refColor;
@@ -188,6 +187,11 @@ struct HighlightRegion
             glUniform1f(_attribLocationDistThreshold, _deltaColorThreshold);
             glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
         });
+    }
+    
+    void setImage (dl::ImageSRGBA* im)
+    {
+        _im = im;
     }
     
     void enableShader ()
@@ -264,20 +268,24 @@ private:
 struct ImageViewerWindow::Impl
 {
     ImGuiContext* imGuiContext = nullptr;
+    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
+    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
     
     DaltonViewerMode currentMode = DaltonViewerMode::None;
     
     HighlightRegion highlightRegion;
     
+    bool justUpdatedImage = false;
+    bool needToFocusViewportWindowWhenAvailable = true;
+    
     bool shouldExit = false;
     GLFWwindow* window = nullptr;
     
-    GLTexture gpuTexture;
-
     std::array<GLShader, 6> visualizationShaders;
     int currentVisualizationShaderIndex = 0;
     GLShader* currentVisualizationShader = &visualizationShaders[0];
     
+    GLTexture gpuTexture;
     dl::ImageSRGBA im;
     std::string imagePath;
     
@@ -321,12 +329,87 @@ void ImageViewerWindow::shutdown()
 {
     if (impl->window)
     {
+        ImGui::SetCurrentContext(impl->imGuiContext);
+        ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+        ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+        
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
     }
+}
+
+bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
+{
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    impl->monitorSize = ImVec2(mode->width, mode->height);
+    dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
+
+    // Create window with graphics context.
+    // We create a dummy window just because ImGui needs a main window, but we don't really
+    // want any, because we prefer to rely on ImGui handling the viewport. This way we can
+    // let the ImGui window resizeable, and the platform window will just get resized
+    // accordingly. This way we can remove the decorations AND support resize.
+    glfwWindowHint(GLFW_DECORATED, false);
+    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
+    if (impl->window == NULL)
+        return false;
+
+    glfwSetWindowPos(impl->window, 0, 0);
+    
+    glfwMakeContextCurrent(impl->window);
+    glfwSwapInterval(1); // Enable vsync
+    
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    impl->imGuiContext = ImGui::CreateContext();
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    io.ConfigViewportsNoAutoMerge = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsClassic();
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    
+    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+    
+    // Setup Platform/Renderer bindings
+    ImGui_ImplGlfw_InitForOpenGL(impl->window, false);
+    ImGui_ImplOpenGL3_Init(glslVersion());
+    
+    impl->visualizationShaders[0].initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
+    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
+    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
+    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
+    impl->visualizationShaders[4].initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    
+    impl->highlightRegion.initializeGL(glslVersion());
+    impl->gpuTexture.initialize();
+    
+    return true;
 }
 
 bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWindow)
@@ -450,11 +533,8 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
         }
         }
     }
-
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    impl->monitorSize = ImVec2(mode->width, mode->height);
-    dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
+    
+    initialize (parentWindow);
 
     if (impl->windowSize.normal.size.x < 0) impl->windowSize.normal.size.x = impl->im.width();
     if (impl->windowSize.normal.size.y < 0) impl->windowSize.normal.size.y = impl->im.height();
@@ -462,75 +542,45 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
     if (impl->windowSize.normal.origin.y < 0) impl->windowSize.normal.origin.y = impl->monitorSize.y * 0.10;
     impl->windowSize.current = impl->windowSize.normal;
     
-    // Create window with graphics context.
-    // We create a dummy window just because ImGui needs a main window, but we don't really
-    // want any, because we prefer to rely on ImGui handling the viewport. This way we can
-    // let the ImGui window resizeable, and the platform window will just get resized
-    // accordingly. This way we can remove the decorations AND support resize.
-    glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
-    if (impl->window == NULL)
-        return false;
-
-    glfwSetWindowPos(impl->window, 0, 0);
-    
-    glfwMakeContextCurrent(impl->window);
-    glfwSwapInterval(1); // Enable vsync
-    
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    impl->imGuiContext = ImGui::CreateContext();
-    ImGui::SetCurrentContext(impl->imGuiContext);
-    
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
-    ImGui_ImplOpenGL3_Init(glslVersion());
-
-    impl->gpuTexture.initialize();
     impl->gpuTexture.upload (impl->im);
-
-    impl->visualizationShaders[0].initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
-    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
-    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
-    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
-    impl->visualizationShaders[4].initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->highlightRegion.setImage(&impl->im);
     
-    impl->highlightRegion.initialize(glslVersion(), impl->im);
+    impl->justUpdatedImage = true;
+    impl->needToFocusViewportWindowWhenAvailable = true;
     
     return true;
 }
 
+void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
+{
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    impl->monitorSize = ImVec2(mode->width, mode->height);
+    
+    impl->im.ensureAllocatedBufferForSize(grabbedData.srgbaImage->width(), grabbedData.srgbaImage->height());
+    impl->im.copyDataFrom(*grabbedData.srgbaImage);
+    impl->imagePath = "DaltonLens";
+
+    glfwMakeContextCurrent(impl->window);
+    impl->gpuTexture.upload(impl->im);
+    impl->windowSize.normal.origin = grabbedData.capturedScreenRect.origin;
+    impl->windowSize.normal.size = grabbedData.capturedScreenRect.size;
+    impl->windowSize.current = impl->windowSize.normal;
+    
+    impl->highlightRegion.setImage(&impl->im);
+    impl->currentMode = DaltonViewerMode::Main;
+    
+    impl->justUpdatedImage = true;
+    impl->needToFocusViewportWindowWhenAvailable = true;
+}
+
 void ImageViewerWindow::runOnce ()
 {
-    if (glfwWindowShouldClose(impl->window))
-    {
-        impl->shouldExit = true;
-        return;
-    }
-    
     glfwMakeContextCurrent(impl->window);
+    
+    ImGui::SetCurrentContext(impl->imGuiContext);
+    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
+    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
     
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -538,34 +588,23 @@ void ImageViewerWindow::runOnce ()
     // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
     // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
-
-    ImGui::SetCurrentContext(impl->imGuiContext);
     
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Hack: we need to hide it after fully processing the first ImGui frame, or
-    // ImGui will somehow end up showing it again. Also showing it on the very first frame
-    // lead to the focus not being given to the app on macOS. So doing it after the second frame.
-    if (ImGui::GetFrameCount() == 2)
-    {
-        dl_dbg ("Hiding the window!");
-        glfwHideWindow (impl->window);
-        ImGui::SetNextWindowFocus();
-    }
-
-    // First condition to update the window is the first time we enter here.
-    bool shouldUpdateWindowSize = (ImGui::GetFrameCount() == 1);
+    // First condition to update the window size is whether we just updated the content.
+    bool shouldUpdateWindowSize = impl->justUpdatedImage;
     
     auto& io = ImGui::GetIO();
     
     if (!io.WantCaptureKeyboard)
     {
-        if (ImGui::IsKeyPressed(GLFW_KEY_Q))
+        if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
         {
-            glfwSetWindowShouldClose(impl->window, true);
+            dl_dbg ("ImGui::IsKeyPressed(GLFW_KEY_Q) = %d", ImGui::IsKeyPressed(GLFW_KEY_Q));
+            impl->currentMode = DaltonViewerMode::None;
         }
 
         auto updateCurrentShader = [&]() {
@@ -684,15 +723,19 @@ void ImageViewerWindow::runOnce ()
     {
         // Horrible hack to make sure that our window has the focus once we hide the main window.
         // Otherwise Ctrl+Click might not work right away.
-        if (ImGui::GetFrameCount()==2)
+        if (impl->needToFocusViewportWindowWhenAvailable)
         {
             auto* vp = ImGui::GetWindowViewport();
-            glfwFocusWindow((GLFWwindow*)vp->PlatformHandle);
+            if (vp->PlatformHandle != nullptr)
+            {
+                glfwFocusWindow((GLFWwindow*)vp->PlatformHandle);
+                impl->needToFocusViewportWindowWhenAvailable = false;
+            }
         }
         
         if (!isOpen)
         {
-            glfwSetWindowShouldClose(impl->window, true);
+            impl->currentMode = DaltonViewerMode::None;
         }
                 
         // Make sure we remain up-to-date in case the user resizes it.
@@ -700,13 +743,7 @@ void ImageViewerWindow::runOnce ()
         impl->windowSize.current.size.y = ImGui::GetWindowHeight() - titleBarHeight;
         impl->windowSize.current.origin.x = ImGui::GetWindowPos().x;
         impl->windowSize.current.origin.y = ImGui::GetWindowPos().y + titleBarHeight;
-        
-        // ImGuiViewport* vp = ImGui::GetWindowViewport();
-        // if (vp && ImGui::GetPlatformIO().Platform_SetWindowFocus)
-        // {
-        //     ImGui::GetPlatformIO().Platform_SetWindowFocus(vp);
-        // }
-        
+                
         const auto contentSize = ImGui::GetContentRegionAvail();
         // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
         // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
@@ -865,15 +902,42 @@ void ImageViewerWindow::runOnce ()
     // Update and Render additional Platform Windows
     // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
     //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        GLFWwindow* backup_current_context = glfwGetCurrentContext();
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup_current_context);
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
     }
-
-    glfwSwapBuffers(impl->window);
+    
+    // glfwSwapBuffers(impl->window);
+    
+    impl->justUpdatedImage = false;
+    
+    // User pressed q, escape or closed the window. We need to do an empty rendering to
+    // make sure the platform windows will get hidden and won't stay as ghosts and create
+    // flicker when we enable this again.
+    if (impl->currentMode == DaltonViewerMode::None)
+    {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        
+        // Reset the keyboard state to make sure we won't re-enter the next time
+        // with 'q' or 'escape' already pressed from before.
+        std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
+        
+        ImGui::NewFrame();
+        ImGui::Render();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            GLFWwindow* backup_current_context = glfwGetCurrentContext();
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backup_current_context);
+        }
+    }
 }
 
 bool ImageViewerWindow::shouldExit() const
