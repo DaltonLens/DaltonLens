@@ -122,10 +122,34 @@ const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
 
 
 enum class DaltonViewerMode {
-    None = -1,
-    Main = 0,
-    HighlightRegions,
+    None = -2,
+    Original = -1,
+    
+    HighlightRegions = 0,
+    Protanope,
+    Deuteranope,
+    Tritanope,
+    FlipRedBlue,
+    FlipRedBlueInvertRed,
+    
+    NumModes,
 };
+
+static std::string daltonViewerModeName (DaltonViewerMode mode)
+{
+    switch (mode)
+    {
+        case DaltonViewerMode::None: return "None";
+        case DaltonViewerMode::Original: return "Original Images";
+        case DaltonViewerMode::HighlightRegions: return "Highlight Same Color";
+        case DaltonViewerMode::Protanope: return "Daltonize - Protanope";
+        case DaltonViewerMode::Deuteranope: return "Daltonize - Deuteranope";
+        case DaltonViewerMode::Tritanope: return "Daltonize - Tritanope";
+        case DaltonViewerMode::FlipRedBlue: return "FlipRedBlue";
+        case DaltonViewerMode::FlipRedBlueInvertRed: return "FlipRedBlueInvertRed";
+        default: return "Invalid";
+    }
+}
 
 struct HighlightRegion
 {
@@ -210,7 +234,7 @@ struct HighlightRegion
     {
         const auto newPixel = dl::vec2i((int)x, (int)y);
         
-        if (_selectedPixel == newPixel)
+        if (_hasActiveColor)
         {
             // Toggle it.
             _hasActiveColor = false;
@@ -281,9 +305,14 @@ struct ImageViewerWindow::Impl
     bool shouldExit = false;
     GLFWwindow* window = nullptr;
     
-    std::array<GLShader, 6> visualizationShaders;
-    int currentVisualizationShaderIndex = 0;
-    GLShader* currentVisualizationShader = &visualizationShaders[0];
+    struct {
+        GLShader normal;
+        GLShader protanope;
+        GLShader deuteranope;
+        GLShader tritanope;
+        GLShader flipRedBlue;
+        GLShader flipRedBlueAndInvertRed;
+    } shaders;
     
     GLTexture gpuTexture;
     dl::ImageSRGBA im;
@@ -303,10 +332,25 @@ struct ImageViewerWindow::Impl
         ImVec2 uvCenter = ImVec2(0.5f,0.5f);
     } zoom;
     
-//    ImVec2 uvPointFromMousePos (const ImVec2& mousePos) const
-//    {
-//
-//    }
+    void enterMode (DaltonViewerMode newMode)
+    {
+        this->currentMode = newMode;
+    }
+    
+    void cycleThroughMode (bool backwards)
+    {
+        int newMode_asInt = (int)this->currentMode;
+        newMode_asInt += backwards ? -1 : 1;
+        if (newMode_asInt < 0)
+        {
+            newMode_asInt = (int)DaltonViewerMode::NumModes-1;
+        }
+        else if (newMode_asInt == (int)DaltonViewerMode::NumModes)
+        {
+            newMode_asInt = 0;
+        }
+        this->currentMode = (DaltonViewerMode)newMode_asInt;
+    }
 };
 
 ImageViewerWindow::ImageViewerWindow()
@@ -399,12 +443,12 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     ImGui_ImplGlfw_InitForOpenGL(impl->window, false);
     ImGui_ImplOpenGL3_Init(glslVersion());
     
-    impl->visualizationShaders[0].initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
-    impl->visualizationShaders[1].initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
-    impl->visualizationShaders[2].initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
-    impl->visualizationShaders[3].initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
-    impl->visualizationShaders[4].initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->visualizationShaders[5].initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
+    impl->shaders.normal.initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
+    impl->shaders.protanope.initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
+    impl->shaders.deuteranope.initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
+    impl->shaders.tritanope.initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
+    impl->shaders.flipRedBlue.initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
+    impl->shaders.flipRedBlueAndInvertRed.initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
     
     impl->highlightRegion.initializeGL(glslVersion());
     impl->gpuTexture.initialize();
@@ -568,7 +612,7 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
     impl->windowSize.current = impl->windowSize.normal;
     
     impl->highlightRegion.setImage(&impl->im);
-    impl->currentMode = DaltonViewerMode::Main;
+    impl->currentMode = DaltonViewerMode::HighlightRegions;
     
     impl->justUpdatedImage = true;
     impl->needToFocusViewportWindowWhenAvailable = true;
@@ -599,6 +643,12 @@ void ImageViewerWindow::runOnce ()
     
     auto& io = ImGui::GetIO();
     
+    auto modeForThisFrame = impl->currentMode;
+    if (io.KeyShift)
+    {
+        modeForThisFrame = DaltonViewerMode::Original;
+    }
+    
     if (!io.WantCaptureKeyboard)
     {
         if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
@@ -607,28 +657,14 @@ void ImageViewerWindow::runOnce ()
             impl->currentMode = DaltonViewerMode::None;
         }
 
-        auto updateCurrentShader = [&]() {
-            impl->currentVisualizationShader = &impl->visualizationShaders[impl->currentVisualizationShaderIndex];
-        };
-
         if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
         {
-            --impl->currentVisualizationShaderIndex;
-            if (impl->currentVisualizationShaderIndex < 0)
-            {
-                impl->currentVisualizationShaderIndex = impl->visualizationShaders.size()-1;
-            }
-            updateCurrentShader();
+            impl->cycleThroughMode (true /* backwards */);
         }
 
-        if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT))
+        if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT) || ImGui::IsKeyPressed(GLFW_KEY_SPACE))
         {
-            ++impl->currentVisualizationShaderIndex;
-            if (impl->currentVisualizationShaderIndex == impl->visualizationShaders.size())
-            {
-                impl->currentVisualizationShaderIndex = 0;
-            }
-            updateCurrentShader ();
+            impl->cycleThroughMode (false /* not backwards */);
         }
     }
 
@@ -653,18 +689,6 @@ void ImageViewerWindow::runOnce ()
             impl->windowSize.current.size.x = ratioY * impl->windowSize.normal.size.x;
         }
         shouldUpdateWindowSize = true;
-    }
-    
-    if (ImGui::IsKeyPressed(GLFW_KEY_D))
-    {
-        if (impl->currentMode == DaltonViewerMode::HighlightRegions)
-        {
-            impl->currentMode = DaltonViewerMode::Main;
-        }
-        else
-        {
-            impl->currentMode = DaltonViewerMode::HighlightRegions;
-        }
     }
     
     if (io.InputQueueCharacters.contains('<'))
@@ -704,20 +728,7 @@ void ImageViewerWindow::runOnce ()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
     
-    std::string mainWindowName = "Invalid";
-    switch (impl->currentMode)
-    {
-        case DaltonViewerMode::Main:
-        {
-            mainWindowName = impl->imagePath + " - " + impl->currentVisualizationShader->name();
-            break;
-        }
-        case DaltonViewerMode::HighlightRegions:
-        {
-            mainWindowName = "Highlight Regions";
-            break;
-        }
-    }
+    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);
     
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
@@ -765,19 +776,16 @@ void ImageViewerWindow::runOnce ()
         uv0 += deltaToAdd;
         uv1 += deltaToAdd;
         
-        switch (impl->currentMode)
+        switch (modeForThisFrame)
         {
-            case DaltonViewerMode::Main:
-            {
-                impl->currentVisualizationShader->enable();
-                break;
-            }
-                
-            case DaltonViewerMode::HighlightRegions:
-            {
-                impl->highlightRegion.enableShader();
-                break;
-            }
+            case DaltonViewerMode::Original: impl->shaders.normal.enable(); break;
+            case DaltonViewerMode::HighlightRegions: impl->highlightRegion.enableShader(); break;
+            case DaltonViewerMode::Protanope: impl->shaders.protanope.enable(); break;
+            case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.enable(); break;
+            case DaltonViewerMode::Tritanope: impl->shaders.tritanope.enable(); break;
+            case DaltonViewerMode::FlipRedBlue: impl->shaders.flipRedBlue.enable(); break;
+            case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.enable(); break;
+            default: break;
         }
         
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
@@ -785,19 +793,16 @@ void ImageViewerWindow::runOnce ()
                      uv0,
                      uv1);
         
-        switch (impl->currentMode)
+        switch (modeForThisFrame)
         {
-            case DaltonViewerMode::Main:
-            {
-                impl->currentVisualizationShader->disable();
-                break;
-            }
-                
-            case DaltonViewerMode::HighlightRegions:
-            {
-                impl->highlightRegion.disableShader();
-                break;
-            }
+            case DaltonViewerMode::Original: impl->shaders.normal.disable(); break;
+            case DaltonViewerMode::HighlightRegions: impl->highlightRegion.disableShader(); break;
+            case DaltonViewerMode::Protanope: impl->shaders.protanope.disable(); break;
+            case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.disable(); break;
+            case DaltonViewerMode::Tritanope: impl->shaders.tritanope.disable(); break;
+            case DaltonViewerMode::FlipRedBlue: impl->shaders.flipRedBlue.disable(); break;
+            case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.disable(); break;
+            default: break;
         }
         
         ImVec2 mousePosInImage (0,0);
@@ -812,7 +817,7 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        if (ImGui::IsItemHovered() && io.KeyAlt && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
+        if (ImGui::IsItemHovered() && modeForThisFrame == DaltonViewerMode::HighlightRegions && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
             ImGui::BeginTooltip();
@@ -867,7 +872,7 @@ void ImageViewerWindow::runOnce ()
                 
         const bool noModifiers = !io.KeyCtrl && !io.KeyAlt && !io.KeySuper && !io.KeyShift;
         
-        if (impl->currentMode == DaltonViewerMode::HighlightRegions)
+        if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
         {
             // Accept Alt in case the user is still zooming in.
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !io.KeyCtrl && !io.KeySuper && !io.KeyShift)
@@ -886,7 +891,7 @@ void ImageViewerWindow::runOnce ()
     
     // ImGui::ShowDemoWindow();
 
-    if (impl->currentMode == DaltonViewerMode::HighlightRegions)
+    if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
         impl->highlightRegion.render();
     
     // Rendering
