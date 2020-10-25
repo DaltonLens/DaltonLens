@@ -82,6 +82,7 @@ enum GlfwClientApi
 
 struct ImGui_ImplGlfw_Context
 {
+    ImGuiContext*        imGuiContext = NULL;
     GLFWwindow*          Window = NULL;    // Main window
     GlfwClientApi        ClientApi = GlfwClientApi_Unknown;
     double               Time = 0.0;
@@ -103,11 +104,32 @@ static void ImGui_ImplGlfw_UpdateMonitors();
 static void ImGui_ImplGlfw_InitPlatformInterface();
 static void ImGui_ImplGlfw_ShutdownPlatformInterface();
 
+namespace {
+struct ImGuiContextScope
+{
+    ImGuiContextScope (ImGuiContext* newContext)
+    {
+        _previousContext = ImGui::GetCurrentContext();
+        ImGui::SetCurrentContext(newContext);
+    }
+    
+    ~ImGuiContextScope ()
+    {
+        ImGui::SetCurrentContext(_previousContext);
+    }
+    
+private:
+    ImGuiContext* _previousContext = nullptr;
+};
+}
+
 ImGui_ImplGlfw_Context* gImGuiGlfwContext = nullptr;
 
 ImGui_ImplGlfw_Context* ImGui_ImplGlfw_CreateContext()
 {
-    return new ImGui_ImplGlfw_Context();
+    auto* context = new ImGui_ImplGlfw_Context();
+    context->imGuiContext = ImGui::GetCurrentContext();
+    return context;
 }
 
 void ImGui_ImplGlfw_SetCurrentContext(ImGui_ImplGlfw_Context* context)
@@ -134,7 +156,8 @@ static void ImGui_ImplGlfw_SetClipboardText(void* user_data, const char* text)
 
 void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
-    auto& g = *gImGuiGlfwContext;
+    auto& g = *(ImGui_ImplGlfw_Context*)glfwGetWindowUserPointer(window);
+    ImGuiContextScope _ (g.imGuiContext);
     
     if (g.PrevUserCallbackMousebutton != NULL && window == g.Window)
         g.PrevUserCallbackMousebutton(window, button, action, mods);
@@ -145,7 +168,8 @@ void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow* window, int button, int acti
 
 void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    auto& g = *gImGuiGlfwContext;
+    auto& g = *(ImGui_ImplGlfw_Context*)glfwGetWindowUserPointer(window);
+    ImGuiContextScope _ (g.imGuiContext);
     
     if (g.PrevUserCallbackScroll != NULL && window == g.Window)
         g.PrevUserCallbackScroll(window, xoffset, yoffset);
@@ -157,11 +181,12 @@ void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yo
 
 void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    auto& g = *gImGuiGlfwContext;
+    auto& g = *(ImGui_ImplGlfw_Context*)glfwGetWindowUserPointer(window);
+    ImGuiContextScope _ (g.imGuiContext);
     
     if (g.PrevUserCallbackKey != NULL && window == g.Window)
         g.PrevUserCallbackKey(window, key, scancode, action, mods);
-
+    
     ImGuiIO& io = ImGui::GetIO();
     if (action == GLFW_PRESS)
         io.KeysDown[key] = true;
@@ -181,7 +206,8 @@ void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int key, int scancode, int a
 
 void ImGui_ImplGlfw_CharCallback(GLFWwindow* window, unsigned int c)
 {
-    auto& g = *gImGuiGlfwContext;
+    auto& g = *(ImGui_ImplGlfw_Context*)glfwGetWindowUserPointer(window);
+    ImGuiContextScope _ (g.imGuiContext);
     
     if (g.PrevUserCallbackChar != NULL && window == g.Window)
         g.PrevUserCallbackChar(window, c);
@@ -204,6 +230,9 @@ static bool ImGui_ImplGlfw_Init(GLFWwindow* window, bool install_callbacks, Glfw
     g.Window = window;
     g.Time = 0.0;
 
+    // Remember the context when we'll get the callback.
+    glfwSetWindowUserPointer(window, gImGuiGlfwContext);
+    
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
@@ -634,6 +663,7 @@ static void ImGui_ImplGlfw_CreateWindow(ImGuiViewport* viewport)
     glfwSetWindowCloseCallback(data->Window, ImGui_ImplGlfw_WindowCloseCallback);
     glfwSetWindowPosCallback(data->Window, ImGui_ImplGlfw_WindowPosCallback);
     glfwSetWindowSizeCallback(data->Window, ImGui_ImplGlfw_WindowSizeCallback);
+    glfwSetWindowUserPointer(data->Window, gImGuiGlfwContext);
     if (g.ClientApi == GlfwClientApi_OpenGL)
     {
         glfwMakeContextCurrent(data->Window);
