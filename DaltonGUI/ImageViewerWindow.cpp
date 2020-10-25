@@ -274,13 +274,21 @@ struct HighlightRegion
                                 // | ImGuiWindowFlags_HorizontalScrollbar
                                 | ImGuiWindowFlags_NoDocking
                                 | ImGuiWindowFlags_NoNav);
-        if (ImGui::Begin("Highlight Regions", nullptr, flags))
+        if (ImGui::Begin("Highlight Similar Colors", nullptr, flags))
         {
-            ImGui::Text("Has active color = %d", _hasActiveColor);
-            ImGui::Text("Active color = %d %d %d", (int)(255.f*_activeColor.x), (int)(255.f*_activeColor.y), (int)(255.f*_activeColor.z));
+            const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColor.x + 0.5f), (int)(255.f*_activeColor.y + 0.5f), (int)(255.f*_activeColor.z + 0.5f), 255);
+            ImGui::Text("Selected color = %d %d %d", sRgb.r, sRgb.g, sRgb.b);
             float h,s,v;
             ImGui::ColorConvertRGBtoHSV(255.f*_activeColor.x, 255.f*_activeColor.y, 255.f*_activeColor.z, h, s, v);
-            ImGui::Text("Active color HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
+            ImGui::Text("Selected color HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
+            
+            ImVec2 topLeft = ImGui::GetCursorPos();
+            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
+            ImVec2 bottomRight = topLeft + ImVec2(128,128);
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
+            ImGui::SetCursorPosY(bottomRight.y + 8);
+            
             int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
             int deltaInt = prevDeltaInt;
             ImGui::SliderInt("Max Delta Color", &deltaInt, 1, 32);
