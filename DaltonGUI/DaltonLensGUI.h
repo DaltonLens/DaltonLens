@@ -29,6 +29,8 @@ public:
     
     void helpRequested ();
     
+    void grabScreenArea ();
+    
     void shutdown ();
 
 private:

@@ -296,6 +296,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         //        
         //        menu.addItem(NSMenuItem.separator())
         
+        let grabScreenItem = NSMenuItem(title: "Grab Screen Area", action: #selector(AppDelegate.grabScreenArea), keyEquivalent: " ")
+        let cmdAltCtrlMask = NSEvent.ModifierFlags(rawValue:
+            NSEvent.ModifierFlags.command.rawValue
+                | NSEvent.ModifierFlags.control.rawValue
+                | NSEvent.ModifierFlags.option.rawValue)
+        grabScreenItem.keyEquivalentModifierMask = cmdAltCtrlMask
+        menu.addItem(grabScreenItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         menu.addItem(NSMenuItem(title: "Help", action: #selector(AppDelegate.help), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         
@@ -573,6 +583,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 glfwAppDelegate.applicationDidHide!(notification)
             }
         }
+    }
+
+    @objc func grabScreenArea () {
+        daltonGUI.grabScreenArea ();
     }
     
     @objc func help () {

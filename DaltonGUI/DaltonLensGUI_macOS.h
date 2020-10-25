@@ -4,5 +4,6 @@
 - (instancetype)init;
 - (BOOL)initialize;
 - (void)shutdown;
+- (void)grabScreenArea;
 - (void)helpRequested;
 @end

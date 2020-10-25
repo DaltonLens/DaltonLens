@@ -26,6 +26,11 @@
     _dlGui.shutdown();
 }
 
+- (void)grabScreenArea
+{
+    _dlGui.grabScreenArea();
+}
+
 - (void)helpRequested
 {
     _dlGui.helpRequested();

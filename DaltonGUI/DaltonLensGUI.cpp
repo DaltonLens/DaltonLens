@@ -329,13 +329,18 @@ bool DaltonLensGUI::initialize ()
     //    });
     
     impl->keyboardMonitor.setKeyboardCtrlAltCmdSpaceCallback([this]() {
-        bool couldGrab = impl->grabScreenWindow.startGrabbing();
-        if (couldGrab)
-        {
-            impl->currentState = Impl::State::GrabScreen;
-        }
+        grabScreenArea ();
     });
     return true;
+}
+
+void DaltonLensGUI::grabScreenArea ()
+{
+    bool couldGrab = impl->grabScreenWindow.startGrabbing();
+    if (couldGrab)
+    {
+        impl->currentState = Impl::State::GrabScreen;
+    }
 }
 
 void DaltonLensGUI::helpRequested ()
