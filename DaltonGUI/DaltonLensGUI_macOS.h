@@ -4,4 +4,5 @@
 - (instancetype)init;
 - (BOOL)initialize;
 - (void)shutdown;
+- (void)helpRequested;
 @end

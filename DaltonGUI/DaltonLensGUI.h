@@ -27,6 +27,8 @@ public:
     
     void runOnce ();
     
+    void helpRequested ();
+    
     void shutdown ();
 
 private:

@@ -291,13 +291,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(processingMenuItem)
         }
         
-        addBlindnessMenu()
-        addProcessingMenu()
+        //        addBlindnessMenu()
+        //        addProcessingMenu()
+        //        
+        //        menu.addItem(NSMenuItem.separator())
         
+        menu.addItem(NSMenuItem(title: "Help", action: #selector(AppDelegate.help), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         
         menu.addItem(launchAtStartupMenuItem)
-        
+                
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(AppDelegate.quit), keyEquivalent: "q"))
         
@@ -570,6 +573,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 glfwAppDelegate.applicationDidHide!(notification)
             }
         }
+    }
+    
+    @objc func help () {
+        daltonGUI.helpRequested();
     }
     
     @objc func quit () {

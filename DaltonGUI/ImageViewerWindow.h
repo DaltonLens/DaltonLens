@@ -27,6 +27,9 @@ public:
     
     bool isEnabled () const;
     
+    bool helpWindowRequested () const;
+    void notifyHelpWindowRequestHandled ();
+    
 private:
     struct Impl;
     friend struct Impl;

@@ -26,4 +26,9 @@
     _dlGui.shutdown();
 }
 
+- (void)helpRequested
+{
+    _dlGui.helpRequested();
+}
+
 @end

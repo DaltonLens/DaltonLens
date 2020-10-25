@@ -59,6 +59,7 @@
 		2D832CF81F2FD2A300800C44 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */; };
 		2D8E03481F2E5F1200FE96A3 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */; };
 		2D9871282545CAE30085C260 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2DC315441DCA9E3D00057017 /* Shaders.metal */; };
+		2D9871342545D07E0085C260 /* HelpWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D9871322545D07E0085C260 /* HelpWindow.cpp */; };
 		2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DA18B751E92E7D3001B1CAD /* ServiceManagement.framework */; };
 		2DAD0BC91F7C42BB00CF19D7 /* MetalRendererImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */; };
 		2DAD0BCE1F7C439900CF19D7 /* MetalRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */; };
@@ -217,6 +218,8 @@
 		2D832CF31F2FD1B900800C44 /* MetalRendererOffscreen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalRendererOffscreen.h; sourceTree = "<group>"; };
 		2D832CF41F2FD1B900800C44 /* MetalRendererOffscreen.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MetalRendererOffscreen.mm; sourceTree = "<group>"; };
 		2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
+		2D9871322545D07E0085C260 /* HelpWindow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HelpWindow.cpp; sourceTree = "<group>"; };
+		2D9871332545D07E0085C260 /* HelpWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HelpWindow.h; sourceTree = "<group>"; };
 		2DA18B751E92E7D3001B1CAD /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = MetalRendererImpl.h; sourceTree = "<group>"; };
 		2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MetalRenderer.h; sourceTree = "<group>"; };
@@ -316,6 +319,8 @@
 				2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */,
 				2D1973502532F2A500D1FBD4 /* Graphics.cpp */,
 				2D1973512532F2A500D1FBD4 /* Graphics.h */,
+				2D9871322545D07E0085C260 /* HelpWindow.cpp */,
+				2D9871332545D07E0085C260 /* HelpWindow.h */,
 				2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */,
 				2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */,
 				2D19734F2532F1AE00D1FBD4 /* ImGuiUtils.h */,
@@ -759,6 +764,7 @@
 				2D240DB01DAAC0B400AA97BC /* MASShortcutBinder.m in Sources */,
 				2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */,
 				2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */,
+				2D9871342545D07E0085C260 /* HelpWindow.cpp in Sources */,
 				2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */,
 				2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */,
 				2D1973522532F2A500D1FBD4 /* Graphics.cpp in Sources */,

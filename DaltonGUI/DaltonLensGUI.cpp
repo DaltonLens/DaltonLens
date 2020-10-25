@@ -11,6 +11,7 @@
 #include "ImageViewerWindow.h"
 #include "PointerOverlayWindow.h"
 #include "GrabScreenAreaWindow.h"
+#include "HelpWindow.h"
 #include "CrossPlatformUtils.h"
 
 #include <Dalton/Utils.h>
@@ -155,6 +156,7 @@ struct DaltonLensGUI::Impl
     ImageViewerWindow imageViewerWindow;
     PointerOverlayWindow pointerOverlayWindow;
     GrabScreenAreaWindow grabScreenWindow;
+    HelpWindow helpWindow;
     
     DisplayLinkTimer displayLinkTimer;
     KeyboardMonitor keyboardMonitor;
@@ -162,10 +164,17 @@ struct DaltonLensGUI::Impl
     OverlayTriggerEventDetector overlayTriggerDetector;
     
     bool appFocusWasEnabled = false;
+    bool helpRequested = false;
     
     void onDisplayLinkRefresh ()
     {
         bool appFocusRequested = false;
+        
+        if (helpRequested)
+        {
+            helpWindow.setEnabled(true);
+            helpRequested = false;
+        }
         
         switch (currentState)
         {
@@ -201,6 +210,11 @@ struct DaltonLensGUI::Impl
                 {
                     appFocusRequested = true;
                     imageViewerWindow.runOnce();
+                    if (imageViewerWindow.helpWindowRequested())
+                    {
+                        helpWindow.setEnabled(true);
+                        imageViewerWindow.notifyHelpWindowRequestHandled();
+                    }
                 }
                 else
                 {
@@ -209,6 +223,12 @@ struct DaltonLensGUI::Impl
                 }
                 break;
             }
+        }
+        
+        if (helpWindow.isEnabled())
+        {
+            helpWindow.runOnce();
+            appFocusRequested = true;
         }
         
         if (appFocusRequested != appFocusWasEnabled)
@@ -230,6 +250,7 @@ DaltonLensGUI::~DaltonLensGUI()
     impl->imageViewerWindow.shutdown();
     impl->pointerOverlayWindow.shutdown();
     impl->grabScreenWindow.shutdown();
+    impl->helpWindow.shutdown();
     
     if (impl->mainContextWindow)
     {
@@ -295,7 +316,8 @@ bool DaltonLensGUI::initialize ()
         
     // impl->pointerOverlayWindow.initialize(impl->mainContextWindow);
     impl->grabScreenWindow.initialize(impl->mainContextWindow);
-    impl->imageViewerWindow.initialize (impl->mainContextWindow);
+    impl->imageViewerWindow.initialize(impl->mainContextWindow);
+    impl->helpWindow.initialize(impl->mainContextWindow);
     
     impl->displayLinkTimer.setCallback([this]() {
         impl->onDisplayLinkRefresh();
@@ -314,6 +336,11 @@ bool DaltonLensGUI::initialize ()
         }
     });
     return true;
+}
+
+void DaltonLensGUI::helpRequested ()
+{
+    impl->helpRequested = true;
 }
 
 void DaltonLensGUI::shutdown ()

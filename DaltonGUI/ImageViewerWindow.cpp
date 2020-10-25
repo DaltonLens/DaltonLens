@@ -259,7 +259,22 @@ struct HighlightRegion
     
     void render ()
     {
-        if (ImGui::Begin("Highlight Regions"))
+        ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
+                                // ImGuiWindowFlags_NoResize
+                                // ImGuiWindowFlags_NoMove
+                                // | ImGuiWindowFlags_NoScrollbar
+                                ImGuiWindowFlags_NoScrollWithMouse
+                                | ImGuiWindowFlags_NoFocusOnAppearing
+                                | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                | ImGuiWindowFlags_NoNavFocus
+                                | ImGuiWindowFlags_NoNavInputs
+                                // | ImGuiWindowFlags_NoCollapse
+                                | ImGuiWindowFlags_NoBackground
+                                | ImGuiWindowFlags_NoSavedSettings
+                                // | ImGuiWindowFlags_HorizontalScrollbar
+                                | ImGuiWindowFlags_NoDocking
+                                | ImGuiWindowFlags_NoNav);
+        if (ImGui::Begin("Highlight Regions", nullptr, flags))
         {
             ImGui::Text("Has active color = %d", _hasActiveColor);
             ImGui::Text("Active color = %d %d %d", (int)(255.f*_activeColor.x), (int)(255.f*_activeColor.y), (int)(255.f*_activeColor.z));
@@ -301,6 +316,8 @@ struct ImageViewerWindow::Impl
     
     bool justUpdatedImage = false;
     bool needToFocusViewportWindowWhenAvailable = true;
+    
+    bool helpWindowRequested = false;
     
     bool shouldExit = false;
     GLFWwindow* window = nullptr;
@@ -349,7 +366,25 @@ struct ImageViewerWindow::Impl
         {
             newMode_asInt = 0;
         }
+        
+        // If we close that window, we might end up with a weird keyboard state
+        // since a key release event might not be caught.
+        if (this->currentMode == DaltonViewerMode::HighlightRegions)
+        {
+            resetKeyboardStateAfterWindowClose();
+            needToFocusViewportWindowWhenAvailable = true;
+        }
+        
         this->currentMode = (DaltonViewerMode)newMode_asInt;
+    }
+    
+    void resetKeyboardStateAfterWindowClose ()
+    {
+        auto& io = ImGui::GetIO();
+        
+        // Reset the keyboard state to make sure we won't re-enter the next time
+        // with 'q' or 'escape' already pressed from before.
+        std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
     }
 };
 
@@ -367,6 +402,16 @@ ImageViewerWindow::~ImageViewerWindow()
 bool ImageViewerWindow::isEnabled () const
 {
     return impl->currentMode != DaltonViewerMode::None;
+}
+
+bool ImageViewerWindow::helpWindowRequested () const
+{
+    return impl->helpWindowRequested;
+}
+
+void ImageViewerWindow::notifyHelpWindowRequestHandled ()
+{
+    impl->helpWindowRequested = false;
 }
 
 void ImageViewerWindow::shutdown()
@@ -620,11 +665,11 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
 
 void ImageViewerWindow::runOnce ()
 {
-    glfwMakeContextCurrent(impl->window);
-    
     ImGui::SetCurrentContext(impl->imGuiContext);
     ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
     ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
+
+    glfwMakeContextCurrent(impl->window);
     
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -748,7 +793,23 @@ void ImageViewerWindow::runOnce ()
         {
             impl->currentMode = DaltonViewerMode::None;
         }
-                
+
+        bool popupMenuOpen = false;
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
+        if (ImGui::BeginPopupContextWindow())
+        {
+            popupMenuOpen = true;
+            if (ImGui::MenuItem("Highlight Similar Colors")) impl->currentMode = DaltonViewerMode::HighlightRegions;
+            if (ImGui::MenuItem("Daltonize - Protanope")) impl->currentMode = DaltonViewerMode::Protanope;
+            if (ImGui::MenuItem("Daltonize - Deuteranope")) impl->currentMode = DaltonViewerMode::Deuteranope;
+            if (ImGui::MenuItem("Daltonize - Tritanope")) impl->currentMode = DaltonViewerMode::Tritanope;
+            if (ImGui::MenuItem("Flip Red & Blue")) impl->currentMode = DaltonViewerMode::FlipRedBlue;
+            if (ImGui::MenuItem("Flip Red & Blue and Invert Red")) impl->currentMode = DaltonViewerMode::FlipRedBlueInvertRed;
+            if (ImGui::MenuItem("Help")) impl->helpWindowRequested = true;
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar();
+        
         // Make sure we remain up-to-date in case the user resizes it.
         impl->windowSize.current.size.x = ImGui::GetWindowWidth();
         impl->windowSize.current.size.y = ImGui::GetWindowHeight() - titleBarHeight;
@@ -817,7 +878,7 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        if (ImGui::IsItemHovered() && modeForThisFrame == DaltonViewerMode::HighlightRegions && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
+        if (!popupMenuOpen && ImGui::IsItemHovered() && modeForThisFrame == DaltonViewerMode::HighlightRegions && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
             ImGui::BeginTooltip();
@@ -931,7 +992,7 @@ void ImageViewerWindow::runOnce ()
         
         // Reset the keyboard state to make sure we won't re-enter the next time
         // with 'q' or 'escape' already pressed from before.
-        std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
+        impl->resetKeyboardStateAfterWindowClose();
         
         ImGui::NewFrame();
         ImGui::Render();
