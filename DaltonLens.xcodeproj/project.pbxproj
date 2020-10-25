@@ -58,6 +58,7 @@
 		2D832CF61F2FD1B900800C44 /* MetalRendererOffscreen.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D832CF41F2FD1B900800C44 /* MetalRendererOffscreen.mm */; };
 		2D832CF81F2FD2A300800C44 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */; };
 		2D8E03481F2E5F1200FE96A3 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */; };
+		2D9871282545CAE30085C260 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 2DC315441DCA9E3D00057017 /* Shaders.metal */; };
 		2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DA18B751E92E7D3001B1CAD /* ServiceManagement.framework */; };
 		2DAD0BC91F7C42BB00CF19D7 /* MetalRendererImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BC71F7C42BB00CF19D7 /* MetalRendererImpl.h */; };
 		2DAD0BCE1F7C439900CF19D7 /* MetalRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DAD0BCC1F7C439900CF19D7 /* MetalRenderer.h */; };
@@ -234,7 +235,6 @@
 		2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2DCBB8DF1D3BEAA60035D461 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2DCBB8E81D3BEAA60035D461 /* DaltonTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; lineEnding = 0; path = DaltonTests.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		2DD5424C251789EA00EAB8A8 /* default.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; name = default.metallib; path = "../../Library/Developer/Xcode/DerivedData/DaltonLens-dmzxedndwjozqxbwaotczloddbtv/Build/Products/Debug/default.metallib"; sourceTree = "<group>"; };
 		2DEC0DAC1D3C08C100E8D962 /* DaltonView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = DaltonView.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		2DEC11021DC684970095C4A0 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		2DF3E86E1D57972400C9380A /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Utils.cpp; sourceTree = "<group>"; };
@@ -455,7 +455,6 @@
 			children = (
 				2D1973392532DBFD00D1FBD4 /* DaltonGUI */,
 				2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */,
-				2DD5424C251789EA00EAB8A8 /* default.metallib */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
 				2D28D13E1F7C523D00BD8040 /* README.md */,
 				2D28D13C1F7C4E5400BD8040 /* TODO */,
@@ -574,7 +573,6 @@
 				2DCBB8D11D3BEAA60035D461 /* Resources */,
 				2D4C76E41E77406E00DCBBB7 /* CopyFiles */,
 				2D5FD3E61F003C19008305C3 /* CopyFiles */,
-				2DD5425525178A3E00EAB8A8 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -705,28 +703,6 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		2DD5425525178A3E00EAB8A8 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/default.metallib",
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/DaltonLens.app/Contents/Resources/default.metallib",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "cp \"${BUILT_PRODUCTS_DIR}/default.metallib\" \"${BUILT_PRODUCTS_DIR}/DaltonLens.app/Contents/Resources\"\n\n";
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		2D5FD3EB1F003CDF008305C3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -767,6 +743,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2D9871282545CAE30085C260 /* Shaders.metal in Sources */,
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
 				2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */,
 				2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */,
@@ -1059,11 +1036,13 @@
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.1.0;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1082,11 +1061,13 @@
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.1.0;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = DaltonLens/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
