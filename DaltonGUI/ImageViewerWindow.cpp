@@ -828,7 +828,7 @@ void ImageViewerWindow::runOnce ()
         // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
         // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
                 
-        ImVec2 widgetTopLeft = ImGui::GetCursorScreenPos();
+        ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
         
         ImVec2 uv0 (0,0);
         ImVec2 uv1 (1.f/impl->zoom.zoomFactor,1.f/impl->zoom.zoomFactor);
@@ -857,8 +857,9 @@ void ImageViewerWindow::runOnce ()
             default: break;
         }
         
+        const auto imageWidgetSize = imSize(impl->windowSize.current);
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
-                     imSize(impl->windowSize.current),
+                     imageWidgetSize,
                      uv0,
                      uv1);
         
@@ -880,45 +881,21 @@ void ImageViewerWindow::runOnce ()
             // This 0.5 offset is important since the mouse coordinate is an integer.
             // So when we are in the center of a pixel we'll return 0,0 instead of
             // 0.5,0.5.
-            ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - widgetTopLeft;
-            ImVec2 uv_window = widgetPos / imSize(impl->windowSize.current);
+            ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - imageWidgetTopLeft;
+            ImVec2 uv_window = widgetPos / imageWidgetSize;
             mousePosInTexture = (uv1-uv0)*uv_window + uv0;
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
         if (!popupMenuOpen && ImGui::IsItemHovered() && modeForThisFrame == DaltonViewerMode::HighlightRegions && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
         {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-            ImGui::BeginTooltip();
-            const auto sRgb = impl->im((int)mousePosInImage.x, (int)mousePosInImage.y);
-            const int zoomLenInPixels = 5; // most be odd
-            const ImVec2 zoomLen_uv (float(zoomLenInPixels) / impl->im.width(), float(zoomLenInPixels) / impl->im.height());
-            ImVec2 zoom_uv0 = mousePosInTexture - zoomLen_uv*0.5f;
-            ImVec2 zoom_uv1 = mousePosInTexture + zoomLen_uv*0.5f;
-            
-            ImVec2 zoomItemSize (64,64);
-            ImVec2 pixelSizeInZoom = zoomItemSize / ImVec2(zoomLenInPixels,zoomLenInPixels);
-            
-            ImVec2 zoomTopLeft = ImGui::GetCursorScreenPos();
-            ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
-                         zoomItemSize,
-                         zoom_uv0,
-                         zoom_uv1);
-            
-            auto* drawList = ImGui::GetWindowDrawList();
-            ImVec2 p1 = pixelSizeInZoom * (zoomLenInPixels / 2) + zoomTopLeft;
-            ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomTopLeft;
-            drawList->AddRect(p1, p2, IM_COL32(255,0,0,255));
-            
-            ImGui::Text("MousePosInImage: (%.2f, %.2f)", mousePosInImage.x, mousePosInImage.y);
-            ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
-            const auto ycbcr = dl::convertToYCbCr(sRgb);
-            ImGui::Text("yCbCr: [%d %d %d]", int(ycbcr.x), int(ycbcr.y), int(ycbcr.z));
-            float h,s,v;
-            ImGui::ColorConvertRGBtoHSV(sRgb.r, sRgb.g, sRgb.b, h, s, v);
-            ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
-            ImGui::EndTooltip();
-            ImGui::PopStyleVar();
+            dl::showImageCursorOverlayTooptip (impl->im,
+                                               impl->gpuTexture,
+                                               imageWidgetTopLeft,
+                                               imageWidgetSize,
+                                               uv0,
+                                               uv1,
+                                               ImVec2(15,15));
         }
         
 //        dl_dbg ("Got click: %d", ImGui::IsItemClicked(ImGuiMouseButton_Left));

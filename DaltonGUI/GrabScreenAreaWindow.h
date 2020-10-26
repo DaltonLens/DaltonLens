@@ -2,6 +2,8 @@
 #include <Dalton/MathUtils.h>
 #include "Graphics.h"
 
+#include "imgui.h"
+
 #include <memory>
 #include <functional>
 
@@ -17,6 +19,14 @@ struct GrabScreenData
     std::shared_ptr<dl::ImageSRGBA> srgbaImage;
     std::shared_ptr<GLTexture> texture;
 };
+
+void showImageCursorOverlayTooptip (const dl::ImageSRGBA& image,
+                                    GLTexture& imageTexture,
+                                    ImVec2 imageWidgetTopLeft,
+                                    ImVec2 imageWidgetSize,
+                                    const ImVec2& uvTopLeft = ImVec2(0,0),
+                                    const ImVec2& uvBottomRight = ImVec2(1,1),
+                                    const ImVec2& roiWindowSize = ImVec2(15,15));
 
 // Manages a single ImGui window.
 class GrabScreenAreaWindow
