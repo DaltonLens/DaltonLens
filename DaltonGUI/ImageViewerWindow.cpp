@@ -230,6 +230,8 @@ struct HighlightRegion
             _highlightSameColorShader.disable();
     }
     
+    bool hasActiveColor () const { return _hasActiveColor; }
+    
     void setSelectedPixel (float x, float y)
     {
         const auto newPixel = dl::vec2i((int)x, (int)y);
@@ -274,19 +276,42 @@ struct HighlightRegion
                                 // | ImGuiWindowFlags_HorizontalScrollbar
                                 | ImGuiWindowFlags_NoDocking
                                 | ImGuiWindowFlags_NoNav);
-        if (ImGui::Begin("Highlight Similar Colors", nullptr, flags))
+        if (ImGui::Begin("DaltonLens - Selected color", nullptr, flags))
         {
             const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColor.x + 0.5f), (int)(255.f*_activeColor.y + 0.5f), (int)(255.f*_activeColor.z + 0.5f), 255);
-            ImGui::Text("Selected color = %d %d %d", sRgb.r, sRgb.g, sRgb.b);
-            float h,s,v;
-            ImGui::ColorConvertRGBtoHSV(255.f*_activeColor.x, 255.f*_activeColor.y, 255.f*_activeColor.z, h, s, v);
-            ImGui::Text("Selected color HSV: [%.1fº %.1f%% %.1f]", h*360.f, s*100.f, v);
             
+            const auto filledRectSize = ImVec2(128,128);
             ImVec2 topLeft = ImGui::GetCursorPos();
             ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + ImVec2(128,128);
+            ImVec2 bottomRight = topLeft + filledRectSize;
+            
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
+            drawList->AddRect(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32_WHITE);
+            
+            ImGui::SetCursorPosX(bottomRight.x + 8);
+            ImGui::SetCursorPosY(topLeft.y);
+                        
+            // Show the side info about the current color
+            {
+                ImGui::BeginChild("ColorInfo", ImVec2(196,filledRectSize.y));
+                ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+
+                PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
+                ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
+                
+                auto hsv = dl::convertToHSV(sRgb);
+                ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
+                
+                PixelLab lab = dl::convertToLab(sRgb);
+                ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
+                
+                PixelXYZ xyz = convertToXYZ(sRgb);
+                ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
+                
+                ImGui::EndChild();
+            }
+            
             ImGui::SetCursorPosY(bottomRight.y + 8);
             
             int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
@@ -887,7 +912,11 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        if (!popupMenuOpen && ImGui::IsItemHovered() && modeForThisFrame == DaltonViewerMode::HighlightRegions && impl->im.contains(mousePosInImage.x, mousePosInImage.y))
+        if (!popupMenuOpen
+            && ImGui::IsItemHovered()
+            && modeForThisFrame == DaltonViewerMode::HighlightRegions
+            && impl->im.contains(mousePosInImage.x, mousePosInImage.y)
+            && !impl->highlightRegion.hasActiveColor())
         {
             dl::showImageCursorOverlayTooptip (impl->im,
                                                impl->gpuTexture,
