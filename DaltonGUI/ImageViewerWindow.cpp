@@ -140,7 +140,7 @@ static std::string daltonViewerModeName (DaltonViewerMode mode)
     switch (mode)
     {
         case DaltonViewerMode::None: return "None";
-        case DaltonViewerMode::Original: return "Original Images";
+        case DaltonViewerMode::Original: return "Original Image";
         case DaltonViewerMode::HighlightRegions: return "Highlight Same Color";
         case DaltonViewerMode::Protanope: return "Daltonize - Protanope";
         case DaltonViewerMode::Deuteranope: return "Daltonize - Deuteranope";
@@ -266,16 +266,19 @@ struct HighlightRegion
                                 // ImGuiWindowFlags_NoMove
                                 // | ImGuiWindowFlags_NoScrollbar
                                 ImGuiWindowFlags_NoScrollWithMouse
-                                | ImGuiWindowFlags_NoFocusOnAppearing
-                                | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                // | ImGuiWindowFlags_NoFocusOnAppearing
+                                // | ImGuiWindowFlags_NoBringToFrontOnFocus
                                 | ImGuiWindowFlags_NoNavFocus
                                 | ImGuiWindowFlags_NoNavInputs
                                 // | ImGuiWindowFlags_NoCollapse
-                                | ImGuiWindowFlags_NoBackground
-                                | ImGuiWindowFlags_NoSavedSettings
+                                // | ImGuiWindowFlags_NoBackground
+                                // | ImGuiWindowFlags_NoSavedSettings
                                 // | ImGuiWindowFlags_HorizontalScrollbar
                                 | ImGuiWindowFlags_NoDocking
                                 | ImGuiWindowFlags_NoNav);
+        
+        ImGui::SetNextWindowFocus(); // make sure it's always on top, otherwise it'll go behind the image.
+        
         if (ImGui::Begin("DaltonLens - Selected color", nullptr, flags))
         {
             const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColor.x + 0.5f), (int)(255.f*_activeColor.y + 0.5f), (int)(255.f*_activeColor.z + 0.5f), 255);
@@ -295,6 +298,13 @@ struct HighlightRegion
             // Show the side info about the current color
             {
                 ImGui::BeginChild("ColorInfo", ImVec2(196,filledRectSize.y));
+                
+                auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
+                
+                ImGui::Text("%s / %s",
+                            closestColors[0].entry->className,
+                            closestColors[0].entry->colorName);
+                
                 ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
 
                 PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
@@ -348,7 +358,6 @@ struct ImageViewerWindow::Impl
     HighlightRegion highlightRegion;
     
     bool justUpdatedImage = false;
-    bool needToFocusViewportWindowWhenAvailable = true;
     
     bool helpWindowRequested = false;
     
@@ -370,10 +379,12 @@ struct ImageViewerWindow::Impl
     
     ImVec2 monitorSize = ImVec2(-1,-1);
     
+    const int windowBorderSize = 1;
+    
     struct {
         dl::Rect normal;
         dl::Rect current;
-    } windowSize;
+    } imageArea;
     
     struct {
         int zoomFactor = 1;
@@ -405,7 +416,6 @@ struct ImageViewerWindow::Impl
         if (this->currentMode == DaltonViewerMode::HighlightRegions)
         {
             resetKeyboardStateAfterWindowClose();
-            needToFocusViewportWindowWhenAvailable = true;
         }
         
         this->currentMode = (DaltonViewerMode)newMode_asInt;
@@ -418,6 +428,19 @@ struct ImageViewerWindow::Impl
         // Reset the keyboard state to make sure we won't re-enter the next time
         // with 'q' or 'escape' already pressed from before.
         std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
+    }
+    
+    void onImageAreaChanged ()
+    {
+        glfwSetWindowSize(window, imageArea.current.size.x + windowBorderSize*2, imageArea.current.size.y + windowBorderSize*2);
+    }
+    
+    void onWindowSizeChanged ()
+    {
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        imageArea.current.size.x = windowWidth - windowBorderSize*2;
+        imageArea.current.size.y = windowHeight - windowBorderSize*2;
     }
 };
 
@@ -475,14 +498,18 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     // want any, because we prefer to rely on ImGui handling the viewport. This way we can
     // let the ImGui window resizeable, and the platform window will just get resized
     // accordingly. This way we can remove the decorations AND support resize.
-    glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
+    glfwWindowHint(GLFW_DECORATED, true);
+    glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
+    glfwWindowHint(GLFW_FLOATING, false);
+    glfwWindowHint(GLFW_RESIZABLE, false);
+    impl->window = glfwCreateWindow(640, 480, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
 
     glfwSetWindowPos(impl->window, 0, 0);
     
     glfwMakeContextCurrent(impl->window);
+    glfwHideWindow(impl->window);
     glfwSwapInterval(1); // Enable vsync
     
     // Setup Dear ImGui context
@@ -495,7 +522,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    io.ConfigViewportsNoAutoMerge = true;
+    // io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
     io.ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -507,8 +534,8 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     ImGuiStyle& style = ImGui::GetStyle();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        // style.WindowRounding = 0.0f;
+        // style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
 
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
@@ -518,7 +545,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
     
     // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, false);
+    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
     ImGui_ImplOpenGL3_Init(glslVersion());
     
     impl->shaders.normal.initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
@@ -589,10 +616,10 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
         const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y);
         if (count == 4)
         {
-            impl->windowSize.normal.size.x = w;
-            impl->windowSize.normal.size.y = h;
-            impl->windowSize.normal.origin.x = x;
-            impl->windowSize.normal.origin.y = y;
+            impl->imageArea.normal.size.x = w;
+            impl->imageArea.normal.size.y = h;
+            impl->imageArea.normal.origin.x = x;
+            impl->imageArea.normal.origin.y = y;
         }
         else
         {
@@ -658,17 +685,16 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
     
     initialize (parentWindow);
 
-    if (impl->windowSize.normal.size.x < 0) impl->windowSize.normal.size.x = impl->im.width();
-    if (impl->windowSize.normal.size.y < 0) impl->windowSize.normal.size.y = impl->im.height();
-    if (impl->windowSize.normal.origin.x < 0) impl->windowSize.normal.origin.x = impl->monitorSize.x * 0.10;
-    if (impl->windowSize.normal.origin.y < 0) impl->windowSize.normal.origin.y = impl->monitorSize.y * 0.10;
-    impl->windowSize.current = impl->windowSize.normal;
+    if (impl->imageArea.normal.size.x < 0) impl->imageArea.normal.size.x = impl->im.width();
+    if (impl->imageArea.normal.size.y < 0) impl->imageArea.normal.size.y = impl->im.height();
+    if (impl->imageArea.normal.origin.x < 0) impl->imageArea.normal.origin.x = impl->monitorSize.x * 0.10;
+    if (impl->imageArea.normal.origin.y < 0) impl->imageArea.normal.origin.y = impl->monitorSize.y * 0.10;
+    impl->imageArea.current = impl->imageArea.normal;
     
     impl->gpuTexture.upload (impl->im);
     impl->highlightRegion.setImage(&impl->im);
     
     impl->justUpdatedImage = true;
-    impl->needToFocusViewportWindowWhenAvailable = true;
     
     return true;
 }
@@ -683,17 +709,18 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
     impl->im.copyDataFrom(*grabbedData.srgbaImage);
     impl->imagePath = "DaltonLens";
 
+    // dl::writePngImage("/tmp/debug.png", impl->im);
+    
     glfwMakeContextCurrent(impl->window);
     impl->gpuTexture.upload(impl->im);
-    impl->windowSize.normal.origin = grabbedData.capturedScreenRect.origin;
-    impl->windowSize.normal.size = grabbedData.capturedScreenRect.size;
-    impl->windowSize.current = impl->windowSize.normal;
+    impl->imageArea.normal.origin = grabbedData.capturedScreenRect.origin;
+    impl->imageArea.normal.size = grabbedData.capturedScreenRect.size;
+    impl->imageArea.current = impl->imageArea.normal;
     
     impl->highlightRegion.setImage(&impl->im);
     impl->currentMode = DaltonViewerMode::HighlightRegions;
     
     impl->justUpdatedImage = true;
-    impl->needToFocusViewportWindowWhenAvailable = true;
 }
 
 void ImageViewerWindow::runOnce ()
@@ -703,6 +730,13 @@ void ImageViewerWindow::runOnce ()
     ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
 
     glfwMakeContextCurrent(impl->window);
+    
+    if (impl->justUpdatedImage)
+    {
+        glfwSetWindowSize(impl->window, impl->imageArea.normal.size.x + 2, impl->imageArea.normal.size.y + 2);
+        glfwSetWindowPos(impl->window, impl->imageArea.normal.origin.x - 1, impl->imageArea.normal.origin.y - 1);
+        glfwShowWindow(impl->window);
+    }
     
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -729,10 +763,11 @@ void ImageViewerWindow::runOnce ()
     
     if (!io.WantCaptureKeyboard)
     {
-        if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
+        if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || glfwWindowShouldClose(impl->window))
         {
             dl_dbg ("ImGui::IsKeyPressed(GLFW_KEY_Q) = %d", ImGui::IsKeyPressed(GLFW_KEY_Q));
             impl->currentMode = DaltonViewerMode::None;
+            glfwSetWindowShouldClose(impl->window, false);
         }
 
         if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
@@ -746,82 +781,80 @@ void ImageViewerWindow::runOnce ()
         }
     }
 
-    const float titleBarHeight = ImGui::GetFrameHeight();
-        
     if (ImGui::IsKeyPressed(GLFW_KEY_N))
     {
-        impl->windowSize.current = impl->windowSize.normal;
+        impl->imageArea.current = impl->imageArea.normal;
         shouldUpdateWindowSize = true;
     }
     
     if (ImGui::IsKeyPressed(GLFW_KEY_A))
     {
-        float ratioX = impl->windowSize.current.size.x / impl->windowSize.normal.size.x;
-        float ratioY = impl->windowSize.current.size.y / impl->windowSize.normal.size.y;
+        float ratioX = impl->imageArea.current.size.x / impl->imageArea.normal.size.x;
+        float ratioY = impl->imageArea.current.size.y / impl->imageArea.normal.size.y;
         if (ratioX < ratioY)
         {
-            impl->windowSize.current.size.y = ratioX * impl->windowSize.normal.size.y;
+            impl->imageArea.current.size.y = ratioX * impl->imageArea.normal.size.y;
         }
         else
         {
-            impl->windowSize.current.size.x = ratioY * impl->windowSize.normal.size.x;
+            impl->imageArea.current.size.x = ratioY * impl->imageArea.normal.size.x;
         }
         shouldUpdateWindowSize = true;
     }
     
     if (io.InputQueueCharacters.contains('<'))
     {
-        if (impl->windowSize.current.size.x > 64 && impl->windowSize.current.size.y > 64)
+        if (impl->imageArea.current.size.x > 64 && impl->imageArea.current.size.y > 64)
         {
-            impl->windowSize.current.size.x *= 0.5f;
-            impl->windowSize.current.size.y *= 0.5f;
+            impl->imageArea.current.size.x *= 0.5f;
+            impl->imageArea.current.size.y *= 0.5f;
             shouldUpdateWindowSize = true;
         }
     }
     
     if (io.InputQueueCharacters.contains('>'))
     {
-        impl->windowSize.current.size.x *= 2.f;
-        impl->windowSize.current.size.y *= 2.f;
+        impl->imageArea.current.size.x *= 2.f;
+        impl->imageArea.current.size.y *= 2.f;
         shouldUpdateWindowSize = true;
     }
-    
+                
     if (shouldUpdateWindowSize)
     {
-        ImGui::SetNextWindowPos(ImVec2(impl->windowSize.current.origin.x, impl->windowSize.current.origin.y - titleBarHeight), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(impl->windowSize.current.size.x, impl->windowSize.current.size.y + titleBarHeight), ImGuiCond_Always);
+        impl->onImageAreaChanged();
     }
+    
+    int platformWindowX, platformWindowY;
+    glfwGetWindowPos(impl->window, &platformWindowX, &platformWindowY);
+    
+    int platformWindowWidth, platformWindowHeight;
+    glfwGetWindowSize(impl->window, &platformWindowWidth, &platformWindowHeight);
 
-    ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
-                            // ImGuiWindowFlags_NoResize
-                            // ImGuiWindowFlags_NoMove
-                            // | ImGuiWindowFlags_NoScrollbar
-                            ImGuiWindowFlags_NoScrollWithMouse
+    ImGui::SetNextWindowPos(ImVec2(platformWindowX, platformWindowY), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(platformWindowWidth, platformWindowHeight), ImGuiCond_Always);
+
+    ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
+                            | ImGuiWindowFlags_NoResize
+                            | ImGuiWindowFlags_NoMove
+                            | ImGuiWindowFlags_NoScrollbar
+                            // ImGuiWindowFlags_NoScrollWithMouse
                             // | ImGuiWindowFlags_NoCollapse
                             | ImGuiWindowFlags_NoBackground
                             | ImGuiWindowFlags_NoSavedSettings
                             | ImGuiWindowFlags_HorizontalScrollbar
-                            | ImGuiWindowFlags_NoDocking
+                            // | ImGuiWindowFlags_NoDocking
                             | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+    // ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
+    // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
     bool isOpen = true;
     
-    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);
+    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);        
+    glfwSetWindowTitle(impl->window, mainWindowName.c_str());
     
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
-        // Horrible hack to make sure that our window has the focus once we hide the main window.
-        // Otherwise Ctrl+Click might not work right away.
-        if (impl->needToFocusViewportWindowWhenAvailable)
-        {
-            auto* vp = ImGui::GetWindowViewport();
-            if (vp->PlatformHandle != nullptr)
-            {
-                glfwFocusWindow((GLFWwindow*)vp->PlatformHandle);
-                impl->needToFocusViewportWindowWhenAvailable = false;
-            }
-        }
-        
         if (!isOpen)
         {
             impl->currentMode = DaltonViewerMode::None;
@@ -842,16 +875,13 @@ void ImageViewerWindow::runOnce ()
             ImGui::EndPopup();
         }
         ImGui::PopStyleVar();
-        
-        // Make sure we remain up-to-date in case the user resizes it.
-        impl->windowSize.current.size.x = ImGui::GetWindowWidth();
-        impl->windowSize.current.size.y = ImGui::GetWindowHeight() - titleBarHeight;
-        impl->windowSize.current.origin.x = ImGui::GetWindowPos().x;
-        impl->windowSize.current.origin.y = ImGui::GetWindowPos().y + titleBarHeight;
-                
+                        
         const auto contentSize = ImGui::GetContentRegionAvail();
-        // dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
-        // dl_dbg ("imSize: %f x %f", imSize.x, imSize.y);
+//        dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
+//        dl_dbg ("imSize: %d x %d", impl->im.width(), impl->im.height());
+//        dl_dbg ("windowSize.current: %f x %f", impl->imageArea.current.size.x, impl->imageArea.current.size.y);
+//        dl_dbg ("framebufferScale: %f x %f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+//        dl_dbg ("fbDisplaySize: %d x %d", display_w, display_h);
                 
         ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
         
@@ -881,8 +911,8 @@ void ImageViewerWindow::runOnce ()
             case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.enable(); break;
             default: break;
         }
-        
-        const auto imageWidgetSize = imSize(impl->windowSize.current);
+                
+        const auto imageWidgetSize = imSize(impl->imageArea.current);
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
                      imageWidgetSize,
                      uv0,
@@ -961,23 +991,29 @@ void ImageViewerWindow::runOnce ()
             }
         }
     }
+        
     ImGui::End();
     ImGui::PopStyleVar();
+//    ImGui::PopStyleVar();
+//    ImGui::PopStyleVar();
+//    ImGui::PopStyleVar();
     
-    // ImGui::ShowDemoWindow();
-
     if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
         impl->highlightRegion.render();
+    
+    // ImGui::ShowDemoWindow();
     
     // Rendering
     ImGui::Render();
 
     // Not rendering any main window anymore.
-    // glViewport(0, 0, display_w, display_h);
-    // glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-    // glClear(GL_COLOR_BUFFER_BIT);
+    int display_w, display_h;
+    glfwGetFramebufferSize(impl->window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0.3, 0.3, 0.3, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     
     // Update and Render additional Platform Windows
     // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
@@ -992,7 +1028,7 @@ void ImageViewerWindow::runOnce ()
         }
     }
     
-    // glfwSwapBuffers(impl->window);
+    glfwSwapBuffers(impl->window);
     
     impl->justUpdatedImage = false;
     
@@ -1003,11 +1039,11 @@ void ImageViewerWindow::runOnce ()
     {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        
+
         // Reset the keyboard state to make sure we won't re-enter the next time
         // with 'q' or 'escape' already pressed from before.
         impl->resetKeyboardStateAfterWindowClose();
-        
+
         ImGui::NewFrame();
         ImGui::Render();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -1017,6 +1053,8 @@ void ImageViewerWindow::runOnce ()
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);
         }
+        
+        glfwHideWindow(impl->window);
     }
 }
 
