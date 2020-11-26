@@ -151,6 +151,21 @@ static std::string daltonViewerModeName (DaltonViewerMode mode)
     }
 }
 
+// Helper to display a little (?) mark which shows a tooltip when hovered.
+// In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
+static void helpMarker(const char* desc)
+{
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 struct HighlightRegion
 {
     void initializeGL (const char* glslVersion)
@@ -158,20 +173,21 @@ struct HighlightRegion
         const GLchar *fragmentShader_highlightSameColor = R"(
             uniform sampler2D Texture;
             uniform vec3 u_refColor;
-            uniform float u_distThreshold;
+            uniform float u_deltaH_360;
+            uniform float u_deltaS_100;
+            uniform float u_deltaV_255;
             uniform int u_frameCount;
             in vec2 Frag_UV;
             in vec4 Frag_Color;
             out vec4 Out_Color;
         
-            float hsvDist_AA(vec3 hsv1, vec3 hsv2)
+            bool checkHSVDelta(vec3 hsv1, vec3 hsv2)
             {
-                // hue is modulo 1.0 (360 degrees)
-                float dh = abs(hsv1.x - hsv2.x);
-                float h_dist = min (dh, 1.0-dh);
-                float s_dist = abs(hsv1.y - hsv2.y) * 0.1;
-                float v_dist = abs(hsv1.z - hsv2.z) * 0.05;
-                return 255.0 * sqrt(h_dist*h_dist + s_dist*s_dist + v_dist*v_dist);
+                vec3 diff = abs(hsv1 - hsv2);
+                diff.x = min (diff.x, 1.0-diff.x); // h is modulo 360º
+                return (diff.x*360.0    < u_deltaH_360
+                        && diff.y*100.0 < u_deltaS_100
+                        && diff.z*255.0 < u_deltaV_255);
             }
         
             void main()
@@ -182,8 +198,7 @@ struct HighlightRegion
                 
                 // vec3 delta = abs(srgba.rgb - u_refColor.rgb);
                 // float maxDelta = max(delta.r, max(delta.g, delta.b));
-                float dist = hsvDist_AA(ref_hsv, hsv);
-                float isSame = float(dist < u_distThreshold);
+                bool isSame = checkHSVDelta(ref_hsv, hsv);
                                 
                 // yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
                 
@@ -203,12 +218,16 @@ struct HighlightRegion
         GLuint shaderHandle = _highlightSameColorShader.shaderHandle();
                 
         _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
-        _attribLocationDistThreshold = (GLuint)glGetUniformLocation(shaderHandle, "u_distThreshold");
+        _attribLocationDeltaH = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaH_360");
+        _attribLocationDeltaS = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaS_100");
+        _attribLocationDeltaV = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaV_255");
         _attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
         
         _highlightSameColorShader.setExtraUserCallback([this](GLShader& shader) {
-            glUniform3f(_attribLocationRefColor, _activeColor.x, _activeColor.y, _activeColor.z);
-            glUniform1f(_attribLocationDistThreshold, _deltaColorThreshold);
+            glUniform3f(_attribLocationRefColor, _activeColorRGB01.x, _activeColorRGB01.y, _activeColorRGB01.z);
+            glUniform1f(_attribLocationDeltaH, _deltaH_360);
+            glUniform1f(_attribLocationDeltaS, _deltaS_100);
+            glUniform1f(_attribLocationDeltaV, _deltaV_255);
             glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
         });
     }
@@ -246,17 +265,22 @@ struct HighlightRegion
         
         _selectedPixel = newPixel;
         dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
-        _activeColor.x = srgba.r / 255.f;
-        _activeColor.y = srgba.g / 255.f;
-        _activeColor.z = srgba.b / 255.f;
+        _activeColorRGB01.x = srgba.r / 255.f;
+        _activeColorRGB01.y = srgba.g / 255.f;
+        _activeColorRGB01.z = srgba.b / 255.f;
+        
+        _activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
+        
         _hasActiveColor = true;
+        updateDeltas();
     }
  
     void addSliderDelta (float delta)
     {
         dl_dbg ("delta = %f", delta);
         _deltaColorThreshold -= delta;
-        _deltaColorThreshold = dl::keepInRange(_deltaColorThreshold, 1.f, 32.f);
+        _deltaColorThreshold = dl::keepInRange(_deltaColorThreshold, 1.f, 20.f);
+        updateDeltas();
     }
     
     void render ()
@@ -281,7 +305,7 @@ struct HighlightRegion
         
         if (ImGui::Begin("DaltonLens - Selected color", nullptr, flags))
         {
-            const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColor.x + 0.5f), (int)(255.f*_activeColor.y + 0.5f), (int)(255.f*_activeColor.z + 0.5f), 255);
+            const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColorRGB01.x + 0.5f), (int)(255.f*_activeColorRGB01.y + 0.5f), (int)(255.f*_activeColorRGB01.z + 0.5f), 255);
             
             const auto filledRectSize = ImVec2(128,128);
             ImVec2 topLeft = ImGui::GetCursorPos();
@@ -291,7 +315,7 @@ struct HighlightRegion
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
             drawList->AddRect(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32_WHITE);
-            
+                        
             ImGui::SetCursorPosX(bottomRight.x + 8);
             ImGui::SetCursorPosY(topLeft.y);
                         
@@ -299,48 +323,99 @@ struct HighlightRegion
             {
                 ImGui::BeginChild("ColorInfo", ImVec2(196,filledRectSize.y));
                 
-                auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
-                
-                ImGui::Text("%s / %s",
-                            closestColors[0].entry->className,
-                            closestColors[0].entry->colorName);
-                
-                ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
-
-                PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
-                ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
-                
-                auto hsv = dl::convertToHSV(sRgb);
-                ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
-                
-                PixelLab lab = dl::convertToLab(sRgb);
-                ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
-                
-                PixelXYZ xyz = convertToXYZ(sRgb);
-                ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
+                if (_hasActiveColor)
+                {
+                    auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
+                    
+                    ImGui::Text("%s / %s",
+                                closestColors[0].entry->className,
+                                closestColors[0].entry->colorName);
+                    
+                    ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
+                    
+                    PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
+                    ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
+                    
+                    auto hsv = _activeColorHSV_1_1_255;
+                    ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
+                    
+                    PixelLab lab = dl::convertToLab(sRgb);
+                    ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
+                    
+                    PixelXYZ xyz = convertToXYZ(sRgb);
+                    ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
+                     
+                    if (ImGui::Checkbox("Plot Mode", &_plotMode))
+                    {
+                        updateDeltas();
+                    }
+                    ImGui::SameLine();
+                    helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
+                }
+                else
+                {
+                    ImGui::Text("Click on the image to\nhighlight pixels with\na similar color.");
+                    ImGui::NewLine();
+                    ImGui::Text("Right click to open\na contextual menu.");
+                }
                 
                 ImGui::EndChild();
             }
             
             ImGui::SetCursorPosY(bottomRight.y + 8);
             
+            ImGui::Text("Tip: try the mouse wheel to adjust");
             int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
             int deltaInt = prevDeltaInt;
-            ImGui::SliderInt("Max Delta Color", &deltaInt, 1, 32);
+            ImGui::SliderInt("Max Difference", &deltaInt, 1, 20);
             if (deltaInt != prevDeltaInt)
+            {
                 _deltaColorThreshold = deltaInt;
+                updateDeltas();
+            }
+
+            ImGui::Text("Hue range is [%.1f %.1f]º", (_activeColorHSV_1_1_255.x*360.f) - _deltaH_360/2.f, (_activeColorHSV_1_1_255.x*360.f) + _deltaH_360/2.f);
+            ImGui::Text("Saturation range is [%.1f %.1f]%%", (_activeColorHSV_1_1_255.y*100.f) - _deltaS_100/2.f, (_activeColorHSV_1_1_255.y*100.f) + _deltaS_100/2.f);
+            ImGui::Text("Value range is [%.1f - %.1f]", (_activeColorHSV_1_1_255.z) - _deltaV_255/2.f, (_activeColorHSV_1_1_255.z) + _deltaV_255/2.f);
         }
         ImGui::End();
     }
     
+    void updateDeltas ()
+    {
+        if (_plotMode)
+        {
+            _deltaH_360 = _deltaColorThreshold;
+            _deltaS_100 = _deltaColorThreshold*5.f; // tolerates 3x more since the range is [0,100]
+            _deltaV_255 = _deltaColorThreshold*12.f; // tolerates slighly more since the range is [0,255]
+        }
+        else
+        {
+            _deltaH_360 = _deltaColorThreshold;
+            _deltaS_100 = _deltaColorThreshold; // tolerates 3x more since the range is [0,100]
+            _deltaV_255 = _deltaColorThreshold; // tolerates slighly more since the range is [0,255]
+        }
+    }
+    
 private:
     bool _hasActiveColor = false;
-    ImVec4 _activeColor = ImVec4(0,0,0,1);
+    ImVec4 _activeColorRGB01 = ImVec4(0,0,0,1);
+    
+    // H and S within [0,1]. V within [0,255]
+    dl::PixelHSV _activeColorHSV_1_1_255 = dl::PixelHSV(0,0,0);
+    
     float _deltaColorThreshold = 10.f;
+    float _deltaH_360 = NAN; // within [0,360º]
+    float _deltaS_100 = NAN; // within [0,100%]
+    float _deltaV_255 = NAN; // within [0,255]
+    
+    bool _plotMode = true;
     GLShader _highlightSameColorShader;
     
     GLuint _attribLocationRefColor = 0;
-    GLuint _attribLocationDistThreshold = 0;
+    GLuint _attribLocationDeltaH = 0;
+    GLuint _attribLocationDeltaS = 0;
+    GLuint _attribLocationDeltaV = 0;
     GLuint _attribLocationFrameCount = 0;
     
     dl::ImageSRGBA* _im = nullptr;
@@ -535,7 +610,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         // style.WindowRounding = 0.0f;
-        // style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
 
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
@@ -750,6 +825,8 @@ void ImageViewerWindow::runOnce ()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    bool popupMenuOpen = false;
+    
     // First condition to update the window size is whether we just updated the content.
     bool shouldUpdateWindowSize = impl->justUpdatedImage;
     
@@ -860,9 +937,10 @@ void ImageViewerWindow::runOnce ()
             impl->currentMode = DaltonViewerMode::None;
         }
 
-        bool popupMenuOpen = false;
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-        if (ImGui::BeginPopupContextWindow())
+        // Don't open the popup if Ctrl + right click was used, this is to zoom out.
+        const bool ctrlKeyPressedAndMenuNotAlreadyOpen = (io.KeyCtrl && !popupMenuOpen);
+        if (!ctrlKeyPressedAndMenuNotAlreadyOpen && ImGui::BeginPopupContextWindow())
         {
             popupMenuOpen = true;
             if (ImGui::MenuItem("Highlight Similar Colors")) impl->currentMode = DaltonViewerMode::HighlightRegions;
@@ -998,7 +1076,7 @@ void ImageViewerWindow::runOnce ()
 //    ImGui::PopStyleVar();
 //    ImGui::PopStyleVar();
     
-    if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
+    if (modeForThisFrame == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
         impl->highlightRegion.render();
     
     // ImGui::ShowDemoWindow();

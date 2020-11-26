@@ -211,7 +211,7 @@ namespace dl
                           255);
     }
 
-    // Convert rgb floats ([0-1],[0-1],[0-1]) to hsv floats ([0-1],[0-1],[0-1]), from Foley & van Dam p592
+    // Convert rgb floats ([0-255],[0-255],[0-255]) to hsv floats ([0-1],[0-1],[0-1]), from Foley & van Dam p592
     // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
     // Adapted from ImGui ColorConvertRGBtoHSV
     PixelHSV convertToHSV(const PixelSRGBA& p)
@@ -241,7 +241,7 @@ namespace dl
         return hsv;
     }
 
-    // Convert hsv floats ([0-1],[0-1],[0-1]) to rgb floats ([0-1],[0-1],[0-1]), from Foley & van Dam p593
+    // Convert hsv floats ([0-1],[0-1],[0-255]) to rgb floats ([0-255],[0-255],[0-255]), from Foley & van Dam p593
     // also http://en.wikipedia.org/wiki/HSL_and_HSV
     // Adapted from ImGui ColorConvertHSVtoRGB.
     PixelSRGBA convertToSRGBA(const PixelHSV& hsv)
