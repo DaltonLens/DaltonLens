@@ -283,6 +283,12 @@ struct HighlightRegion
         updateDeltas();
     }
     
+    void togglePlotMode ()
+    {
+        _plotMode = !_plotMode;
+        updateDeltas();
+    }
+    
     void render ()
     {
         ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
@@ -290,6 +296,7 @@ struct HighlightRegion
                                 // ImGuiWindowFlags_NoMove
                                 // | ImGuiWindowFlags_NoScrollbar
                                 ImGuiWindowFlags_NoScrollWithMouse
+                                | ImGuiWindowFlags_AlwaysAutoResize
                                 // | ImGuiWindowFlags_NoFocusOnAppearing
                                 // | ImGuiWindowFlags_NoBringToFrontOnFocus
                                 | ImGuiWindowFlags_NoNavFocus
@@ -344,20 +351,21 @@ struct HighlightRegion
                     
                     PixelXYZ xyz = convertToXYZ(sRgb);
                     ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
-                     
-                    if (ImGui::Checkbox("Plot Mode", &_plotMode))
-                    {
-                        updateDeltas();
-                    }
-                    ImGui::SameLine();
-                    helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
                 }
                 else
                 {
                     ImGui::Text("Click on the image to\nhighlight pixels with\na similar color.");
                     ImGui::NewLine();
                     ImGui::Text("Right click to open\na contextual menu.");
+                    ImGui::NewLine();
                 }
+                
+                if (ImGui::Checkbox("Plot Mode", &_plotMode))
+                {
+                    updateDeltas();
+                }
+                ImGui::SameLine();
+                helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
                 
                 ImGui::EndChild();
             }
@@ -374,19 +382,29 @@ struct HighlightRegion
                 updateDeltas();
             }
 
-            ImGui::Text("Hue range is [%.1f %.1f]º", (_activeColorHSV_1_1_255.x*360.f) - _deltaH_360/2.f, (_activeColorHSV_1_1_255.x*360.f) + _deltaH_360/2.f);
-            ImGui::Text("Saturation range is [%.1f %.1f]%%", (_activeColorHSV_1_1_255.y*100.f) - _deltaS_100/2.f, (_activeColorHSV_1_1_255.y*100.f) + _deltaS_100/2.f);
-            ImGui::Text("Value range is [%.1f - %.1f]", (_activeColorHSV_1_1_255.z) - _deltaV_255/2.f, (_activeColorHSV_1_1_255.z) + _deltaV_255/2.f);
+            if (_hasActiveColor)
+            {
+                ImGui::Text("Hue  in [%.0fº -> %.0fº]", (_activeColorHSV_1_1_255.x*360.f) - _deltaH_360, (_activeColorHSV_1_1_255.x*360.f) + _deltaH_360);
+                ImGui::Text("Sat. in [%.0f%% -> %.0f%%]", (_activeColorHSV_1_1_255.y*100.f) - _deltaS_100, (_activeColorHSV_1_1_255.y*100.f) + _deltaS_100);
+                ImGui::Text("Val. in [%.0f -> %.0f]", (_activeColorHSV_1_1_255.z) - _deltaV_255, (_activeColorHSV_1_1_255.z) + _deltaV_255);
+            }
         }
         ImGui::End();
     }
     
     void updateDeltas ()
     {
-        if (_plotMode)
+        // If the selected color is not saturated at all (grayscale), then we need rely on
+        // value to discriminate the treat it the same way we treat the non-plot style.
+        if (_plotMode && _activeColorHSV_1_1_255.y > 0.1)
         {
             _deltaH_360 = _deltaColorThreshold;
-            _deltaS_100 = _deltaColorThreshold*5.f; // tolerates 3x more since the range is [0,100]
+            
+            // If the selected color is already not very saturated (like on aliased an edge), then don't tolerate a huge delta.
+            _deltaS_100 = _deltaColorThreshold * 5.f; // tolerates 3x more since the range is [0,100]
+            _deltaS_100 *= _activeColorHSV_1_1_255.y;
+            _deltaS_100 = std::max(_deltaS_100, 1.0f);
+            
             _deltaV_255 = _deltaColorThreshold*12.f; // tolerates slighly more since the range is [0,255]
         }
         else
@@ -1020,11 +1038,15 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        if (!popupMenuOpen
-            && ImGui::IsItemHovered()
-            && modeForThisFrame == DaltonViewerMode::HighlightRegions
-            && impl->im.contains(mousePosInImage.x, mousePosInImage.y)
-            && !impl->highlightRegion.hasActiveColor())
+        bool showCursorOverlay = !popupMenuOpen && ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
+        if (showCursorOverlay)
+        {
+            bool showBecauseOfHighlightMode = (modeForThisFrame == DaltonViewerMode::HighlightRegions && !impl->highlightRegion.hasActiveColor());
+            bool showBecauseOfShift = io.KeyShift;
+            showCursorOverlay &= (showBecauseOfHighlightMode || showBecauseOfShift);
+        }
+        
+        if (showCursorOverlay)
         {
             dl::showImageCursorOverlayTooptip (impl->im,
                                                impl->gpuTexture,
@@ -1044,6 +1066,14 @@ void ImageViewerWindow::runOnce ()
             {
                 impl->zoom.zoomFactor *= 2;
                 impl->zoom.uvCenter = mousePosInTexture;
+            }
+        }
+        
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
+        {
+            if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
+            {
+                impl->highlightRegion.togglePlotMode();
             }
         }
         
@@ -1077,7 +1107,25 @@ void ImageViewerWindow::runOnce ()
 //    ImGui::PopStyleVar();
     
     if (modeForThisFrame == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
+    {
+        const int expectedHighlightWindowWidthWithPadding = 356;
+        if (platformWindowX > expectedHighlightWindowWidthWithPadding)
+        {
+            // Put it on the left since there is room.
+            ImGui::SetNextWindowPos(ImVec2(platformWindowX - expectedHighlightWindowWidthWithPadding, platformWindowY), ImGuiCond_Appearing);
+        }
+        else if ((impl->monitorSize.x - platformWindowX - platformWindowWidth) > expectedHighlightWindowWidthWithPadding)
+        {
+            // No room on the left, then put it on the right since there is room.
+            ImGui::SetNextWindowPos(ImVec2(platformWindowX + platformWindowWidth + 8, platformWindowY), ImGuiCond_Appearing);
+        }
+        else
+        {
+            // All right, just leave the window inside the image one, which will be the default.
+            // So do nothing.
+        }
         impl->highlightRegion.render();
+    }
     
     // ImGui::ShowDemoWindow();
     
