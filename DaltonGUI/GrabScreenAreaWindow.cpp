@@ -71,10 +71,21 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
     this->grabbedData.isValid = this->currentSelectionInScreen.isValid();
     if (this->grabbedData.isValid)
     {
-        this->grabbedData.capturedScreenRect = this->currentSelectionInScreen.asDL();
-        dl::Rect capturedImageRect = this->grabbedData.capturedScreenRect;
-        capturedImageRect.origin -= dl::Point(this->monitorWorkAreaTopLeft.x, this->monitorWorkAreaTopLeft.y);
-        *this->grabbedData.srgbaImage = dl::crop (*this->grabbedData.srgbaImage, capturedImageRect);
+        // Initially grabbedData has the entire screen. We're cropping it here.
+        
+        // Will be higher than 1 on retina displays.
+        const double screenToImageScale = this->grabbedData.srgbaImage->width() / this->grabbedData.capturedScreenRect.size.x;
+        
+        // Cropped screen area.
+        dl::Rect croppedScreenRect = this->currentSelectionInScreen.asDL();
+        
+        dl::Rect croppedImageRect = croppedScreenRect;
+        croppedImageRect.origin -= this->grabbedData.capturedScreenRect.origin;
+        croppedImageRect *= screenToImageScale;
+        
+        this->grabbedData.capturedScreenRect = croppedScreenRect;
+        *this->grabbedData.srgbaImage = dl::crop (*this->grabbedData.srgbaImage, croppedImageRect);
+        this->grabbedData.texture.reset (); // not valid anymore.
     }
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     glfwHideWindow(this->window);
@@ -491,9 +502,11 @@ bool GrabScreenAreaWindow::startGrabbing ()
     screenRect.origin = dl::Point(impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y);
     screenRect.size = dl::Point(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y);
     
+    // Initially we grab the entire screen.
     impl->grabbedData = {};
     impl->grabbedData.srgbaImage = std::make_shared<dl::ImageSRGBA>();
     impl->grabbedData.texture = std::make_shared<GLTexture>();
+    impl->grabbedData.capturedScreenRect = screenRect;
     
     return (impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture));
 }

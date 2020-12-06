@@ -121,6 +121,15 @@ namespace dl
                     && p.y >= origin.y
                     && p.y < origin.y + size.y);
         }
+        
+        Rect& operator*= (double s)
+        {
+            origin.x *= s;
+            origin.y *= s;
+            size.x *= s;
+            size.y *= s;
+            return *this;
+        }
     };
 
 } // dl

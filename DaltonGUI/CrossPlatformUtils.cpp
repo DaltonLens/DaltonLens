@@ -204,18 +204,18 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
     NSError* error = nil;
     GLKTextureInfo* textureInfo = [GLKTextureLoader textureWithCGImage:cgImage options:@{} error:&error];
     gpuTexture.initializeWithExistingTextureID(textureInfo.name);
+        
+    // Note: the image size is NOT the same as screenRect.size on retina displays.
+    // So we need to get it from the texture to avoid losing resolution.
+    const int imageWidth = textureInfo.width;
+    const int imageHeight = textureInfo.height;
+    impl->ensureCGContextCreatedForSize (imageWidth, imageHeight);
     
-    // No need to copy to CPU.
-    if (int(screenRect.size.x) == 0)
-        return true;
-    
-    impl->ensureCGContextCreatedForSize (int(screenRect.size.x), int(screenRect.size.y));
-    
-    CGContextDrawImage(impl->cgContext, CGRectMake(0, 0, screenRect.size.x, screenRect.size.y), cgImage);
+    CGContextDrawImage(impl->cgContext, CGRectMake(0, 0, imageWidth, imageHeight), cgImage);
     
     uint8_t* imageBuffer = (uint8_t*)CGBitmapContextGetData(impl->cgContext);
     
-    cpuImage.ensureAllocatedBufferForSize (int(screenRect.size.x), int(screenRect.size.y));
+    cpuImage.ensureAllocatedBufferForSize (imageWidth, imageHeight);
     cpuImage.copyDataFrom(imageBuffer,
                          (int)CGBitmapContextGetBytesPerRow(impl->cgContext),
                          (int)CGBitmapContextGetWidth(impl->cgContext),

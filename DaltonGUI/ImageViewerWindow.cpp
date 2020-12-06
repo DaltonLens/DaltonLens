@@ -472,12 +472,12 @@ struct ImageViewerWindow::Impl
     
     ImVec2 monitorSize = ImVec2(-1,-1);
     
-    const int windowBorderSize = 1;
+    const int windowBorderSize = 0;
     
     struct {
         dl::Rect normal;
         dl::Rect current;
-    } imageArea;
+    } imageWidgetRect;
     
     struct {
         int zoomFactor = 1;
@@ -523,17 +523,17 @@ struct ImageViewerWindow::Impl
         std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
     }
     
-    void onImageAreaChanged ()
+    void onImageWidgetAreaChanged ()
     {
-        glfwSetWindowSize(window, imageArea.current.size.x + windowBorderSize*2, imageArea.current.size.y + windowBorderSize*2);
+        glfwSetWindowSize(window, imageWidgetRect.current.size.x + windowBorderSize*2, imageWidgetRect.current.size.y + windowBorderSize*2);
     }
     
     void onWindowSizeChanged ()
     {
         int windowWidth, windowHeight;
         glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        imageArea.current.size.x = windowWidth - windowBorderSize*2;
-        imageArea.current.size.y = windowHeight - windowBorderSize*2;
+        imageWidgetRect.current.size.x = windowWidth - windowBorderSize*2;
+        imageWidgetRect.current.size.y = windowHeight - windowBorderSize*2;
     }
 };
 
@@ -709,10 +709,10 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
         const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y);
         if (count == 4)
         {
-            impl->imageArea.normal.size.x = w;
-            impl->imageArea.normal.size.y = h;
-            impl->imageArea.normal.origin.x = x;
-            impl->imageArea.normal.origin.y = y;
+            impl->imageWidgetRect.normal.size.x = w;
+            impl->imageWidgetRect.normal.size.y = h;
+            impl->imageWidgetRect.normal.origin.x = x;
+            impl->imageWidgetRect.normal.origin.y = y;
         }
         else
         {
@@ -778,11 +778,11 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
     
     initialize (parentWindow);
 
-    if (impl->imageArea.normal.size.x < 0) impl->imageArea.normal.size.x = impl->im.width();
-    if (impl->imageArea.normal.size.y < 0) impl->imageArea.normal.size.y = impl->im.height();
-    if (impl->imageArea.normal.origin.x < 0) impl->imageArea.normal.origin.x = impl->monitorSize.x * 0.10;
-    if (impl->imageArea.normal.origin.y < 0) impl->imageArea.normal.origin.y = impl->monitorSize.y * 0.10;
-    impl->imageArea.current = impl->imageArea.normal;
+    if (impl->imageWidgetRect.normal.size.x < 0) impl->imageWidgetRect.normal.size.x = impl->im.width();
+    if (impl->imageWidgetRect.normal.size.y < 0) impl->imageWidgetRect.normal.size.y = impl->im.height();
+    if (impl->imageWidgetRect.normal.origin.x < 0) impl->imageWidgetRect.normal.origin.x = impl->monitorSize.x * 0.10;
+    if (impl->imageWidgetRect.normal.origin.y < 0) impl->imageWidgetRect.normal.origin.y = impl->monitorSize.y * 0.10;
+    impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
     
     impl->gpuTexture.upload (impl->im);
     impl->highlightRegion.setImage(&impl->im);
@@ -806,9 +806,9 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
     
     glfwMakeContextCurrent(impl->window);
     impl->gpuTexture.upload(impl->im);
-    impl->imageArea.normal.origin = grabbedData.capturedScreenRect.origin;
-    impl->imageArea.normal.size = grabbedData.capturedScreenRect.size;
-    impl->imageArea.current = impl->imageArea.normal;
+    impl->imageWidgetRect.normal.origin = grabbedData.capturedScreenRect.origin;
+    impl->imageWidgetRect.normal.size = grabbedData.capturedScreenRect.size;
+    impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
     
     impl->highlightRegion.setImage(&impl->im);
     impl->currentMode = DaltonViewerMode::HighlightRegions;
@@ -826,8 +826,8 @@ void ImageViewerWindow::runOnce ()
     
     if (impl->justUpdatedImage)
     {
-        glfwSetWindowSize(impl->window, impl->imageArea.normal.size.x + 2, impl->imageArea.normal.size.y + 2);
-        glfwSetWindowPos(impl->window, impl->imageArea.normal.origin.x - 1, impl->imageArea.normal.origin.y - 1);
+        glfwSetWindowSize(impl->window, impl->imageWidgetRect.normal.size.x + 2*impl->windowBorderSize, impl->imageWidgetRect.normal.size.y + 2*impl->windowBorderSize);
+        glfwSetWindowPos(impl->window, impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize, impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize);
         glfwShowWindow(impl->window);
     }
     
@@ -878,45 +878,45 @@ void ImageViewerWindow::runOnce ()
 
     if (ImGui::IsKeyPressed(GLFW_KEY_N))
     {
-        impl->imageArea.current = impl->imageArea.normal;
+        impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
         shouldUpdateWindowSize = true;
     }
     
     if (ImGui::IsKeyPressed(GLFW_KEY_A))
     {
-        float ratioX = impl->imageArea.current.size.x / impl->imageArea.normal.size.x;
-        float ratioY = impl->imageArea.current.size.y / impl->imageArea.normal.size.y;
+        float ratioX = impl->imageWidgetRect.current.size.x / impl->imageWidgetRect.normal.size.x;
+        float ratioY = impl->imageWidgetRect.current.size.y / impl->imageWidgetRect.normal.size.y;
         if (ratioX < ratioY)
         {
-            impl->imageArea.current.size.y = ratioX * impl->imageArea.normal.size.y;
+            impl->imageWidgetRect.current.size.y = ratioX * impl->imageWidgetRect.normal.size.y;
         }
         else
         {
-            impl->imageArea.current.size.x = ratioY * impl->imageArea.normal.size.x;
+            impl->imageWidgetRect.current.size.x = ratioY * impl->imageWidgetRect.normal.size.x;
         }
         shouldUpdateWindowSize = true;
     }
     
     if (io.InputQueueCharacters.contains('<'))
     {
-        if (impl->imageArea.current.size.x > 64 && impl->imageArea.current.size.y > 64)
+        if (impl->imageWidgetRect.current.size.x > 64 && impl->imageWidgetRect.current.size.y > 64)
         {
-            impl->imageArea.current.size.x *= 0.5f;
-            impl->imageArea.current.size.y *= 0.5f;
+            impl->imageWidgetRect.current.size.x *= 0.5f;
+            impl->imageWidgetRect.current.size.y *= 0.5f;
             shouldUpdateWindowSize = true;
         }
     }
     
     if (io.InputQueueCharacters.contains('>'))
     {
-        impl->imageArea.current.size.x *= 2.f;
-        impl->imageArea.current.size.y *= 2.f;
+        impl->imageWidgetRect.current.size.x *= 2.f;
+        impl->imageWidgetRect.current.size.y *= 2.f;
         shouldUpdateWindowSize = true;
     }
                 
     if (shouldUpdateWindowSize)
     {
-        impl->onImageAreaChanged();
+        impl->onImageWidgetAreaChanged();
     }
     
     int platformWindowX, platformWindowY;
@@ -1007,8 +1007,8 @@ void ImageViewerWindow::runOnce ()
             case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.enable(); break;
             default: break;
         }
-                
-        const auto imageWidgetSize = imSize(impl->imageArea.current);
+        
+        const auto imageWidgetSize = imSize(impl->imageWidgetRect.current);
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
                      imageWidgetSize,
                      uv0,
