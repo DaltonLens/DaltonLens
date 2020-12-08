@@ -12,6 +12,8 @@
 #include <Dalton/Image.h>
 #include "Graphics.h"
 
+struct GLFWwindow;
+
 namespace dl
 {
 
@@ -68,5 +70,7 @@ private:
     friend struct Impl;
     std::unique_ptr<Impl> impl;
 };
+
+void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window);
 
 } // dl

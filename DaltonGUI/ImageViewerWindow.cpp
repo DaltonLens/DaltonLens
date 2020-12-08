@@ -3,6 +3,7 @@
 
 #include "Graphics.h"
 #include "ImGuiUtils.h"
+#include "CrossPlatformUtils.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -251,6 +252,13 @@ struct HighlightRegion
     
     bool hasActiveColor () const { return _hasActiveColor; }
     
+    void clearSelection ()
+    {
+        _hasActiveColor = false;
+        _selectedPixel = dl::vec2i(-1,-1);
+        _activeColorRGB01 = ImVec4(0,0,0,1);
+    }
+    
     void setSelectedPixel (float x, float y)
     {
         const auto newPixel = dl::vec2i((int)x, (int)y);
@@ -258,8 +266,7 @@ struct HighlightRegion
         if (_hasActiveColor)
         {
             // Toggle it.
-            _hasActiveColor = false;
-            _selectedPixel = dl::vec2i(-1,-1);
+            clearSelection();
             return;
         }
         
@@ -310,7 +317,7 @@ struct HighlightRegion
         
         ImGui::SetNextWindowFocus(); // make sure it's always on top, otherwise it'll go behind the image.
         
-        if (ImGui::Begin("DaltonLens - Selected color", nullptr, flags))
+        if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
         {
             const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColorRGB01.x + 0.5f), (int)(255.f*_activeColorRGB01.y + 0.5f), (int)(255.f*_activeColorRGB01.z + 0.5f), 255);
             
@@ -322,6 +329,14 @@ struct HighlightRegion
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
             drawList->AddRect(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32_WHITE);
+            // Show a cross.
+            if (!_hasActiveColor)
+            {
+                ImVec2 imageTopLeft = topLeft + screenFromWindow;
+                ImVec2 imageBottomRight = bottomRight + screenFromWindow - ImVec2(1,1);
+                drawList->AddLine(imageTopLeft, imageBottomRight, IM_COL32_WHITE);
+                drawList->AddLine(ImVec2(imageTopLeft.x, imageBottomRight.y), ImVec2(imageBottomRight.x, imageTopLeft.y), IM_COL32_WHITE);
+            }
                         
             ImGui::SetCursorPosX(bottomRight.x + 8);
             ImGui::SetCursorPosY(topLeft.y);
@@ -354,25 +369,20 @@ struct HighlightRegion
                 }
                 else
                 {
-                    ImGui::Text("Click on the image to\nhighlight pixels with\na similar color.");
-                    ImGui::NewLine();
-                    ImGui::Text("Right click to open\na contextual menu.");
-                    ImGui::NewLine();
+                    ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::BulletText("Right click to open\na contextual menu.");
+                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::BulletText("Left/Right arrows to\nchange mode.");
                 }
-                
-                if (ImGui::Checkbox("Plot Mode", &_plotMode))
-                {
-                    updateDeltas();
-                }
-                ImGui::SameLine();
-                helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
                 
                 ImGui::EndChild();
             }
             
             ImGui::SetCursorPosY(bottomRight.y + 8);
             
-            ImGui::Text("Tip: try the mouse wheel to adjust");
+            ImGui::Text("Tip: try the mouse wheel to adjust.");
+                        
             int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
             int deltaInt = prevDeltaInt;
             ImGui::SliderInt("Max Difference", &deltaInt, 1, 20);
@@ -382,11 +392,24 @@ struct HighlightRegion
                 updateDeltas();
             }
 
+            if (ImGui::Checkbox("Plot Mode", &_plotMode))
+            {
+                updateDeltas();
+            }
+            ImGui::SameLine();
+            helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
+            
             if (_hasActiveColor)
             {
                 ImGui::Text("Hue  in [%.0fº -> %.0fº]", (_activeColorHSV_1_1_255.x*360.f) - _deltaH_360, (_activeColorHSV_1_1_255.x*360.f) + _deltaH_360);
                 ImGui::Text("Sat. in [%.0f%% -> %.0f%%]", (_activeColorHSV_1_1_255.y*100.f) - _deltaS_100, (_activeColorHSV_1_1_255.y*100.f) + _deltaS_100);
                 ImGui::Text("Val. in [%.0f -> %.0f]", (_activeColorHSV_1_1_255.z) - _deltaV_255, (_activeColorHSV_1_1_255.z) + _deltaV_255);
+            }
+            else
+            {
+                ImGui::TextDisabled("Hue  in [N/A]");
+                ImGui::TextDisabled("Sat. in [N/A]");
+                ImGui::TextDisabled("Val. in [N/A]");
             }
         }
         ImGui::End();
@@ -604,6 +627,8 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     glfwMakeContextCurrent(impl->window);
     glfwHideWindow(impl->window);
     glfwSwapInterval(1); // Enable vsync
+
+    dl::setWindowFlagsToAlwaysShowOnActiveDesktop(impl->window);
     
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -828,7 +853,6 @@ void ImageViewerWindow::runOnce ()
     {
         glfwSetWindowSize(impl->window, impl->imageWidgetRect.normal.size.x + 2*impl->windowBorderSize, impl->imageWidgetRect.normal.size.y + 2*impl->windowBorderSize);
         glfwSetWindowPos(impl->window, impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize, impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize);
-        glfwShowWindow(impl->window);
     }
     
     // Poll and handle events (inputs, window resize, etc.)
@@ -860,8 +884,8 @@ void ImageViewerWindow::runOnce ()
     {
         if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || glfwWindowShouldClose(impl->window))
         {
-            dl_dbg ("ImGui::IsKeyPressed(GLFW_KEY_Q) = %d", ImGui::IsKeyPressed(GLFW_KEY_Q));
             impl->currentMode = DaltonViewerMode::None;
+            impl->highlightRegion.clearSelection();
             glfwSetWindowShouldClose(impl->window, false);
         }
 
@@ -1155,6 +1179,12 @@ void ImageViewerWindow::runOnce ()
     }
     
     glfwSwapBuffers(impl->window);
+    
+    if (impl->justUpdatedImage)
+    {
+        // Only show it now, after the swap buffer. Otherwise we'll have the old image for a split second.
+        glfwShowWindow(impl->window);
+    }
     
     impl->justUpdatedImage = false;
     

@@ -296,7 +296,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         //        
         //        menu.addItem(NSMenuItem.separator())
         
-        let grabScreenItem = NSMenuItem(title: "Grab Screen Area", action: #selector(AppDelegate.grabScreenArea), keyEquivalent: " ")
+        let grabScreenItem = NSMenuItem(title: "Grab Screen Region", action: #selector(AppDelegate.grabScreenArea), keyEquivalent: " ")
         let cmdAltCtrlMask = NSEvent.ModifierFlags(rawValue:
             NSEvent.ModifierFlags.command.rawValue
                 | NSEvent.ModifierFlags.control.rawValue

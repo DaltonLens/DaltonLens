@@ -408,8 +408,6 @@ void GrabScreenAreaWindow::runOnce ()
                             | ImGuiWindowFlags_NoDocking
                             | ImGuiWindowFlags_NoNav);
     
-    dl_dbg ("Rendering the window.");
-    
     ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(255,0,0,127));
     
     std::string mainWindowName = "GrabScreenArea";
@@ -493,6 +491,7 @@ bool GrabScreenAreaWindow::startGrabbing ()
     
     glfwMakeContextCurrent(impl->window);
     
+    impl->currentState = Impl::State::Initial;
     impl->justGotEnabled = true;
     impl->grabbingFinished = false;
     

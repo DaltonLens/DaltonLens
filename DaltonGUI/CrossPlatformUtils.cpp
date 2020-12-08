@@ -18,6 +18,10 @@
 #import "MASShortcut.h"
 #import "MASShortcutMonitor.h"
 
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_COCOA 1
+#include <GLFW/glfw3native.h>
+
 namespace dl
 {
 
@@ -291,6 +295,13 @@ dl::Point getMouseCursor()
 {
     NSPoint mousePos = [NSEvent mouseLocation];
     return dl::Point(mousePos.x, mousePos.y);
+}
+
+void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window)
+{
+    NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(window);
+    dl_assert (nsWindow, "Not working?");
+    nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace;
 }
 
 } // dl

@@ -1377,8 +1377,6 @@ void DaltonPointerOverlay::runOnce (float mousePosX, float mousePosY, const std:
     // ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
     
-    dl_dbg ("Rendering the window.");
-    
     glfwSetWindowPos(impl->window, mousePosX + 32, mousePosY + 32);
     
     GLuint underCursorTexture = allocateTextureUnderCursor();
