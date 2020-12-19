@@ -150,6 +150,7 @@ struct DaltonLensGUI::Impl
         ImageViewer,
     };
     State currentState = State::Disabled;
+    State nextState = State::Disabled;
     
     GLFWwindow* mainContextWindow = nullptr;
     
@@ -166,6 +167,7 @@ struct DaltonLensGUI::Impl
     bool appFocusWasEnabled = false;
     bool helpRequested = false;
     
+    // Not proud of this logic, should do a cleaner state machine.
     void onDisplayLinkRefresh ()
     {
         bool appFocusRequested = false;
@@ -195,11 +197,18 @@ struct DaltonLensGUI::Impl
                     {
                         imageViewerWindow.showGrabbedData(grabbedData);
                         currentState = State::ImageViewer;
+                        nextState = State::ImageViewer;
                     }
                     else
                     {
                         currentState = State::Disabled;
+                        nextState = State::Disabled;
                     }
+                }
+                else if (nextState != State::GrabScreen)
+                {
+                    grabScreenWindow.dismiss();
+                    currentState = nextState;
                 }
                 break;
             }
@@ -208,18 +217,30 @@ struct DaltonLensGUI::Impl
             {
                 if (imageViewerWindow.isEnabled())
                 {
-                    appFocusRequested = true;
-                    imageViewerWindow.runOnce();
-                    if (imageViewerWindow.helpWindowRequested())
+                    // Make sure to dismiss it before the runOnce, otherwise
+                    // we'll end up in a weird intermediate state as runOnce
+                    // handles the gracefull dismiss.
+                    if (nextState != State::ImageViewer)
                     {
-                        helpWindow.setEnabled(true);
-                        imageViewerWindow.notifyHelpWindowRequestHandled();
+                        imageViewerWindow.dismiss();
+                        imageViewerWindow.runOnce();
+                    }
+                    else
+                    {
+                        appFocusRequested = true;
+                        imageViewerWindow.runOnce();
+                        if (imageViewerWindow.helpWindowRequested())
+                        {
+                            helpWindow.setEnabled(true);
+                            imageViewerWindow.notifyHelpWindowRequestHandled();
+                        }
                     }
                 }
                 else
                 {
                     appFocusRequested = false;
                     currentState = State::Disabled;
+                    nextState = State::Disabled;
                 }
                 break;
             }
@@ -235,6 +256,29 @@ struct DaltonLensGUI::Impl
         {
             dl::setAppFocusEnabled (appFocusRequested);
             appFocusWasEnabled = appFocusRequested;
+        }
+        
+        if (currentState != nextState)
+        {
+            switch (nextState)
+            {
+                case State::GrabScreen:
+                {
+                    bool couldGrab = grabScreenWindow.startGrabbing();
+                    if (couldGrab)
+                    {
+                        currentState = State::GrabScreen;
+                    }
+                    else
+                    {
+                        currentState = State::Disabled;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            currentState = nextState;
         }
     }
 };
@@ -329,17 +373,26 @@ bool DaltonLensGUI::initialize ()
     //    });
     
     impl->keyboardMonitor.setKeyboardCtrlAltCmdSpaceCallback([this]() {
-        grabScreenArea ();
+        toogleGrabScreenArea ();
     });
     return true;
 }
 
-void DaltonLensGUI::grabScreenArea ()
+void DaltonLensGUI::toogleGrabScreenArea ()
 {
-    bool couldGrab = impl->grabScreenWindow.startGrabbing();
-    if (couldGrab)
+    switch (impl->currentState)
     {
-        impl->currentState = Impl::State::GrabScreen;
+        case Impl::State::GrabScreen:
+        {
+            impl->nextState = Impl::State::Disabled;
+            break;
+        }
+        
+        default:
+        {
+            impl->nextState = Impl::State::GrabScreen;
+            break;
+        }
     }
 }
 

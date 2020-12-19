@@ -89,6 +89,7 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
     }
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     glfwHideWindow(this->window);
+    dl_dbg ("[GrabScreen] hide window");
 }
 
 GrabScreenAreaWindow::GrabScreenAreaWindow()
@@ -479,6 +480,7 @@ void GrabScreenAreaWindow::runOnce ()
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         glfwShowWindow(impl->window);
+        dl_dbg ("[GrabScreen] show window");
         impl->justGotEnabled = false;
     }
 }
@@ -508,6 +510,16 @@ bool GrabScreenAreaWindow::startGrabbing ()
     impl->grabbedData.capturedScreenRect = screenRect;
     
     return (impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture));
+}
+
+bool GrabScreenAreaWindow::isGrabbing() const
+{
+    return !impl->grabbingFinished;
+}
+
+void GrabScreenAreaWindow::dismiss ()
+{
+    impl->finishGrabbing();
 }
 
 } // dl

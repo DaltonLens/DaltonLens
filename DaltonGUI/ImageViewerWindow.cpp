@@ -586,6 +586,12 @@ void ImageViewerWindow::notifyHelpWindowRequestHandled ()
     impl->helpWindowRequested = false;
 }
 
+void ImageViewerWindow::dismiss()
+{
+    glfwSetWindowShouldClose(impl->window, true);
+    impl->currentMode = DaltonViewerMode::None;
+}
+
 void ImageViewerWindow::shutdown()
 {
     if (impl->window)
@@ -610,15 +616,11 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
 
     // Create window with graphics context.
-    // We create a dummy window just because ImGui needs a main window, but we don't really
-    // want any, because we prefer to rely on ImGui handling the viewport. This way we can
-    // let the ImGui window resizeable, and the platform window will just get resized
-    // accordingly. This way we can remove the decorations AND support resize.
     glfwWindowHint(GLFW_DECORATED, true);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, false);
     glfwWindowHint(GLFW_RESIZABLE, false);
-    impl->window = glfwCreateWindow(640, 480, "Dear ImGui GLFW+OpenGL3 example", NULL, parentWindow);
+    impl->window = glfwCreateWindow(640, 480, "Dalton Lens Image Viewer", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
 

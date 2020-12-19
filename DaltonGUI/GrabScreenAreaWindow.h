@@ -42,7 +42,9 @@ public:
     void shutdown ();
     void runOnce ();
     bool startGrabbing ();
+    void dismiss ();
     
+    bool isGrabbing() const;
     bool grabbingFinished() const;
     const GrabScreenData& grabbedData () const;
     

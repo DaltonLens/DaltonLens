@@ -28,7 +28,7 @@
 
 - (void)grabScreenArea
 {
-    _dlGui.grabScreenArea();
+    _dlGui.toogleGrabScreenArea();
 }
 
 - (void)helpRequested

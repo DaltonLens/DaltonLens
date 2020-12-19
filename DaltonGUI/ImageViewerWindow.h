@@ -26,6 +26,7 @@ public:
     bool shouldExit () const;
     
     bool isEnabled () const;
+    void dismiss ();
     
     bool helpWindowRequested () const;
     void notifyHelpWindowRequestHandled ();

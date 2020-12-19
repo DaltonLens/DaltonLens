@@ -29,7 +29,7 @@ public:
     
     void helpRequested ();
     
-    void grabScreenArea ();
+    void toogleGrabScreenArea ();
     
     void shutdown ();
 
