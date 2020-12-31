@@ -371,7 +371,7 @@ struct HighlightRegion
                 {
                     ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                    ImGui::BulletText("Right click to open\na contextual menu.");
+                    ImGui::BulletText("Right click on the image\nfor a contextual menu.");
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
                     ImGui::BulletText("Left/Right arrows to\nchange mode.");
                 }
@@ -381,7 +381,7 @@ struct HighlightRegion
             
             ImGui::SetCursorPosY(bottomRight.y + 8);
             
-            ImGui::Text("Tip: try the mouse wheel to adjust.");
+            ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
                         
             int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
             int deltaInt = prevDeltaInt;
@@ -397,7 +397,7 @@ struct HighlightRegion
                 updateDeltas();
             }
             ImGui::SameLine();
-            helpMarker("Give less weight to saturation and value to better handle anti-aliasing on lines and curves. Disable it when looking at flat colors (e.g. charts).");
+            helpMarker("Allow more difference in saturation and value to better handle anti-aliasing on lines and curves. Better to disable it when looking at flat colors (e.g. pie charts).");
             
             if (_hasActiveColor)
             {

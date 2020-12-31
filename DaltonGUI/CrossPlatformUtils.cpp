@@ -304,4 +304,9 @@ void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window)
     nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace;
 }
 
+void openURLInBrowser(const char* url)
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]];
+}
+
 } // dl

@@ -3,6 +3,8 @@
 #include "Graphics.h"
 #include "ImGuiUtils.h"
 
+#include "CrossPlatformUtils.h"
+
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -123,6 +125,37 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     return true;
 }
 
+void AddUnderLine( ImColor col_ )
+{
+    ImVec2 min = ImGui::GetItemRectMin();
+    ImVec2 max = ImGui::GetItemRectMax();
+    min.y = max.y;
+    ImGui::GetWindowDrawList()->AddLine( min, max, col_, 1.0f );
+}
+
+// From https://gist.github.com/dougbinks/ef0962ef6ebe2cadae76c4e9f0586c69#file-imguiutils-h-L228-L262
+void TextURL( const char* name_, const char* URL_, bool SameLineBefore_, bool SameLineAfter_ )
+{
+    if( SameLineBefore_ ){ ImGui::SameLine( 0.0f, ImGui::GetStyle().ItemInnerSpacing.x ); }
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+    ImGui::Text("%s", name_);
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered())
+    {
+        if( ImGui::IsMouseClicked(0) )
+        {
+            dl::openURLInBrowser( URL_ );
+        }
+        AddUnderLine( ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered] );
+        // ImGui::SetTooltip( ICON_FA_LINK "  Open in browser\n%s", URL_ );
+    }
+    else
+    {
+        AddUnderLine( ImGui::GetStyle().Colors[ImGuiCol_Button] );
+    }
+    if( SameLineAfter_ ){ ImGui::SameLine( 0.0f, ImGui::GetStyle().ItemInnerSpacing.x ); }
+}
+
 void HelpWindow::runOnce ()
 {
     ImGui::SetCurrentContext(impl->imGuiContext);
@@ -147,7 +180,7 @@ void HelpWindow::runOnce ()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
+    
     if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
     {
         setEnabled(false);
@@ -186,8 +219,29 @@ void HelpWindow::runOnce ()
                 impl->needToFocusViewportWindowWhenAvailable = false;
             }
         }
+                
+        ImGui::Text("GLOBAL COLOR POINTER:");
+        ImGui::BulletText("Ctrl+Alt+Cmd+Space to enable the color pointer.");
+        ImGui::BulletText("Escape or 'q' to exit.");
+        ImGui::BulletText("Click and drag to open a region in the Image Viewer.");
+        ImGui::Separator();
+
+        ImGui::Text("IMAGE VIEWER WINDOW:");
+        ImGui::BulletText("Escape or 'q' to exit.");
+        ImGui::BulletText("Left/Right arrows to switch the mode.");
+        ImGui::BulletText("Shift key at any moment to see the original content.");
+        ImGui::BulletText("Right click to open the contextual menu.");
+        ImGui::BulletText("Available modes:");
+        ImGui::Indent();
+            ImGui::BulletText("Highlight Similar Colors: click on a pixel to\nhighlight other pixels with a similar color.");
+            ImGui::BulletText("Daltonize - Protanope/Deuteranope/Tritanope: \ntransform colors to be more friendly with colorblindness.");
+            ImGui::BulletText("Flip Red & Blue (and Invert Red): switch the \ncolor channels to help see color differences.");
+        ImGui::Unindent();
+        ImGui::Separator();
         
-        ImGui::Text ("Dalton Lens Help");
+        ImGui::Text("ABOUT DALTONLENS:");
+        ImGui::BulletText("Report issues: "); TextURL("https://github.com/DaltonLens/DaltonLens", "https://github.com/DaltonLens/DaltonLens", true, true); ImGui::Text(".");
+        ImGui::BulletText("Developed by "); TextURL("Nicolas Burrus", "http://nicolas.burrus.name", true, true);  ImGui::Text(".");
     }
     ImGui::End();
     

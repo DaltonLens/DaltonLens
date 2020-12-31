@@ -73,4 +73,6 @@ private:
 
 void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window);
 
+void openURLInBrowser(const char* url);
+
 } // dl
