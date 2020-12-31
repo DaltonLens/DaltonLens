@@ -21,18 +21,18 @@ namespace  dl
 
 struct RectSelection
 {
-    bool isValid () const { return topLeft.x >= 0.; }
+    bool isValid () const { return firstCorner.x >= 0.; }
     
     dl::Rect asDL () const
     {
         dl::Rect dlRect;
-        dlRect.origin = dl::Point(topLeft.x, topLeft.y);
-        dlRect.size = dl::Point(bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
+        dlRect.origin = dl::Point(std::min(firstCorner.x, secondCorner.x), std::min(firstCorner.y, secondCorner.y));
+        dlRect.size = dl::Point(std::abs(secondCorner.x - firstCorner.x), std::abs(secondCorner.y - firstCorner.y));
         return dlRect;
     }
     
-    ImVec2 topLeft = ImVec2(-1,-1);
-    ImVec2 bottomRight = ImVec2(-1,-1);
+    ImVec2 firstCorner = ImVec2(-1,-1);
+    ImVec2 secondCorner = ImVec2(-1,-1);
 };
 
 struct GrabScreenAreaWindow::Impl
@@ -367,8 +367,8 @@ void GrabScreenAreaWindow::runOnce ()
         dl::Rect frontWindowRect = dl::getFrontWindowGeometry();
         if (frontWindowRect.size.x >= 0)
         {
-            impl->currentSelectionInScreen.topLeft = imPos(frontWindowRect);
-            impl->currentSelectionInScreen.bottomRight = impl->currentSelectionInScreen.topLeft + imSize(frontWindowRect);
+            impl->currentSelectionInScreen.firstCorner = imPos(frontWindowRect);
+            impl->currentSelectionInScreen.secondCorner = impl->currentSelectionInScreen.firstCorner + imSize(frontWindowRect);
         }
     }
     
@@ -383,8 +383,8 @@ void GrabScreenAreaWindow::runOnce ()
     {
         impl->currentState = Impl::State::MouseDragging;
         ImVec2 deltaFromInitial = ImGui::GetMouseDragDelta();
-        impl->currentSelectionInScreen.topLeft = io.MousePos - deltaFromInitial + impl->monitorWorkAreaTopLeft;
-        impl->currentSelectionInScreen.bottomRight = io.MousePos + impl->monitorWorkAreaTopLeft;
+        impl->currentSelectionInScreen.firstCorner = io.MousePos - deltaFromInitial + impl->monitorWorkAreaTopLeft;
+        impl->currentSelectionInScreen.secondCorner = io.MousePos + impl->monitorWorkAreaTopLeft;
     }
     
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
@@ -434,15 +434,15 @@ void GrabScreenAreaWindow::runOnce ()
                                        imageWidgetTopLeft,
                                        imageWidgetSize);
         
-        ImVec2 selectionTopLeftInWindow = impl->currentSelectionInScreen.topLeft - impl->monitorWorkAreaTopLeft;
-        ImVec2 selectionBottomRightInWindow = impl->currentSelectionInScreen.bottomRight - impl->monitorWorkAreaTopLeft;
+        ImVec2 selectionFirstCornerInWindow = impl->currentSelectionInScreen.firstCorner - impl->monitorWorkAreaTopLeft;
+        ImVec2 selectionSecondCornerInWindow = impl->currentSelectionInScreen.secondCorner - impl->monitorWorkAreaTopLeft;
             
         if (impl->currentSelectionInScreen.isValid())
         {
             auto* drawList = ImGui::GetWindowDrawList();
             
             // Border around the selected area.
-            drawList->AddRectFilled(selectionTopLeftInWindow, selectionBottomRightInWindow, IM_COL32(0, 0, 127, 64));
+            drawList->AddRectFilled(selectionFirstCornerInWindow, selectionSecondCornerInWindow, IM_COL32(0, 0, 127, 64));
             
             //            // Left rectangle
             //            drawList->AddRectFilled(ImVec2(0,0), ImVec2(selectionTopLeftInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
