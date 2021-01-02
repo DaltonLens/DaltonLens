@@ -1125,7 +1125,7 @@ void ImageViewerWindow::runOnce ()
     
     if (modeForThisFrame == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
     {
-        const int expectedHighlightWindowWidthWithPadding = 356;
+        const int expectedHighlightWindowWidthWithPadding = 364;
         if (platformWindowX > expectedHighlightWindowWidthWithPadding)
         {
             // Put it on the left since there is room.
