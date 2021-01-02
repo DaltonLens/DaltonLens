@@ -1,4 +1,8 @@
-#define GL_SILENCE_DEPRECATION 1
+//
+// Copyright (c) 2017, Nicolas Burrus
+// This software may be modified and distributed under the terms
+// of the BSD license.  See the LICENSE file for details.
+//
 
 #include "HelpWindow.h"
 
@@ -89,10 +93,10 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
 
     // Tweaked manually by letting ImGui auto-resize the window.
     const int windowWidth = 458;
-    const int windowHeight = 348;
+    const int windowHeight = 348 + 20;
     
     // glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(457, 348, "DaltonLens Help", NULL, parentWindow);
+    impl->window = glfwCreateWindow(windowWidth, windowHeight, "DaltonLens Help", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
     
@@ -209,6 +213,7 @@ void HelpWindow::runOnce ()
         ImGui::BulletText("Left/Right arrows to switch the mode.");
         ImGui::BulletText("Shift key at any moment to see the original content.");
         ImGui::BulletText("Right click to open the contextual menu.");
+        ImGui::BulletText("Ctrl + Left/Right click to zoom in or out.");
         ImGui::BulletText("Available modes:");
         ImGui::Indent();
             ImGui::BulletText("Highlight Similar Colors: click on a pixel to\nhighlight other pixels with a similar color.");

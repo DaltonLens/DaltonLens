@@ -1,3 +1,9 @@
+//
+// Copyright (c) 2017, Nicolas Burrus
+// This software may be modified and distributed under the terms
+// of the BSD license.  See the LICENSE file for details.
+//
+
 #include "GrabScreenAreaWindow.h"
 
 #include "Graphics.h"
@@ -132,24 +138,11 @@ void GrabScreenAreaWindow::shutdown()
 
 bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 {
-    // Create window with graphics context.
-    // We create a dummy window just because ImGui needs a main window, but we don't really
-    // want any, because we prefer to rely on ImGui handling the viewport. This way we can
-    // let the ImGui window resizeable, and the platform window will just get resized
-    // accordingly. This way we can remove the decorations AND support resize.
+    // Create the window always on top.
     glfwWindowHint(GLFW_DECORATED, false);
-    
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
-    
-    // Always on top.
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
-    
     glfwWindowHint(GLFW_FLOATING, true);
-        
-//    window.collectionBehavior = [NSWindow.CollectionBehavior.stationary,
-//                                 // NSWindowCollectionBehavior.canJoinAllSpaces,
-//                                NSWindow.CollectionBehavior.moveToActiveSpace,
-//                                NSWindow.CollectionBehavior.ignoresCycle];
     
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     
@@ -176,18 +169,7 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     IMGUI_CHECKVERSION();
     impl->imGuiContext = ImGui::CreateContext();
     ImGui::SetCurrentContext(impl->imGuiContext);
-    
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
-    
-    ImGui::StyleColorsDark();
-    
+   
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
     ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
     
@@ -197,7 +179,6 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
     ImGui_ImplOpenGL3_Init(glslVersion());
-
     return true;
 }
 
@@ -342,10 +323,6 @@ void GrabScreenAreaWindow::runOnce ()
     glfwMakeContextCurrent(impl->window);
     
     // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
     
     // Start the Dear ImGui frame
@@ -443,18 +420,6 @@ void GrabScreenAreaWindow::runOnce ()
             
             // Border around the selected area.
             drawList->AddRectFilled(selectionFirstCornerInWindow, selectionSecondCornerInWindow, IM_COL32(0, 0, 127, 64));
-            
-            //            // Left rectangle
-            //            drawList->AddRectFilled(ImVec2(0,0), ImVec2(selectionTopLeftInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
-            //
-            //            // Right rectangle
-            //            drawList->AddRectFilled(ImVec2(selectionBottomRightInWindow.x,0), ImVec2(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
-            //
-            //            // Top rectangle
-            //            drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,0), ImVec2(selectionBottomRightInWindow.x, selectionTopLeftInWindow.y), IM_COL32(0, 0, 0, 127));
-            //
-            //            // Bottom rectangle
-            //            drawList->AddRectFilled(ImVec2(selectionTopLeftInWindow.x,selectionBottomRightInWindow.y), ImVec2(selectionBottomRightInWindow.x, impl->monitorWorkAreaSize.y), IM_COL32(0, 0, 0, 127));
         }
     }
     ImGui::End();

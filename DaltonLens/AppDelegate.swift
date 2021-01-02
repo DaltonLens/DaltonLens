@@ -21,7 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var glfwAppDelegate : NSApplicationDelegate?
     
     private var window : DaltonWindow?
-    private var daltonView : DaltonView?
     
     private var monitor: Any?
     
@@ -32,61 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let launchAtStartupMenuItem = NSMenuItem(title: "Launch at Startup",
                                              action: #selector(AppDelegate.toggleLaunchAtStartup(sender:)),
                                              keyEquivalent: "")
-    
-    let protanopeMenuItem = NSMenuItem(title: "Protanope",
-                                       action: #selector(AppDelegate.setBlindnessType(sender:)),
-                                       keyEquivalent: "")
-    
-    let deuteranopeMenuItem = NSMenuItem(title: "Deuteranope",
-                                         action: #selector(AppDelegate.setBlindnessType(sender:)),
-                                         keyEquivalent: "")
-    
-    let tritanopeMenuItem = NSMenuItem(title: "Tritanope",
-                                       action: #selector(AppDelegate.setBlindnessType(sender:)),
-                                       keyEquivalent: "")
-    
-    var nothingMenuItem = NSMenuItem(title: "Nothing",
-                                     action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                     keyEquivalent: "0")
-    
-    let simulateMenuItem = NSMenuItem(title: "Simulate Blindness",
-                                      action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                      keyEquivalent: "")
-    
-    let daltonizeV1MenuItem = NSMenuItem(title: "Daltonize Correction",
-                                         action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                         keyEquivalent: "1")
-    
-    let switchRedBlueMenuItem = NSMenuItem(title: "Switch Red Blue",
-                                           action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                           keyEquivalent: "2")
-    
-    let switchAndFlipRedBlueMenuItem = NSMenuItem(title: "Switch And Flip Red Blue",
-                                                  action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                                  keyEquivalent: "3")
-    
-    let invertLightnessMenuItem = NSMenuItem(title: "Invert Lightness",
-                                                  action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                                  keyEquivalent: "4")
-    
-    let highlightColorUnderMouseMenuItem = NSMenuItem(title: "Highlight Similar Color Under Cursor",
-                                                      action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                                      keyEquivalent: "8")
-    
-    let highlightExactColorUnderMouseMenuItem = NSMenuItem(title: "Highlight Exact Color Under Cursor",
-                                                      action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                                      keyEquivalent: "9")
-    
-    let grabScreenAreaMenuItem = NSMenuItem(title: "Grab Screen Area and Send to Viewer",
-                                            action: #selector(AppDelegate.setProcessingMode(sender:)),
-                                            keyEquivalent: "D")
-    
-    var menuItemsToProcessingMode : [NSMenuItem: DLProcessingMode];
-    var processingModeToMenuItem : [UInt32: NSMenuItem];
-    
-    var menuItemsToBlindnessType : [NSMenuItem: DLBlindnessType];
-    var blindnessTypeToMenuItem : [UInt32: NSMenuItem];
-    
+               
     override init () {
         
         let cmdAltCtrlMask = NSEvent.ModifierFlags(rawValue:
@@ -97,83 +42,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let controlShift = NSEvent.ModifierFlags(rawValue:
             NSEvent.ModifierFlags.control.rawValue
                 | NSEvent.ModifierFlags.shift.rawValue)
-        
-        nothingMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        daltonizeV1MenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        switchRedBlueMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        switchAndFlipRedBlueMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        invertLightnessMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        highlightColorUnderMouseMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        highlightExactColorUnderMouseMenuItem.keyEquivalentModifierMask = cmdAltCtrlMask
-        grabScreenAreaMenuItem.keyEquivalentModifierMask = controlShift
-        
-        menuItemsToProcessingMode = [
-            nothingMenuItem: Nothing,
-            simulateMenuItem: SimulateDaltonism,
-            daltonizeV1MenuItem: DaltonizeV1,
-            switchRedBlueMenuItem: SwitchCbCr,
-            switchAndFlipRedBlueMenuItem: SwitchAndFlipCbCr,
-            invertLightnessMenuItem: InvertLightness,
-            highlightColorUnderMouseMenuItem: HighlightColorUnderMouse,
-            highlightExactColorUnderMouseMenuItem: HighlightExactColorUnderMouse,
-            grabScreenAreaMenuItem: GrabScreenArea,
-        ];
-        
-        processingModeToMenuItem = [:];
-        for (menuItem, processingMode) in menuItemsToProcessingMode {
-            processingModeToMenuItem[processingMode.rawValue] = menuItem;
-        }
-        
-        menuItemsToBlindnessType = [
-            protanopeMenuItem: Protanope,
-            deuteranopeMenuItem: Deuteranope,
-            tritanopeMenuItem: Tritanope
-        ];
-        
-        blindnessTypeToMenuItem = [:];
-        for (menuItem, blindnessType) in menuItemsToBlindnessType {
-            blindnessTypeToMenuItem[blindnessType.rawValue] = menuItem;
-        }
-        
+                
         self.daltonGUI = DaltonLensGUIMacOS.init()
         
         super.init()
-        
-    }
-    
-    @objc func setBlindnessType (sender : NSMenuItem) {
-        
-        let menuItemsToBlindnessType = [
-            protanopeMenuItem: Protanope,
-            deuteranopeMenuItem: Deuteranope,
-            tritanopeMenuItem: Tritanope]
-        
-        if let dview = daltonView {
-            
-            if let blindnessType = menuItemsToBlindnessType[sender] {
-                dview.blindnessType = blindnessType
-                
-                let defaults = UserDefaults.standard;
-                defaults.set(blindnessType.rawValue, forKey:"BlindnessType")
-                defaults.synchronize();
-            }
-            else
-            {
-                assert (false, "Invalid menu item")
-            }
-            
-            // Disable all items
-            for item in menuItemsToBlindnessType.keys {
-                item.state = NSControl.StateValue.off
-            }
-            
-            // Re-enable the current one. 
-            sender.state = NSControl.StateValue.on
-        }
-        else
-        {
-            assert (false, "Could not access VB");
-        }
         
     }
     
@@ -201,48 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             alert.runModal();
         }
     }
-    
-    func setBlindnessType (blindnessType : DLBlindnessType) {
         
-        if let menuItem = blindnessTypeToMenuItem[blindnessType.rawValue] {
-            self.setBlindnessType (sender: menuItem);
-        }
-    }
-    
-    @objc func setProcessingMode (sender : NSMenuItem) {
-        
-        if let dview = daltonView {
-            
-            if let processingType = menuItemsToProcessingMode[sender] {
-                dview.processingMode = processingType
-                dview.needsDisplay = true
-            }
-            else
-            {
-                assert (false, "Invalid menu item")
-            }
-            
-            // Disable all items
-            for item in menuItemsToProcessingMode.keys {
-                item.state = NSControl.StateValue.off
-            }
-            
-            // Re-enable the current one.
-            sender.state = NSControl.StateValue.on
-        }
-        else
-        {
-            assert (false, "Could not access VB");
-        }
-    }
-    
-    func setProcessingMode (mode : DLProcessingMode) {
-        
-        if let menuItem = processingModeToMenuItem[mode.rawValue] {
-            self.setProcessingMode (sender: menuItem);
-        }
-    }
-    
     func createStatusBarItem () {
         
         // Do any additional setup after loading the view.
@@ -255,47 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem!.highlightMode = true
         
         let menu = NSMenu()
-
-        func addBlindnessMenu () {
-            let blindnessMenu = NSMenu()
-            blindnessMenu.addItem(protanopeMenuItem)
-            blindnessMenu.addItem(deuteranopeMenuItem)
-            blindnessMenu.addItem(tritanopeMenuItem)
-            protanopeMenuItem.state = NSControl.StateValue.on // default is Protanope
-            
-            let blindnessMenuItem = NSMenuItem(title: "Blindness", action: nil, keyEquivalent: "")
-            blindnessMenuItem.submenu = blindnessMenu
-            menu.addItem(blindnessMenuItem)
-        }
-        
-        func addProcessingMenu () {
-            let processingMenu = NSMenu()
-            processingMenu.addItem(nothingMenuItem)
-            processingMenu.addItem(simulateMenuItem)
-            processingMenu.addItem(daltonizeV1MenuItem)
-            processingMenu.addItem(switchRedBlueMenuItem)
-            processingMenu.addItem(switchAndFlipRedBlueMenuItem)
-            processingMenu.addItem(invertLightnessMenuItem)
-            
-            #if DEBUG
-            processingMenu.addItem(highlightColorUnderMouseMenuItem)
-            processingMenu.addItem(highlightExactColorUnderMouseMenuItem)
-            #endif
-            
-            processingMenu.addItem(grabScreenAreaMenuItem)
-            
-            nothingMenuItem.state = NSControl.StateValue.on // default is Nothing
-            
-            let processingMenuItem = NSMenuItem(title: "Processing", action: nil, keyEquivalent: "")
-            processingMenuItem.submenu = processingMenu
-            menu.addItem(processingMenuItem)
-        }
-        
-        //        addBlindnessMenu()
-        //        addProcessingMenu()
-        //        
-        //        menu.addItem(NSMenuItem.separator())
-        
+       
         let grabScreenItem = NSMenuItem(title: "Grab Screen Region", action: #selector(AppDelegate.grabScreenArea), keyEquivalent: " ")
         let cmdAltCtrlMask = NSEvent.ModifierFlags(rawValue:
             NSEvent.ModifierFlags.command.rawValue
@@ -346,127 +137,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let mask = NSEvent.EventTypeMask.flagsChanged;
         self.monitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { event in let _ = self.handleFlagsChangedEvent(event:event); }
         NSEvent.addLocalMonitorForEvents(matching: mask, handler: self.handleFlagsChangedEvent)
-        
-        let controlShift = NSEvent.ModifierFlags.control.rawValue |
-            NSEvent.ModifierFlags.shift.rawValue
-        
-        let shortcutNoProcessing = MASShortcut(keyCode:UInt(kVK_ANSI_0),
-                                               modifierFlags:cmdControlAlt);
-        
-        let shortcutDaltonizeV1 = MASShortcut(keyCode:UInt(kVK_ANSI_1),
-                                               modifierFlags:cmdControlAlt);
-        
-        let shortcutSwitchRedBlue = MASShortcut(keyCode:UInt(kVK_ANSI_2),
-                                                modifierFlags:cmdControlAlt);
-        
-        let shortcutSwitchAndFlipRedBlue = MASShortcut(keyCode:UInt(kVK_ANSI_3),
-                                                modifierFlags:cmdControlAlt);
-        
-        let shortcutInvertLightness = MASShortcut(keyCode:UInt(kVK_ANSI_4),
-                                                  modifierFlags:cmdControlAlt);
-        
-        let shortcutHighlightColorUnderMouse = MASShortcut(keyCode:UInt(kVK_ANSI_8),
-                                                           modifierFlags:cmdControlAlt);
-        
-        let shortcutHighlightExactColorUnderMouse = MASShortcut(keyCode:UInt(kVK_ANSI_9),
-                                                       modifierFlags:cmdControlAlt);
-        
-        let shortcutUp = MASShortcut(keyCode:UInt(kVK_UpArrow),
-                                     modifierFlags:cmdControlAlt);
-        
-        let shortcutDown = MASShortcut(keyCode:UInt(kVK_DownArrow),
-                                       modifierFlags:cmdControlAlt);
-        
-        let shortcutGrabScreenArea = MASShortcut(keyCode:UInt(kVK_Space),
-                                       modifierFlags:cmdControlAlt);
-        
-        func incrProcessingMode (currentMode: DLProcessingMode) -> DLProcessingMode {
-            let nextMode = (currentMode.rawValue + 1) % (NumProcessingModes.rawValue)
-            return DLProcessingMode(nextMode)
-        }
-        
-        func decrProcessingMode (currentMode: DLProcessingMode) -> DLProcessingMode {
-            if currentMode.rawValue == 0 {
-                return DLProcessingMode(NumProcessingModes.rawValue - 1)
-            }
-            return DLProcessingMode(currentMode.rawValue - 1)
-        }
-        
-        func updateProcessingMode (nextMode: (DLProcessingMode)->DLProcessingMode) {
-            
-            if let dview = daltonView {
-                self.setProcessingMode(mode: nextMode(dview.processingMode))
-            }
-            
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutNoProcessing) {
-            updateProcessingMode() {prevMode in
-                return Nothing
-            };
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutDaltonizeV1) {
-            updateProcessingMode() {prevMode in
-                return DaltonizeV1
-            };
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutSwitchRedBlue) {
-            updateProcessingMode() {prevMode in
-                return SwitchCbCr
-            };
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutSwitchAndFlipRedBlue) {
-            updateProcessingMode() {prevMode in
-                return SwitchAndFlipCbCr
-            };
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutInvertLightness) {
-            updateProcessingMode() {prevMode in
-                return InvertLightness
-            };
-        }
-        
-        #if DEBUG
-        MASShortcutMonitor.shared().register(shortcutHighlightColorUnderMouse) {
-            updateProcessingMode() {prevMode in
-                return HighlightColorUnderMouse
-            };
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutHighlightExactColorUnderMouse) {
-            updateProcessingMode() {prevMode in
-                return HighlightExactColorUnderMouse
-            };
-        }
-        #endif
-        
-        // Disable the up/down shortcuts.
-        #if false
-        MASShortcutMonitor.shared().register(shortcutUp) {
-            NSLog("Got up!");
-            updateProcessingMode(nextMode: decrProcessingMode)
-        }
-        
-        MASShortcutMonitor.shared().register(shortcutDown) {
-            NSLog("Got down!");
-            updateProcessingMode(nextMode: incrProcessingMode)
-        }
-        #endif
-        
-//        MASShortcutMonitor.shared().register(shortcutGrabScreenArea) {
-//            if (self.daltonViewer != nil)
-//            {
-//                return;
-//            }
-//
-//            updateProcessingMode() {prevMode in
-//                return GrabScreenArea
-//            };
-//        }
     }
     
     func makeClosableWindow () {
@@ -508,22 +178,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    func createWindowAndDaltonView () {
-
-        makeAssistiveWindow ()
-        // ssmakeClosableWindow ()
-        
-        // Disabling sharing to avoid capturing this window.
-        window!.sharingType = NSWindow.SharingType.none
-        
-        daltonView = DaltonView.init(frame: window!.frame)
-        window!.contentView = daltonView
-        
-        daltonView!.daltonAppDelegate = self;
-        
-        // window!.delegate = daltonView;
-    }
-    
     func launchDaltonLensGUI () {
         assert (NSApp.delegate === self)
         self.daltonGUI.initialize ()
@@ -540,19 +194,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         createGlobalShortcuts ()
         
-        createWindowAndDaltonView ()
-        
-        // Start with nothing.
-        daltonView?.processingMode = Nothing
-        setProcessingMode(mode: Nothing)
-        
         let defaults = UserDefaults.standard;
-        
-        if (defaults.value(forKey: "BlindnessType") != nil) {
-            let intValue = defaults.integer(forKey:"BlindnessType")
-            let blindnessType = DLBlindnessType(rawValue:UInt32(intValue))
-            setBlindnessType(blindnessType:blindnessType)
-        }
         
         if (defaults.value(forKey: "LaunchAtStartup") != nil) {
             let enabled = defaults.bool(forKey:"LaunchAtStartup")

@@ -1,9 +1,7 @@
 //
-//  ImGuiUtils.h
-//  DaltonLens
-//
-//  Created by Nicolas Burrus on 11/10/2020.
-//  Copyright © 2020 Nicolas Burrus. All rights reserved.
+// Copyright (c) 2017, Nicolas Burrus
+// This software may be modified and distributed under the terms
+// of the BSD license.  See the LICENSE file for details.
 //
 
 #pragma once

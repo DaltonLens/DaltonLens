@@ -1,3 +1,11 @@
+//
+// Copyright (c) 2017, Nicolas Burrus
+// This software may be modified and distributed under the terms
+// of the BSD license.  See the LICENSE file for details.
+//
+
+#define GL_SILENCE_DEPRECATION 1
+
 #include "ImageViewerWindow.h"
 #include "GrabScreenAreaWindow.h"
 
@@ -197,16 +205,10 @@ struct HighlightRegion
                 vec3 hsv = HSVFromSRGB(srgba.rgb);                
                 vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
                 
-                // vec3 delta = abs(srgba.rgb - u_refColor.rgb);
-                // float maxDelta = max(delta.r, max(delta.g, delta.b));
                 bool isSame = checkHSVDelta(ref_hsv, hsv);
                                 
-                // yCbCr.yz = mix (vec2(0,0), yCbCr.yz, isSame);
-                
                 float t = u_frameCount;
                 float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
-                // timeWeight = mix (timeWeight*0.5, -timeWeight*0.8, float(hsv.z > 0.86));
-                // float timeWeightedIntensity = hsv.z + timeWeight;
                 float timeWeightedIntensity = timeWeight;
                 hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
         
@@ -296,7 +298,7 @@ struct HighlightRegion
         updateDeltas();
     }
     
-    void render ()
+    void render (bool collapsed)
     {
         ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
                                 // ImGuiWindowFlags_NoResize
@@ -308,14 +310,9 @@ struct HighlightRegion
                                 // | ImGuiWindowFlags_NoBringToFrontOnFocus
                                 | ImGuiWindowFlags_NoNavFocus
                                 | ImGuiWindowFlags_NoNavInputs
-                                // | ImGuiWindowFlags_NoCollapse
-                                // | ImGuiWindowFlags_NoBackground
-                                // | ImGuiWindowFlags_NoSavedSettings
-                                // | ImGuiWindowFlags_HorizontalScrollbar
-                                | ImGuiWindowFlags_NoDocking
                                 | ImGuiWindowFlags_NoNav);
-        
-        ImGui::SetNextWindowFocus(); // make sure it's always on top, otherwise it'll go behind the image.
+            
+        ImGui::SetNextWindowCollapsed(collapsed);
         
         if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
         {
@@ -619,7 +616,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     glfwWindowHint(GLFW_DECORATED, true);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, false);
-    glfwWindowHint(GLFW_RESIZABLE, false);
+    glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
     impl->window = glfwCreateWindow(640, 480, "Dalton Lens Image Viewer", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
@@ -638,13 +635,8 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     ImGui::SetCurrentContext(impl->imGuiContext);
     
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    // io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    // Enable Multi-Viewport / Platform Windows. Will be used by the highlight similar color companion window.
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -657,7 +649,6 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
         // style.WindowRounding = 0.0f;
         style.Colors[ImGuiCol_WindowBg].w = 1.0f;
     }
-
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
     ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
     
@@ -681,6 +672,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     return true;
 }
 
+#if 0
 bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWindow)
 {
     dl::ScopeTimer initTimer ("Init");
@@ -818,6 +810,7 @@ bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWin
     
     return true;
 }
+#endif
 
 void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
 {
@@ -877,6 +870,7 @@ void ImageViewerWindow::runOnce ()
     auto& io = ImGui::GetIO();
     
     auto modeForThisFrame = impl->currentMode;
+    
     if (io.KeyShift)
     {
         modeForThisFrame = DaltonViewerMode::Original;
@@ -966,9 +960,6 @@ void ImageViewerWindow::runOnce ()
                             // | ImGuiWindowFlags_NoDocking
                             | ImGuiWindowFlags_NoNav);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
-    // ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1);
-    // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);
     bool isOpen = true;
     
     std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);        
@@ -1076,8 +1067,6 @@ void ImageViewerWindow::runOnce ()
                                                ImVec2(15,15));
         }
         
-//        dl_dbg ("Got click: %d", ImGui::IsItemClicked(ImGuiMouseButton_Left));
-//        dl_dbg ("io.KeyCtrl: %d", io.KeyCtrl);
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && io.KeyCtrl)
         {
             if ((impl->im.width() / float(impl->zoom.zoomFactor)) > 16.f
@@ -1119,11 +1108,8 @@ void ImageViewerWindow::runOnce ()
         
     ImGui::End();
     ImGui::PopStyleVar();
-//    ImGui::PopStyleVar();
-//    ImGui::PopStyleVar();
-//    ImGui::PopStyleVar();
     
-    if (modeForThisFrame == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
+    if (impl->currentMode == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
     {
         const int expectedHighlightWindowWidthWithPadding = 364;
         if (platformWindowX > expectedHighlightWindowWidthWithPadding)
@@ -1141,10 +1127,13 @@ void ImageViewerWindow::runOnce ()
             // All right, just leave the window inside the image one, which will be the default.
             // So do nothing.
         }
-        impl->highlightRegion.render();
+        
+        // Note: better to collapse it than disable it because the handling of the shift key
+        // was buggy, the key release event would not get caught if the press happened on the
+        // highlight window.
+        const bool collapsed = (modeForThisFrame != DaltonViewerMode::HighlightRegions);
+        impl->highlightRegion.render(collapsed);
     }
-    
-    // ImGui::ShowDemoWindow();
     
     // Rendering
     ImGui::Render();
@@ -1159,8 +1148,7 @@ void ImageViewerWindow::runOnce ()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     
     // Update and Render additional Platform Windows
-    // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-    //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
+    // This is used by the highlight similar color companion window.
     {
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {

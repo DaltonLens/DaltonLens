@@ -1,9 +1,7 @@
 //
-//  DaltonLensGUI.cpp
-//  DaltonLens
-//
-//  Created by Nicolas Burrus on 11/10/2020.
-//  Copyright © 2020 Nicolas Burrus. All rights reserved.
+// Copyright (c) 2017, Nicolas Burrus
+// This software may be modified and distributed under the terms
+// of the BSD license.  See the LICENSE file for details.
 //
 
 #include "DaltonLensGUI.h"
@@ -28,6 +26,8 @@
 namespace dl
 {
 
+// Not currently used, but allows to catch events like Ctrl+Alt+Cmd pressed twice
+// without requiring the app to be active.
 struct OverlayTriggerEventDetector
 {
     enum State {
@@ -254,6 +254,8 @@ struct DaltonLensGUI::Impl
         
         if (appFocusRequested != appFocusWasEnabled)
         {
+            // App focus will determine whether the app shows up in CMD+Tab, etc.
+            // We want it show up as a regular app when it actually has an active window.
             dl::setAppFocusEnabled (appFocusRequested);
             appFocusWasEnabled = appFocusRequested;
         }

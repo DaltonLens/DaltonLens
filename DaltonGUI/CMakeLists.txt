@@ -8,10 +8,7 @@ set (daltonGUI_SOURCES
     ${IMGUI_DIR}/examples/imgui_impl_opengl3.cpp
     ${IMGUI_DIR}/examples/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/examples/libs/gl3w/GL/gl3w.c
-    ${IMGUI_DIR}/examples/libs/gl3w/GL/gl3w.h
-    
-    DaltonGUI.h
-    DaltonGUI.cpp
+    ${IMGUI_DIR}/examples/libs/gl3w/GL/gl3w.h    
 )
 
 add_library(daltonGUI ${daltonGUI_SOURCES})
