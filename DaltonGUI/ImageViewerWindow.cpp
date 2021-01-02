@@ -998,13 +998,6 @@ void ImageViewerWindow::runOnce ()
         }
         ImGui::PopStyleVar();
                         
-        const auto contentSize = ImGui::GetContentRegionAvail();
-//        dl_dbg ("contentSize: %f x %f", contentSize.x, contentSize.y);
-//        dl_dbg ("imSize: %d x %d", impl->im.width(), impl->im.height());
-//        dl_dbg ("windowSize.current: %f x %f", impl->imageArea.current.size.x, impl->imageArea.current.size.y);
-//        dl_dbg ("framebufferScale: %f x %f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-//        dl_dbg ("fbDisplaySize: %d x %d", display_w, display_h);
-                
         ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
         
         ImVec2 uv0 (0,0);
@@ -1109,8 +1102,6 @@ void ImageViewerWindow::runOnce ()
                 impl->zoom.zoomFactor /= 2;
         }
                 
-        const bool noModifiers = !io.KeyCtrl && !io.KeyAlt && !io.KeySuper && !io.KeyShift;
-        
         if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
         {
             // Accept Alt in case the user is still zooming in.

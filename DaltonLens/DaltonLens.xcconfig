@@ -2,3 +2,4 @@ HEADER_SEARCH_PATHS = $(PROJECT_DIR) $(PROJECT_DIR)/deps $(PROJECT_DIR)/deps/oth
 
 // You should build them first with CMake.
 LIBRARY_SEARCH_PATHS = $(PROJECT_DIR)/build/glfw/lib $(PROJECT_DIR)/build/clip/lib
+

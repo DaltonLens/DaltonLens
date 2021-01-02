@@ -237,7 +237,7 @@ dl::Rect getFrontWindowGeometry()
     
     CFArrayRef windowList_cf = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
     NSArray* windowList = CFBridgingRelease(windowList_cf);
-    const unsigned windowCount = windowList.count;
+    const unsigned windowCount = (unsigned)windowList.count;
     
     dl::Point mousePos = getMouseCursor();
     mousePos.y = NSScreen.mainScreen.frame.size.height - mousePos.y;

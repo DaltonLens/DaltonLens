@@ -1,3 +1,5 @@
+#define GL_SILENCE_DEPRECATION 1
+
 #include "HelpWindow.h"
 
 #include "Graphics.h"
@@ -85,11 +87,12 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
 
+    // Tweaked manually by letting ImGui auto-resize the window.
     const int windowWidth = 458;
     const int windowHeight = 348;
     
     // glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(457, 348, "DaltonLens Help Fake Window", NULL, parentWindow);
+    impl->window = glfwCreateWindow(457, 348, "DaltonLens Help", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
     
@@ -98,7 +101,10 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     glfwSetWindowPos(impl->window, (impl->monitorSize.x-windowWidth)/2, (impl->monitorSize.y-windowHeight)/2);
     
     glfwMakeContextCurrent(impl->window);
+    
+    // Start hidden. setEnabled will show it as needed.
     glfwHideWindow(impl->window);
+    
     glfwSwapInterval(1); // Enable vsync
     
     // Setup Dear ImGui context
@@ -106,27 +112,6 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     impl->imGuiContext = ImGui::CreateContext();
     ImGui::SetCurrentContext(impl->imGuiContext);
     
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    // io.ConfigViewportsNoAutoMerge = true;
-    // io.ConfigViewportsNoTaskBarIcon = true;
-    // io.ConfigWindowsMoveFromTitleBarOnly = false;
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-//    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-//    {
-//        style.WindowRounding = 0.0f;
-//        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-//    }
-
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
     ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
     
@@ -179,19 +164,11 @@ void HelpWindow::runOnce ()
 
     glfwMakeContextCurrent(impl->window);
     
-    auto& io = ImGui::GetIO();
-    
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     glfwPollEvents();
     
     int display_w, display_h;
     glfwGetFramebufferSize(impl->window, &display_w, &display_h);
     
-    // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -213,11 +190,12 @@ void HelpWindow::runOnce ()
                               | ImGuiWindowFlags_NoDocking
                               | ImGuiWindowFlags_NoNav);
     
+    // Always show the ImGui window filling the GLFW window.
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(display_w, display_h), ImGuiCond_Always);
     if (ImGui::Begin("DaltonLens Help", nullptr, flags))
     {
-        dl_dbg("Window size = %f x %f", ImGui::GetWindowSize().x, ImGui::GetWindowSize().y);
+        // dl_dbg("Window size = %f x %f", ImGui::GetWindowSize().x, ImGui::GetWindowSize().y);
         
         ImGui::Text("GLOBAL COLOR POINTER:");
         ImGui::BulletText("Ctrl+Alt+Cmd+Space to enable the color pointer.");
@@ -254,23 +232,6 @@ void HelpWindow::runOnce ()
     
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(impl->window);
-    
-    // Just got disabled, render once more.
-    if (!impl->enabled)
-    {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        
-        // Reset the keyboard state to make sure we won't re-enter the next time
-        // with 'q' or 'escape' already pressed from before.
-        std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
-        
-        ImGui::NewFrame();
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(impl->window);
-    }
-    
 }
 
 } // dl

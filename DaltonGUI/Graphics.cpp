@@ -82,7 +82,7 @@ void GLTexture::upload (const dl::ImageSRGBA& im)
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
     
     glBindTexture(GL_TEXTURE_2D, _textureId);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, im.bytesPerRow()/im.bytesPerPixel());
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)(im.bytesPerRow()/im.bytesPerPixel()));
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.width(), im.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     

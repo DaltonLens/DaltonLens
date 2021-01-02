@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2D0C83862517FA7900EB76AD /* libDaltonGUI.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83852517FA7300EB76AD /* libDaltonGUI.a */; };
 		2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83AC2517FE4300EB76AD /* libglfw3.a */; };
 		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
 		2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */; };
@@ -73,20 +72,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		2D0C82BD2517E8D900EB76AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2D0C82A52517E8D700EB76AD;
-			remoteInfo = DaltonViewer;
-		};
-		2D0C83842517FA7300EB76AD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2D0C83212517F45900EB76AD;
-			remoteInfo = DaltonGUI;
-		};
 		2D4C76E01E77405000DCBBB7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */;
@@ -150,7 +135,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DaltonViewer.xcodeproj; path = DaltonViewer/DaltonViewer.xcodeproj; sourceTree = "<group>"; };
 		2D0C83AC2517FE4300EB76AD /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = build/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
 		2D0C83B12517FE4D00EB76AD /* libclip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclip.a; path = build/clip/lib/libclip.a; sourceTree = "<group>"; };
 		2D19733A2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonLensGUI_macOS.h; sourceTree = "<group>"; };
@@ -285,7 +269,6 @@
 			files = (
 				2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */,
 				2D0C83AD2517FE4300EB76AD /* libglfw3.a in Frameworks */,
-				2D0C83862517FA7900EB76AD /* libDaltonGUI.a in Frameworks */,
 				2D7F49231F003BB500919399 /* libDalton.dylib in Frameworks */,
 				2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */,
 			);
@@ -294,15 +277,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		2D0C82BA2517E8D800EB76AD /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				2D0C82BE2517E8D900EB76AD /* DaltonViewer.app */,
-				2D0C83852517FA7300EB76AD /* libDaltonGUI.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
 			isa = PBXGroup;
 			children = (
@@ -459,7 +433,6 @@
 			isa = PBXGroup;
 			children = (
 				2D1973392532DBFD00D1FBD4 /* DaltonGUI */,
-				2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
 				2D28D13E1F7C523D00BD8040 /* README.md */,
 				2D28D13C1F7C4E5400BD8040 /* TODO */,
@@ -596,7 +569,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0800;
-				LastUpgradeCheck = 1200;
+				LastUpgradeCheck = 1230;
 				ORGANIZATIONNAME = "Nicolas Burrus";
 				TargetAttributes = {
 					2D5FD3EE1F003CDF008305C3 = {
@@ -644,10 +617,6 @@
 					ProductGroup = 2D4C76DD1E77404F00DCBBB7 /* Products */;
 					ProjectRef = 2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */;
 				},
-				{
-					ProductGroup = 2D0C82BA2517E8D800EB76AD /* Products */;
-					ProjectRef = 2D0C82B92517E8D800EB76AD /* DaltonViewer.xcodeproj */;
-				},
 			);
 			projectRoot = "";
 			targets = (
@@ -660,20 +629,6 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		2D0C82BE2517E8D900EB76AD /* DaltonViewer.app */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = DaltonViewer.app;
-			remoteRef = 2D0C82BD2517E8D900EB76AD /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		2D0C83852517FA7300EB76AD /* libDaltonGUI.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libDaltonGUI.a;
-			remoteRef = 2D0C83842517FA7300EB76AD /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		2D4C76E11E77405000DCBBB7 /* DaltonLensLaunchAtLoginHelper.app */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.application;
@@ -964,8 +919,8 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					"GL_SILENT_DEPRECATION=1",
 					"DEBUG=1",
-					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -1020,6 +975,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "GL_SILENT_DEPRECATION=1";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
