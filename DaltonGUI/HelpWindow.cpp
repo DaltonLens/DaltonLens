@@ -2,6 +2,7 @@
 
 #include "Graphics.h"
 #include "ImGuiUtils.h"
+#include "Utils.h"
 
 #include "CrossPlatformUtils.h"
 
@@ -28,7 +29,6 @@ struct HelpWindow::Impl
     
     GLFWwindow* window = nullptr;
     bool enabled = false;
-    bool needToFocusViewportWindowWhenAvailable = false;
 };
 
 HelpWindow::HelpWindow()
@@ -51,7 +51,16 @@ void HelpWindow::setEnabled (bool enabled)
         return;
     
     impl->enabled = enabled;
-    impl->needToFocusViewportWindowWhenAvailable = true;
+    if (impl->enabled)
+    {
+        glfwSetWindowShouldClose(impl->window, false);
+        glfwShowWindow(impl->window);
+    }
+    else
+    {
+        glfwSetWindowShouldClose(impl->window, false);
+        glfwHideWindow(impl->window);
+    }
 }
 
 void HelpWindow::shutdown()
@@ -76,14 +85,20 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
 
-    glfwWindowHint(GLFW_DECORATED, false);
-    impl->window = glfwCreateWindow(1, 1, "DaltonLens Help Fake Window", NULL, parentWindow);
+    const int windowWidth = 458;
+    const int windowHeight = 348;
+    
+    // glfwWindowHint(GLFW_DECORATED, false);
+    impl->window = glfwCreateWindow(457, 348, "DaltonLens Help Fake Window", NULL, parentWindow);
     if (impl->window == NULL)
         return false;
     
-    glfwSetWindowPos(impl->window, 0, 0);
+    setWindowFlagsToAlwaysShowOnActiveDesktop (impl->window);
+    
+    glfwSetWindowPos(impl->window, (impl->monitorSize.x-windowWidth)/2, (impl->monitorSize.y-windowHeight)/2);
     
     glfwMakeContextCurrent(impl->window);
+    glfwHideWindow(impl->window);
     glfwSwapInterval(1); // Enable vsync
     
     // Setup Dear ImGui context
@@ -92,13 +107,13 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     ImGui::SetCurrentContext(impl->imGuiContext);
     
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
-    io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
-    io.ConfigWindowsMoveFromTitleBarOnly = false;
+    // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    // io.ConfigViewportsNoAutoMerge = true;
+    // io.ConfigViewportsNoTaskBarIcon = true;
+    // io.ConfigWindowsMoveFromTitleBarOnly = false;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -106,11 +121,11 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
+//    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+//    {
+//        style.WindowRounding = 0.0f;
+//        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+//    }
 
     impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
     ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
@@ -119,7 +134,7 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
     
     // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, false);
+    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
     ImGui_ImplOpenGL3_Init(glslVersion());
     
     return true;
@@ -181,49 +196,34 @@ void HelpWindow::runOnce ()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     
-    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
+    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || glfwWindowShouldClose(impl->window))
     {
         setEnabled(false);
     }
 
-    const float titleBarHeight = ImGui::GetFrameHeight();
-    ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar
-                               ImGuiWindowFlags_NoResize
-                               | ImGuiWindowFlags_NoMove*/
-                              // | ImGuiWindowFlags_NoScrollbar
-                              ImGuiWindowFlags_NoScrollWithMouse
-                              // | ImGuiWindowFlags_NoCollapse
+    ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
+                              | ImGuiWindowFlags_NoResize
+                              | ImGuiWindowFlags_NoMove
+                              | ImGuiWindowFlags_NoScrollbar
+                              | ImGuiWindowFlags_NoScrollWithMouse
+                              | ImGuiWindowFlags_NoCollapse
                               | ImGuiWindowFlags_NoBackground
                               | ImGuiWindowFlags_NoSavedSettings
                               | ImGuiWindowFlags_HorizontalScrollbar
                               | ImGuiWindowFlags_NoDocking
                               | ImGuiWindowFlags_NoNav);
-    bool isOpen = true;
     
-    ImGui::SetNextWindowPos(ImVec2(impl->monitorSize.x/2 - 64, impl->monitorSize.y/2 - 64), ImGuiCond_Once);
-    if (ImGui::Begin("DaltonLens Help", &isOpen, flags))
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(display_w, display_h), ImGuiCond_Always);
+    if (ImGui::Begin("DaltonLens Help", nullptr, flags))
     {
-        if (!isOpen)
-        {
-            setEnabled(false);
-        }
+        dl_dbg("Window size = %f x %f", ImGui::GetWindowSize().x, ImGui::GetWindowSize().y);
         
-        // Horrible hack to make sure that our window has the focus once we hide the main window.
-        // Otherwise Ctrl+Click might not work right away.
-        if (impl->needToFocusViewportWindowWhenAvailable)
-        {
-            auto* vp = ImGui::GetWindowViewport();
-            if (vp->PlatformHandle != nullptr)
-            {
-                glfwFocusWindow((GLFWwindow*)vp->PlatformHandle);
-                impl->needToFocusViewportWindowWhenAvailable = false;
-            }
-        }
-                
         ImGui::Text("GLOBAL COLOR POINTER:");
         ImGui::BulletText("Ctrl+Alt+Cmd+Space to enable the color pointer.");
         ImGui::BulletText("Escape or 'q' to exit.");
         ImGui::BulletText("Click and drag to open a region in the Image Viewer.");
+        ImGui::BulletText("Space to select the window behind the cursor.");
         ImGui::Separator();
 
         ImGui::Text("IMAGE VIEWER WINDOW:");
@@ -248,21 +248,12 @@ void HelpWindow::runOnce ()
     // Rendering
     ImGui::Render();
 
-    //    glViewport(0, 0, display_w, display_h);
-    //    glClearColor(0, 0, 0, 1);
-    //    glClear(GL_COLOR_BUFFER_BIT);
-    //
-    //    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        GLFWwindow* backup_current_context = glfwGetCurrentContext();
-        ImGui::UpdatePlatformWindows();
-        ImGui::RenderPlatformWindowsDefault();
-        glfwMakeContextCurrent(backup_current_context);
-    }
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
     
-    // glfwSwapBuffers(impl->window);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glfwSwapBuffers(impl->window);
     
     // Just got disabled, render once more.
     if (!impl->enabled)
@@ -276,13 +267,8 @@ void HelpWindow::runOnce ()
         
         ImGui::NewFrame();
         ImGui::Render();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
-        }
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(impl->window);
     }
     
 }
