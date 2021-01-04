@@ -73,4 +73,6 @@ void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window);
 
 void openURLInBrowser(const char* url);
 
+void getVersionAndBuildNumber(std::string& version, std::string& build);
+
 } // dl

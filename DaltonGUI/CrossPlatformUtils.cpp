@@ -307,4 +307,14 @@ void openURLInBrowser(const char* url)
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]];
 }
 
+void getVersionAndBuildNumber(std::string& version, std::string& build)
+{
+    // https://stackoverflow.com/questions/10015304/refer-to-build-number-or-version-number-in-code
+    NSDictionary *infoDict = [[NSBundle mainBundle] infoDictionary];
+    NSString *appVersion = [infoDict objectForKey:@"CFBundleShortVersionString"]; // example: 1.0.0
+    NSString *buildNumber = [infoDict objectForKey:@"CFBundleVersion"]; // example: 42
+    version = [appVersion UTF8String];
+    build = [buildNumber UTF8String];
+}
+
 } // dl

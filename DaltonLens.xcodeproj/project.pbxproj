@@ -983,7 +983,7 @@
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1.1.0;
+				CURRENT_PROJECT_VERSION = 2.0.1;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = DaltonLens/Info.plist;
@@ -994,7 +994,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 2.0;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1013,7 +1013,7 @@
 				CODE_SIGN_ENTITLEMENTS = DaltonLens/DaltonLens.entitlements;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1.1.0;
+				CURRENT_PROJECT_VERSION = 2.0.1;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = DaltonLens/Info.plist;
@@ -1024,7 +1024,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 2.0;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;

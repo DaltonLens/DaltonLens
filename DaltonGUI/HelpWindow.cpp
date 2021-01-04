@@ -92,8 +92,9 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     impl->monitorSize = ImVec2(mode->width, mode->height);
 
     // Tweaked manually by letting ImGui auto-resize the window.
+    // 20 vertical pixels per new line.
     const int windowWidth = 458;
-    const int windowHeight = 348 + 20;
+    const int windowHeight = 348 + 20 + 20;
     
     // glfwWindowHint(GLFW_DECORATED, false);
     impl->window = glfwCreateWindow(windowWidth, windowHeight, "DaltonLens Help", NULL, parentWindow);
@@ -222,7 +223,15 @@ void HelpWindow::runOnce ()
         ImGui::Unindent();
         ImGui::Separator();
         
+        static std::string appVersion;
+        static std::string buildNumber;
+        if (appVersion.empty())
+        {
+            getVersionAndBuildNumber(appVersion, buildNumber);
+        }
+        
         ImGui::Text("ABOUT DALTONLENS:");
+        ImGui::BulletText("Dalton Lens %s (build %s)", appVersion.c_str(), buildNumber.c_str());
         ImGui::BulletText("Report issues: "); TextURL("https://github.com/DaltonLens/DaltonLens", "https://github.com/DaltonLens/DaltonLens", true, true); ImGui::Text(".");
         ImGui::BulletText("Developed by "); TextURL("Nicolas Burrus", "http://nicolas.burrus.name", true, true);  ImGui::Text(".");
     }
