@@ -13,6 +13,10 @@ namespace dl
 
     SRGBAToLMSConverter::SRGBAToLMSConverter ()
     {
+        // Comes from "Digital video colourmaps for checking the legibility of displays by dichromats"
+        // by Viénot, Brettel and Mollon (1999). Reused by Fidaner et al. in 2005 in their
+        // "Analysis of Color Blindness" technical report.
+
         _linearRgbToLmsMatrix = ColMajorMatrix3f(17.8824,   43.5161,  4.11935,
                                                  3.45565,   27.1554,  3.86714,
                                                  0.0299566, 0.184309, 1.46709);
