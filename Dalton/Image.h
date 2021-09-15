@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <string>
+#include <cstring>
 
 #include "MathUtils.h"
 
@@ -127,7 +128,7 @@ namespace dl
         {
             releaseData ();
             if (!rhs.hasData())
-                return;
+                return *this;
                 
             allocateOwnedBuffer (rhs.width, rhs.height);
             copyFrom (rhs);

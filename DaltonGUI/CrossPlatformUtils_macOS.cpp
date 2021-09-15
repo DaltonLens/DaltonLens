@@ -105,6 +105,11 @@ void KeyboardMonitor::setKeyboardCtrlAltCmdSpaceCallback (const std::function<vo
     }];
 }
 
+void KeyboardMonitor::runOnce ()
+{
+    // do nothing, callback based on macOS
+}
+
 } // dl
 
 namespace dl

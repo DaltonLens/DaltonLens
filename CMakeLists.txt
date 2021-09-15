@@ -4,7 +4,7 @@ project(DaltonLens)
 
 include(ExternalProject)
 
-set(PRECOMPILED_FOLDER "${CMAKE_SOURCE_DIR}/deps/prebuilt")
+set(PRECOMPILED_FOLDER "${CMAKE_SOURCE_DIR}/deps/prebuilt/${CMAKE_SYSTEM_NAME}")
 
 # Hack to accept multiple archs separated by semicolon.
 # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262/3
@@ -19,6 +19,9 @@ ExternalProject_Add(glfw-deps
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/glfw
+        -DGLFW_BUILD_DOCS=OFF
+        -DGLFW_BUILD_EXAMPLES=OFF
+        -DGLFW_BUILD_TESTS=OFF
 )
 
 add_library(glfw3 STATIC IMPORTED)
@@ -33,6 +36,8 @@ ExternalProject_Add(clip-deps
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/clip
+        -DCLIP_EXAMPLES=OFF
+        -DCLIP_TESTS=OFF
   INSTALL_COMMAND 
         cmake -E make_directory "${PRECOMPILED_FOLDER}/clip/lib/"
         COMMAND cmake -E copy "<BINARY_DIR>/libclip.a" "${PRECOMPILED_FOLDER}/clip/lib/"
@@ -56,11 +61,16 @@ include_directories(clip PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_compile_options(
-    $<$<CONFIG:Debug>:-Os>
-)
+set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" "RelWithDebInfo" "DebugFast")
+set(CMAKE_CXX_FLAGS_DEBUGFAST "${CMAKE_CXX_FLAGS_DEBUG} -Os" CACHE STRING "" FORCE)
 
-set (IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui")
+# add_compile_options(
+#     $<$<CONFIG:Debug>:-Os>
+# )
+
+set (DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
+
+set (IMGUI_DIR "${DEPS_DIR}/imgui")
 include_directories(
     ${IMGUI_DIR} 
     ${IMGUI_DIR}/examples 
@@ -69,7 +79,11 @@ include_directories(
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/deps/other)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/deps/stb)
 
 add_subdirectory(Dalton)
 add_subdirectory(DaltonGUI)
 
+if (NOT APPLE)
+  add_subdirectory(DaltonLens/other)
+endif()

@@ -12,7 +12,9 @@ It is designed to be lightweight and very reactive by relying mostly on GPU proc
 
 ## Getting started
 
-The app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651). You will see a menu tray icon showing that the program is running.
+The app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651) or you can build the source code on Linux.
+
+Then you will see a menu tray icon showing that the program is running.
 * You can select the `Grab Screen Region` menu item there, but the recommend way is to use the global shortcut `Ctrl+Alt+Cmd+Space` to activate it and get an overlay showing color information about the pixel under the mouse pointer.
 * Then `q` or `escape` to exit the pointer overlay, or click and drag over a region to select it. You can also hit `Space` to automatically select the window under the cursor.
 * Once in the image viewer window you can click on a pixel to highlight similar colors in the image.
@@ -35,9 +37,18 @@ Currently only macOS Mojave (10.14) and newer are supported (including Apple Sil
 
 ## Building the source code
 
-Clone the repository and open the project in Xcode 12. There are precompiled binaries for the dependencies, so it should just build.
+## Building on macOS
 
-To rebuild the dependencies (glfw and clip, even though only glfw is actually used), run the `update_dependencies_prebuilt_binaries.sh` script. You will need `cmake` and the Xcode command line tools installed.
+Open DaltonLens/macOS/DaltonLens.xcodeproj in Xcode. There are precompiled binaries for the dependencies, so it should just build.
+
+To rebuild the dependencies (glfw and clip, even though only glfw is actually used), run the `deps/update_dependencies_prebuilt_binaries.sh` script. You will need `cmake` and the Xcode command line tools installed.
+
+### Building on Linux
+
+Just run cmake after installing the required dependencies. Mostly X11, but unfortunately also GTK via libappindicator to get the system tray icon. Hope to get rid of that dependency one day!
+
+Here the apt-get command line tested with Kubuntu 20.04:
+> sudo apt-get install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libappindicator3-dev
 
 ## Donate
 

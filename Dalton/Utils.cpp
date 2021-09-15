@@ -6,9 +6,9 @@
 
 #include "Utils.h"
 
-#include <unistd.h>
-#include <mach/mach_time.h>
-#include <mach/mach.h>
+#include <chrono>
+#include <cstdarg>
+#include <thread>
 
 namespace dl
 {
@@ -42,12 +42,7 @@ namespace dl
 
     double currentDateInSeconds ()
     {
-        mach_timebase_info_data_t timebase;
-        mach_timebase_info(&timebase);
-        
-        uint64_t newTime = mach_absolute_time();
-        
-        return ((double)newTime*timebase.numer)/((double)timebase.denom *1e9);
+        return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
     
     void ScopeTimer :: start ()
@@ -66,6 +61,17 @@ namespace dl
         fprintf(stderr, "[TIME] elasped in %s: %.1f ms\n", _label.c_str(), deltaTime*1e3);
 
         _startTime = -1.0;
+    }
+
+    void RateLimit::sleepIfNecessary(double targetDeltaTime)
+    {
+        const double nowTs = dl::currentDateInSeconds();
+        const double timeToWait = targetDeltaTime - (nowTs - _lastCallTs);
+        if (!std::isnan(timeToWait) && timeToWait > 0)
+        {
+            std::this_thread::sleep_for(std::chrono::duration<double>(timeToWait));
+        }
+        _lastCallTs = nowTs;
     }
 
 } // dl

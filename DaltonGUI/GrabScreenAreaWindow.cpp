@@ -13,8 +13,6 @@
 #include <Dalton/ColorConversion.h>
 
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_COCOA 1
-#include <GLFW/glfw3native.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -132,7 +130,9 @@ void GrabScreenAreaWindow::shutdown()
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
-        glfwDestroyWindow(impl->window);
+
+        glfwDestroyWindow (impl->window);
+        impl->window = nullptr;
     }
 }
 
@@ -161,9 +161,7 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     
     glfwSetWindowPos(impl->window, impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y);
     
-    NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(impl->window);
-    dl_assert (nsWindow, "Not working?");
-    nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorIgnoresCycle;
+    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->window);
     
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();

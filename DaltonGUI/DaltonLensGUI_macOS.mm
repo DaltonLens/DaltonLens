@@ -6,11 +6,13 @@
 
 #include "DaltonLensGUI_macOS.h"
 #include "DaltonLensGUI.h"
+#include "CrossPlatformUtils.h"
 
 #include <vector>
 
 @interface DaltonLensGUIMacOS() {
     dl::DaltonLensGUI _dlGui;
+    dl::DisplayLinkTimer _dlTimer;
 }
 @end
 
@@ -24,7 +26,17 @@
 
 - (BOOL)initialize
 {
-    return _dlGui.initialize();
+    BOOL success = _dlGui.initialize();
+    if (!success)
+        return NO;
+
+    [self start];
+    return YES;
+}
+
+- (void)start
+{
+    _dlTimer.setCallback ([self]() { _dlGui.runOnce (); });
 }
 
 - (void)shutdown

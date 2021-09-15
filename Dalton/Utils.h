@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <string>
+#include <cmath>
 
 #define DL_MULTI_STATEMENT_MACRO(X) do { X } while(0)
 
@@ -53,5 +54,14 @@ namespace dl
         std::string _label;
         double _startTime = -1;
     };
-    
-}
+
+    struct RateLimit
+    {
+    public:
+        void sleepIfNecessary(double targetDeltaTime);
+
+    private:
+        double _lastCallTs = NAN;
+    };
+
+} // dl

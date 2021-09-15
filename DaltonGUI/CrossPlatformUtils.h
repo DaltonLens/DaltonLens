@@ -62,6 +62,8 @@ public:
     void setKeyboardCtrlAltCmdFlagsCallback (const std::function<void(bool)>& callback);
     
     void setKeyboardCtrlAltCmdSpaceCallback (const std::function<void(void)>& callback);
+
+    void runOnce ();
     
 private:
     struct Impl;

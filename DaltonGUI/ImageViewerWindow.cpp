@@ -24,7 +24,9 @@
 #include <Dalton/MathUtils.h>
 #include <Dalton/ColorConversion.h>
 
-#include <GLFW/glfw3.h>
+// Note: need to include that before GLFW3 for some reason.
+#include <GL/gl3w.h>
+#include "GLFWUtils.h"
 
 #include <argparse.hpp>
 
@@ -602,6 +604,9 @@ void ImageViewerWindow::shutdown()
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
+
+        glfwDestroyWindow(impl->window);
+        impl->window = nullptr;
     }
 }
 
@@ -1163,6 +1168,7 @@ void ImageViewerWindow::runOnce ()
     
     if (impl->justUpdatedImage)
     {
+        GlfwMaintainWindowPosAfterScope _ (impl->window);
         // Only show it now, after the swap buffer. Otherwise we'll have the old image for a split second.
         glfwShowWindow(impl->window);
     }

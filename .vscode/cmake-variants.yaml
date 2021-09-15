@@ -1,0 +1,19 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      long: Emit debug information and no optimizations
+      buildType: Debug
+    debugFast:
+      short: DebugFast
+      long: Emit debug information but also enable optimizations
+      buildType: DebugFast
+    relwithdebinfo:
+      short: RelWithDebInfo
+      long: Optimize generated code but keep debugging and asserts
+      buildType: RelWithDebInfo
+    release:
+      short: Release
+      long: Optimize generated code
+      buildType: Release

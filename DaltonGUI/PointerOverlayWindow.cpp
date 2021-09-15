@@ -14,9 +14,6 @@
 
 #include <GLFW/glfw3.h>
 
-#define GLFW_EXPOSE_NATIVE_COCOA 1
-#include <GLFW/glfw3native.h>
-
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -67,7 +64,9 @@ void PointerOverlayWindow::shutdown()
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
+
         glfwDestroyWindow(impl->window);
+        impl->window = nullptr;
     }
 }
 
@@ -92,10 +91,8 @@ bool PointerOverlayWindow::initialize (GLFWwindow* parentContext)
         return false;
     
     glfwHideWindow(impl->window);
-    
-    NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(impl->window);
-    dl_assert (nsWindow, "Not working?");
-    nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace | NSWindowCollectionBehaviorIgnoresCycle;
+
+    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->window);
     
 //    window.collectionBehavior = [NSWindow.CollectionBehavior.stationary,
 //                                 // NSWindowCollectionBehavior.canJoinAllSpaces,
@@ -170,14 +167,14 @@ void PointerOverlayWindow::runOnce ()
     {
         yOffset = - impl->windowHeight - 32;
     }
-    
-    glfwSetWindowPos(impl->window, globalMousePos.x + xOffset, globalMousePos.y + yOffset);
 
     if (impl->justGotEnabled)
     {
         glfwShowWindow(impl->window);
         impl->justGotEnabled = false;
     }
+
+    glfwSetWindowPos(impl->window, globalMousePos.x + xOffset, globalMousePos.y + yOffset);
     
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.

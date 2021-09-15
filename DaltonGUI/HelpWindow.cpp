@@ -8,7 +8,7 @@
 
 #include "Graphics.h"
 #include "ImGuiUtils.h"
-#include "Utils.h"
+#include <Dalton/Utils.h>
 
 #include "CrossPlatformUtils.h"
 
@@ -18,7 +18,7 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
 
-#include <GLFW/glfw3.h>
+#include "GLFWUtils.h"
 
 #include <cstdio>
 
@@ -59,6 +59,7 @@ void HelpWindow::setEnabled (bool enabled)
     impl->enabled = enabled;
     if (impl->enabled)
     {
+        GlfwMaintainWindowPosAfterScope _ (impl->window);
         glfwSetWindowShouldClose(impl->window, false);
         glfwShowWindow(impl->window);
     }
@@ -82,6 +83,9 @@ void HelpWindow::shutdown()
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
+
+        glfwDestroyWindow (impl->window);
+        impl->window = nullptr;
     }
 }
 

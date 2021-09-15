@@ -1,7 +1,7 @@
-prefix=/Volumes/Users/nb/Perso/DaltonLens/deps/prebuilt/glfw
+prefix=/Users/nb/Perso/DaltonLens/deps/prebuilt/Darwin/glfw
 exec_prefix=${prefix}
-includedir=/Volumes/Users/nb/Perso/DaltonLens/deps/prebuilt/glfw/include
-libdir=/Volumes/Users/nb/Perso/DaltonLens/deps/prebuilt/glfw/lib
+includedir=/Users/nb/Perso/DaltonLens/deps/prebuilt/Darwin/glfw/include
+libdir=/Users/nb/Perso/DaltonLens/deps/prebuilt/Darwin/glfw/lib
 
 Name: GLFW
 Description: A multi-platform library for OpenGL, window and input
