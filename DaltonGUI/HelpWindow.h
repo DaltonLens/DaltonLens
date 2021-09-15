@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <DaltonGUI/ImguiGLFWWindow.h>
+
 #include <memory>
 #include <functional>
 
@@ -17,21 +19,17 @@ namespace dl
 class HelpWindow
 {
 public:
-    HelpWindow();
-    ~HelpWindow();
-    
-public:
     bool initialize (GLFWwindow* parentWindow);
-    void shutdown ();
     void runOnce ();
 
-    void setEnabled (bool enabled);
-    bool isEnabled () const;
+public:
+    void shutdown () { _imguiGlfwWindow.shutdown (); }
+    void setEnabled (bool enabled) { _imguiGlfwWindow.setEnabled (enabled); }
+    bool isEnabled () const { return _imguiGlfwWindow.isEnabled(); }
     
 private:
-    struct Impl;
-    friend struct Impl;
-    std::unique_ptr<Impl> impl;
+    // Debatable, but decided to use composition for more flexibility and explicit code.
+    ImguiGLFWWindow _imguiGlfwWindow;
 };
 
 } // dl

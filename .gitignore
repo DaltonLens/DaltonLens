@@ -10,3 +10,5 @@ imgui.ini
 xcshareddata
 deps/prebuilt/glfw/share
 
+# Not using them to reduce build times for now.
+deps/prebuilt/Linux

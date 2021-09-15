@@ -100,6 +100,8 @@ namespace dl
             return *this;
         }
         
+        bool isValid() const { return !std::isnan(x) && !std::isnan(y); }
+
         double x = NAN;
         double y = NAN;
     };

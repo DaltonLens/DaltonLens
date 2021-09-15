@@ -48,7 +48,7 @@ To rebuild the dependencies (glfw and clip, even though only glfw is actually us
 Just run cmake after installing the required dependencies. Mostly X11, but unfortunately also GTK via libappindicator to get the system tray icon. Hope to get rid of that dependency one day!
 
 Here the apt-get command line tested with Kubuntu 20.04:
-> sudo apt-get install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libappindicator3-dev
+> sudo apt-get install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libappindicator3-dev libxcb1-dev
 
 ## Donate
 

@@ -30,15 +30,23 @@ set (daltonGUI_SOURCES
     GrabScreenAreaWindow.cpp
     GrabScreenAreaWindow.h
     GLFWUtils.h
+    GLFWUtils.cpp
     Graphics.cpp
     Graphics.h
+    HighlightSimilarColor.h
+    HighlightSimilarColor.cpp
+    ImguiGLFWWindow.h
+    ImguiGLFWWindow.cpp
     HelpWindow.cpp
     HelpWindow.h
+    ImageViewerControlsWindow.cpp
+    ImageViewerControlsWindow.h
+    ImageViewerObserver.h
     ImageViewerWindow.cpp
     ImageViewerWindow.h
-    ImGuiUtils.h
-    PointerOverlayWindow.cpp
-    PointerOverlayWindow.h
+    ImageViewer.cpp
+    ImageViewer.h
+    ImguiUtils.h
 )
 
 add_library(daltonGUI ${daltonGUI_SOURCES})
@@ -70,5 +78,6 @@ elseif (UNIX)
         GL
         dl # for gl3w
         pthread
+        xcb # for clip. FIXME: should use a find_library
     )
 endif()

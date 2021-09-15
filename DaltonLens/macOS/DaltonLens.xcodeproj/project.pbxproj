@@ -15,7 +15,6 @@
 		2D1973522532F2A500D1FBD4 /* Graphics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973502532F2A500D1FBD4 /* Graphics.cpp */; };
 		2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */; };
 		2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */; };
-		2D19735D2532FE3900D1FBD4 /* PointerOverlayWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */; };
 		2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */; };
 		2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */; };
 		2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D240D9B1DAAC0B400AA97BC /* MASHotKey.m */; };
@@ -57,6 +56,10 @@
 		2D941DD325A0DB23008B6647 /* gl3w.c in Sources */ = {isa = PBXBuildFile; fileRef = 2D941DD025A0DB23008B6647 /* gl3w.c */; };
 		2D9871342545D07E0085C260 /* HelpWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D9871322545D07E0085C260 /* HelpWindow.cpp */; };
 		2DA18B761E92E7D3001B1CAD /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DA18B751E92E7D3001B1CAD /* ServiceManagement.framework */; };
+		2DA1F5BA26F27F9300928A4E /* ImageViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DA1F5B726F27F9300928A4E /* ImageViewer.cpp */; };
+		2DA1F5BE26F2837D00928A4E /* ImageViewerControlsWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DA1F5BB26F2837C00928A4E /* ImageViewerControlsWindow.cpp */; };
+		2DA1F5C726F3C60700928A4E /* ImguiGLFWWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DA1F5C526F3C60700928A4E /* ImguiGLFWWindow.cpp */; };
+		2DA1F5C826F3C60700928A4E /* HighlightSimilarColor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DA1F5C626F3C60700928A4E /* HighlightSimilarColor.cpp */; };
 		2DB8371C1FE7191A005BD10D /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F490C1F00381C00919399 /* libDalton.dylib */; };
 		2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBB8D61D3BEAA60035D461 /* AppDelegate.swift */; };
 		2DCBB8DB1D3BEAA60035D461 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */; };
@@ -135,16 +138,14 @@
 		2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = DaltonLens.xcconfig; sourceTree = "<group>"; };
 		2D1973492532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = CrossPlatformUtils_macOS.cpp; sourceTree = "<group>"; };
 		2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CrossPlatformUtils.h; sourceTree = "<group>"; };
-		2D19734F2532F1AE00D1FBD4 /* ImGuiUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImGuiUtils.h; sourceTree = "<group>"; };
+		2D19734F2532F1AE00D1FBD4 /* ImguiUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImguiUtils.h; sourceTree = "<group>"; };
 		2D1973502532F2A500D1FBD4 /* Graphics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Graphics.cpp; sourceTree = "<group>"; };
 		2D1973512532F2A500D1FBD4 /* Graphics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Graphics.h; sourceTree = "<group>"; };
 		2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GrabScreenAreaWindow.h; sourceTree = "<group>"; };
 		2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerWindow.h; sourceTree = "<group>"; };
 		2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImageViewerWindow.cpp; sourceTree = "<group>"; };
 		2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GrabScreenAreaWindow.cpp; sourceTree = "<group>"; };
-		2D1973592532FE3800D1FBD4 /* PointerOverlayWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PointerOverlayWindow.h; sourceTree = "<group>"; };
-		2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = PointerOverlayWindow.cpp; sourceTree = "<group>"; };
-		2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DaltonLensGUI.cpp; sourceTree = "<group>"; };
+		2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = DaltonLensGUI.cpp; sourceTree = "<group>"; };
 		2D19735F2532FFF000D1FBD4 /* DaltonLensGUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DaltonLensGUI.h; sourceTree = "<group>"; };
 		2D240D981DAAC0B400AA97BC /* MASDictionaryTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MASDictionaryTransformer.h; sourceTree = "<group>"; };
 		2D240D991DAAC0B400AA97BC /* MASDictionaryTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MASDictionaryTransformer.m; sourceTree = "<group>"; };
@@ -203,6 +204,17 @@
 		2D9871322545D07E0085C260 /* HelpWindow.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HelpWindow.cpp; sourceTree = "<group>"; };
 		2D9871332545D07E0085C260 /* HelpWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HelpWindow.h; sourceTree = "<group>"; };
 		2DA18B751E92E7D3001B1CAD /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		2DA1F5B726F27F9300928A4E /* ImageViewer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImageViewer.cpp; sourceTree = "<group>"; };
+		2DA1F5B926F27F9300928A4E /* ImageViewer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewer.h; sourceTree = "<group>"; };
+		2DA1F5BB26F2837C00928A4E /* ImageViewerControlsWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImageViewerControlsWindow.cpp; sourceTree = "<group>"; };
+		2DA1F5BC26F2837C00928A4E /* ImageViewerControlsWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerControlsWindow.h; sourceTree = "<group>"; };
+		2DA1F5BD26F2837D00928A4E /* GLFWUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLFWUtils.h; sourceTree = "<group>"; };
+		2DA1F5C326F3C60700928A4E /* ImguiGLFWWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImguiGLFWWindow.h; sourceTree = "<group>"; };
+		2DA1F5C426F3C60700928A4E /* HighlightSimilarColor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HighlightSimilarColor.h; sourceTree = "<group>"; };
+		2DA1F5C526F3C60700928A4E /* ImguiGLFWWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImguiGLFWWindow.cpp; sourceTree = "<group>"; };
+		2DA1F5C626F3C60700928A4E /* HighlightSimilarColor.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = HighlightSimilarColor.cpp; sourceTree = "<group>"; };
+		2DA1F5C926F50F9F00928A4E /* ImageViewerObserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerObserver.h; sourceTree = "<group>"; };
+		2DA1F5CA26F50F9F00928A4E /* ImageViewerWindowState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerWindowState.h; sourceTree = "<group>"; };
 		2DB2FFD41D46B43C003610D9 /* DaltonLens-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DaltonLens-Bridging-Header.h"; sourceTree = "<group>"; };
 		2DB2FFD51D46B43C003610D9 /* Image_macOS.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Image_macOS.cpp; sourceTree = "<group>"; };
 		2DB2FFD61D46B43C003610D9 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Image.h; sourceTree = "<group>"; };
@@ -269,8 +281,6 @@
 		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
 			isa = PBXGroup;
 			children = (
-				2D941DCE25A0DB23008B6647 /* gl3w */,
-				2D941C3C25A0DA99008B6647 /* imgui */,
 				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
 				2D1973492532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp */,
 				2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */,
@@ -278,17 +288,28 @@
 				2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */,
 				2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */,
 				2D19735F2532FFF000D1FBD4 /* DaltonLensGUI.h */,
+				2D941DCE25A0DB23008B6647 /* gl3w */,
+				2DA1F5BD26F2837D00928A4E /* GLFWUtils.h */,
 				2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */,
 				2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */,
 				2D1973502532F2A500D1FBD4 /* Graphics.cpp */,
 				2D1973512532F2A500D1FBD4 /* Graphics.h */,
 				2D9871322545D07E0085C260 /* HelpWindow.cpp */,
 				2D9871332545D07E0085C260 /* HelpWindow.h */,
+				2DA1F5C626F3C60700928A4E /* HighlightSimilarColor.cpp */,
+				2DA1F5C426F3C60700928A4E /* HighlightSimilarColor.h */,
+				2DA1F5B726F27F9300928A4E /* ImageViewer.cpp */,
+				2DA1F5B926F27F9300928A4E /* ImageViewer.h */,
+				2DA1F5BB26F2837C00928A4E /* ImageViewerControlsWindow.cpp */,
+				2DA1F5BC26F2837C00928A4E /* ImageViewerControlsWindow.h */,
+				2DA1F5C926F50F9F00928A4E /* ImageViewerObserver.h */,
 				2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */,
 				2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */,
-				2D19734F2532F1AE00D1FBD4 /* ImGuiUtils.h */,
-				2D19735A2532FE3800D1FBD4 /* PointerOverlayWindow.cpp */,
-				2D1973592532FE3800D1FBD4 /* PointerOverlayWindow.h */,
+				2DA1F5CA26F50F9F00928A4E /* ImageViewerWindowState.h */,
+				2D941C3C25A0DA99008B6647 /* imgui */,
+				2DA1F5C526F3C60700928A4E /* ImguiGLFWWindow.cpp */,
+				2DA1F5C326F3C60700928A4E /* ImguiGLFWWindow.h */,
+				2D19734F2532F1AE00D1FBD4 /* ImguiUtils.h */,
 			);
 			name = DaltonGUI;
 			path = ../../DaltonGUI;
@@ -690,23 +711,26 @@
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
 				2D240DB11DAAC0B400AA97BC /* MASShortcutMonitor.m in Sources */,
 				2D19734B2532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp in Sources */,
-				2D19735D2532FE3900D1FBD4 /* PointerOverlayWindow.cpp in Sources */,
 				2DEC11031DC684970095C4A0 /* main.swift in Sources */,
 				2D941DD325A0DB23008B6647 /* gl3w.c in Sources */,
 				2D240DB21DAAC0B400AA97BC /* MASShortcutValidator.m in Sources */,
+				2DA1F5C826F3C60700928A4E /* HighlightSimilarColor.cpp in Sources */,
 				2D240DB31DAAC0B400AA97BC /* MASShortcutView+Bindings.m in Sources */,
 				2D240DAD1DAAC0B400AA97BC /* MASHotKey.m in Sources */,
 				2D240DAE1DAAC0B400AA97BC /* MASLocalization.m in Sources */,
 				2D240DB01DAAC0B400AA97BC /* MASShortcutBinder.m in Sources */,
 				2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */,
 				2D941DB525A0DA99008B6647 /* imgui_draw.cpp in Sources */,
+				2DA1F5BE26F2837D00928A4E /* ImageViewerControlsWindow.cpp in Sources */,
 				2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */,
 				2D941D3625A0DA99008B6647 /* imgui_widgets.cpp in Sources */,
 				2D9871342545D07E0085C260 /* HelpWindow.cpp in Sources */,
 				2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */,
 				2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */,
+				2DA1F5BA26F27F9300928A4E /* ImageViewer.cpp in Sources */,
 				2D941DB425A0DA99008B6647 /* imgui_demo.cpp in Sources */,
 				2D1973522532F2A500D1FBD4 /* Graphics.cpp in Sources */,
+				2DA1F5C726F3C60700928A4E /* ImguiGLFWWindow.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -996,7 +1020,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens-Bridging-Header.h";
@@ -1027,7 +1050,6 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MARKETING_VERSION = 2.0;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens-Bridging-Header.h";

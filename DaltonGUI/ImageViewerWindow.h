@@ -6,6 +6,10 @@
 
 #pragma once
 
+#include <DaltonGUI/ImageViewerObserver.h>
+
+#include <Dalton/MathUtils.h>
+
 #include <memory>
 #include <functional>
 
@@ -16,6 +20,8 @@ namespace dl
 
 struct GrabScreenData;
 
+class ImageViewerWindowState;
+
 // Manages a single ImGuiWindow
 class ImageViewerWindow
 {
@@ -23,25 +29,25 @@ public:
     ImageViewerWindow();
     ~ImageViewerWindow();
     
-public:
-#if 0
-    // Aborted attempt, keeping it around in case it proves useful one day.
-    bool initialize (int argc, char** argv, GLFWwindow* parentWindow);
-#endif
+public:   
+    bool initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer);
     
-    bool initialize (GLFWwindow* parentWindow);
-    
-    void showGrabbedData (const GrabScreenData& grabbedData);
+    void showGrabbedData (const GrabScreenData& grabbedData, dl::Rect& updatedWindowGeometry);
     
     void shutdown ();
     void runOnce ();
-    bool shouldExit () const;
     
     bool isEnabled () const;
-    void dismiss ();
-    
-    bool helpWindowRequested () const;
-    void notifyHelpWindowRequestHandled ();
+    void setEnabled (bool enabled);
+
+    dl::Rect geometry () const;
+
+    void processKeyEvent (int keycode);
+    void checkImguiGlobalImageKeyEvents ();
+
+public:
+    // State that one can modify directly between frames.
+    ImageViewerWindowState& mutableState ();
     
 private:
     struct Impl;

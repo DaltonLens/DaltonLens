@@ -119,6 +119,8 @@ private:
 
 int main ()
 {
+    std::locale::global (std::locale::classic());
+
     DaltonSystemTrayApp app;
     app.run ();
     return 0;

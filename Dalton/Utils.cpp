@@ -6,6 +6,7 @@
 
 #include "Utils.h"
 
+#include <sstream>
 #include <chrono>
 #include <cstdarg>
 #include <thread>
@@ -72,6 +73,13 @@ namespace dl
             std::this_thread::sleep_for(std::chrono::duration<double>(timeToWait));
         }
         _lastCallTs = nowTs;
+    }
+
+    std::string currentThreadId ()
+    {
+        std::ostringstream ss;
+        ss << std::this_thread::get_id();
+        return ss.str();
     }
 
 } // dl

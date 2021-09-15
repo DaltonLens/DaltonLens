@@ -16,7 +16,7 @@ ExternalProject_Add(glfw-deps
   PREFIX glfw
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw"
   CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/glfw
         -DGLFW_BUILD_DOCS=OFF
@@ -38,6 +38,7 @@ ExternalProject_Add(clip-deps
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/clip
         -DCLIP_EXAMPLES=OFF
         -DCLIP_TESTS=OFF
+        -DCLIP_X11_WITH_PNG=OFF
   INSTALL_COMMAND 
         cmake -E make_directory "${PRECOMPILED_FOLDER}/clip/lib/"
         COMMAND cmake -E copy "<BINARY_DIR>/libclip.a" "${PRECOMPILED_FOLDER}/clip/lib/"

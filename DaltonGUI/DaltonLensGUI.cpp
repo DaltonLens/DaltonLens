@@ -6,8 +6,7 @@
 
 #include "DaltonLensGUI.h"
 
-#include "ImageViewerWindow.h"
-#include "PointerOverlayWindow.h"
+#include "ImageViewer.h"
 #include "GrabScreenAreaWindow.h"
 #include "HelpWindow.h"
 #include "CrossPlatformUtils.h"
@@ -154,8 +153,7 @@ struct DaltonLensGUI::Impl
     
     GLFWwindow* mainContextWindow = nullptr;
     
-    ImageViewerWindow imageViewerWindow;
-    PointerOverlayWindow pointerOverlayWindow;
+    ImageViewer imageViewer;
     GrabScreenAreaWindow grabScreenWindow;
     HelpWindow helpWindow;
     
@@ -165,6 +163,8 @@ struct DaltonLensGUI::Impl
     
     bool appFocusWasEnabled = false;
     bool helpRequested = false;
+    
+    bool gotToggleGrabScreenEvent = false;
     
     // Not proud of this logic, should do a cleaner state machine.
     void onDisplayLinkRefresh ()
@@ -194,7 +194,7 @@ struct DaltonLensGUI::Impl
                     const auto& grabbedData = grabScreenWindow.grabbedData();
                     if (grabbedData.isValid)
                     {
-                        imageViewerWindow.showGrabbedData(grabbedData);
+                        imageViewer.showGrabbedData(grabbedData);
                         currentState = State::ImageViewer;
                         nextState = State::ImageViewer;
                     }
@@ -214,24 +214,26 @@ struct DaltonLensGUI::Impl
             
             case State::ImageViewer:
             {
-                if (imageViewerWindow.isEnabled())
+                if (imageViewer.isEnabled())
                 {
                     // Make sure to dismiss it before the runOnce, otherwise
                     // we'll end up in a weird intermediate state as runOnce
                     // handles the gracefull dismiss.
                     if (nextState != State::ImageViewer)
                     {
-                        imageViewerWindow.dismiss();
-                        imageViewerWindow.runOnce();
+                        // This state happens when the grab shortcut is pressed
+                        // while we still had a visible ImageWindow.
+                        imageViewer.setEnabled(false);
+                        imageViewer.runOnce();
                     }
                     else
                     {
                         appFocusRequested = true;
-                        imageViewerWindow.runOnce();
-                        if (imageViewerWindow.helpWindowRequested())
+                        imageViewer.runOnce();
+                        if (imageViewer.helpWindowRequested())
                         {
                             helpWindow.setEnabled(true);
-                            imageViewerWindow.notifyHelpWindowRequestHandled();
+                            imageViewer.notifyHelpWindowRequestHandled();
                         }
                     }
                 }
@@ -292,8 +294,7 @@ DaltonLensGUI::DaltonLensGUI()
 
 DaltonLensGUI::~DaltonLensGUI()
 {
-    impl->imageViewerWindow.shutdown();
-    impl->pointerOverlayWindow.shutdown();
+    impl->imageViewer.shutdown();
     impl->grabScreenWindow.shutdown();
     impl->helpWindow.shutdown();
     
@@ -340,6 +341,7 @@ bool DaltonLensGUI::initialize ()
     impl->mainContextWindow = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (impl->mainContextWindow == NULL)
         return false;
+    glfwWindowHint(GLFW_DECORATED, true); // restore the default.
     
     glfwMakeContextCurrent(impl->mainContextWindow);
     
@@ -359,18 +361,19 @@ bool DaltonLensGUI::initialize ()
     // Don't show that dummy window.
     glfwHideWindow (impl->mainContextWindow);
         
-    // impl->pointerOverlayWindow.initialize(impl->mainContextWindow);
+    impl->imageViewer.initialize(impl->mainContextWindow);
     impl->grabScreenWindow.initialize(impl->mainContextWindow);
-    impl->imageViewerWindow.initialize(impl->mainContextWindow);
     impl->helpWindow.initialize(impl->mainContextWindow);
     
-    //    impl->keyboardMonitor.setKeyboardCtrlAltCmdFlagsCallback ([this](bool enabled) {
-    //        impl->overlayTriggerDetector.onCtrlAltCmdFlagsChanged(enabled);
-    //        impl->pointerOverlayWindow.setEnabled(impl->overlayTriggerDetector.isEnabled());
-    //    });
-    
     impl->keyboardMonitor.setKeyboardCtrlAltCmdSpaceCallback([this]() {
-        toogleGrabScreenArea ();
+        // WARNING: it is very important to NOT actually call
+        // toggleGrabScreenArea here, because this callback might get
+        // called from the imageViewer.runOnce method in some cases,
+        // as glfw can process some events there. It seems to happen
+        // more often when the app does not have the focus.
+        // So we now just set a flag and make sure that we'll process
+        // it at the end of runOnce.
+        impl->gotToggleGrabScreenEvent = true;
     });
     return true;
 }
@@ -379,6 +382,12 @@ void DaltonLensGUI::runOnce ()
 {
     impl->keyboardMonitor.runOnce ();
     impl->onDisplayLinkRefresh();
+    
+    if (impl->gotToggleGrabScreenEvent)
+    {
+        impl->gotToggleGrabScreenEvent = false;
+        toogleGrabScreenArea ();
+    }
 }
 
 void DaltonLensGUI::toogleGrabScreenArea ()

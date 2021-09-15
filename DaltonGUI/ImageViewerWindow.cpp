@@ -7,11 +7,14 @@
 #define GL_SILENCE_DEPRECATION 1
 
 #include "ImageViewerWindow.h"
-#include "GrabScreenAreaWindow.h"
+#include "ImageViewerWindowState.h"
 
-#include "Graphics.h"
-#include "ImGuiUtils.h"
-#include "CrossPlatformUtils.h"
+#include <DaltonGUI/GrabScreenAreaWindow.h>
+#include <DaltonGUI/Graphics.h>
+#include <DaltonGUI/ImguiUtils.h>
+#include <DaltonGUI/CrossPlatformUtils.h>
+#include <DaltonGUI/ImguiGLFWWindow.h>
+#include <DaltonGUI/HighlightSimilarColor.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -26,7 +29,7 @@
 
 // Note: need to include that before GLFW3 for some reason.
 #include <GL/gl3w.h>
-#include "GLFWUtils.h"
+#include <DaltonGUI/GLFWUtils.h>
 
 #include <argparse.hpp>
 
@@ -131,22 +134,7 @@ const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
     }
 )";
 
-
-enum class DaltonViewerMode {
-    None = -2,
-    Original = -1,
-    
-    HighlightRegions = 0,
-    Protanope,
-    Deuteranope,
-    Tritanope,
-    FlipRedBlue,
-    FlipRedBlueInvertRed,
-    
-    NumModes,
-};
-
-static std::string daltonViewerModeName (DaltonViewerMode mode)
+std::string daltonViewerModeName (DaltonViewerMode mode)
 {
     switch (mode)
     {
@@ -162,322 +150,27 @@ static std::string daltonViewerModeName (DaltonViewerMode mode)
     }
 }
 
-// Helper to display a little (?) mark which shows a tooltip when hovered.
-// In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
-static void helpMarker(const char* desc)
-{
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(desc);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-
-struct HighlightRegion
-{
-    void initializeGL (const char* glslVersion)
-    {
-        const GLchar *fragmentShader_highlightSameColor = R"(
-            uniform sampler2D Texture;
-            uniform vec3 u_refColor;
-            uniform float u_deltaH_360;
-            uniform float u_deltaS_100;
-            uniform float u_deltaV_255;
-            uniform int u_frameCount;
-            in vec2 Frag_UV;
-            in vec4 Frag_Color;
-            out vec4 Out_Color;
-        
-            bool checkHSVDelta(vec3 hsv1, vec3 hsv2)
-            {
-                vec3 diff = abs(hsv1 - hsv2);
-                diff.x = min (diff.x, 1.0-diff.x); // h is modulo 360º
-                return (diff.x*360.0    < u_deltaH_360
-                        && diff.y*100.0 < u_deltaS_100
-                        && diff.z*255.0 < u_deltaV_255);
-            }
-        
-            void main()
-            {
-                vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-                vec3 hsv = HSVFromSRGB(srgba.rgb);                
-                vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
-                
-                bool isSame = checkHSVDelta(ref_hsv, hsv);
-                                
-                float t = u_frameCount;
-                float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
-                float timeWeightedIntensity = timeWeight;
-                hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
-        
-                vec4 transformedSRGB = sRGBAFromHSV(hsv, 1.0);
-                Out_Color = transformedSRGB;
-            }
-        )";
-        
-        _highlightSameColorShader.initialize("Highlight Same Color", glslVersion, nullptr, fragmentShader_highlightSameColor);
-        GLuint shaderHandle = _highlightSameColorShader.shaderHandle();
-                
-        _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
-        _attribLocationDeltaH = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaH_360");
-        _attribLocationDeltaS = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaS_100");
-        _attribLocationDeltaV = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaV_255");
-        _attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
-        
-        _highlightSameColorShader.setExtraUserCallback([this](GLShader& shader) {
-            glUniform3f(_attribLocationRefColor, _activeColorRGB01.x, _activeColorRGB01.y, _activeColorRGB01.z);
-            glUniform1f(_attribLocationDeltaH, _deltaH_360);
-            glUniform1f(_attribLocationDeltaS, _deltaS_100);
-            glUniform1f(_attribLocationDeltaV, _deltaV_255);
-            glUniform1i(_attribLocationFrameCount, ImGui::GetFrameCount() / 2);
-        });
-    }
-    
-    void setImage (dl::ImageSRGBA* im)
-    {
-        _im = im;
-    }
-    
-    void enableShader ()
-    {
-        if (_hasActiveColor)
-            _highlightSameColorShader.enable();
-    }
-    
-    void disableShader ()
-    {
-        if (_hasActiveColor)
-            _highlightSameColorShader.disable();
-    }
-    
-    bool hasActiveColor () const { return _hasActiveColor; }
-    
-    void clearSelection ()
-    {
-        _hasActiveColor = false;
-        _selectedPixel = dl::vec2i(-1,-1);
-        _activeColorRGB01 = ImVec4(0,0,0,1);
-    }
-    
-    void setSelectedPixel (float x, float y)
-    {
-        const auto newPixel = dl::vec2i((int)x, (int)y);
-        
-        if (_hasActiveColor)
-        {
-            // Toggle it.
-            clearSelection();
-            return;
-        }
-        
-        _selectedPixel = newPixel;
-        dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
-        _activeColorRGB01.x = srgba.r / 255.f;
-        _activeColorRGB01.y = srgba.g / 255.f;
-        _activeColorRGB01.z = srgba.b / 255.f;
-        
-        _activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
-        
-        _hasActiveColor = true;
-        updateDeltas();
-    }
- 
-    void addSliderDelta (float delta)
-    {
-        dl_dbg ("delta = %f", delta);
-        _deltaColorThreshold -= delta;
-        _deltaColorThreshold = dl::keepInRange(_deltaColorThreshold, 1.f, 20.f);
-        updateDeltas();
-    }
-    
-    void togglePlotMode ()
-    {
-        _plotMode = !_plotMode;
-        updateDeltas();
-    }
-    
-    void render (bool collapsed)
-    {
-        ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
-                                // ImGuiWindowFlags_NoResize
-                                // ImGuiWindowFlags_NoMove
-                                // | ImGuiWindowFlags_NoScrollbar
-                                ImGuiWindowFlags_NoScrollWithMouse
-                                | ImGuiWindowFlags_AlwaysAutoResize
-                                // | ImGuiWindowFlags_NoFocusOnAppearing
-                                // | ImGuiWindowFlags_NoBringToFrontOnFocus
-                                | ImGuiWindowFlags_NoNavFocus
-                                | ImGuiWindowFlags_NoNavInputs
-                                | ImGuiWindowFlags_NoNav);
-            
-        ImGui::SetNextWindowCollapsed(collapsed);
-        
-        if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
-        {
-            const auto sRgb = dl::PixelSRGBA((int)(255.f*_activeColorRGB01.x + 0.5f), (int)(255.f*_activeColorRGB01.y + 0.5f), (int)(255.f*_activeColorRGB01.z + 0.5f), 255);
-            
-            const auto filledRectSize = ImVec2(128,128);
-            ImVec2 topLeft = ImGui::GetCursorPos();
-            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + filledRectSize;
-            
-            auto* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
-            drawList->AddRect(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32_WHITE);
-            // Show a cross.
-            if (!_hasActiveColor)
-            {
-                ImVec2 imageTopLeft = topLeft + screenFromWindow;
-                ImVec2 imageBottomRight = bottomRight + screenFromWindow - ImVec2(1,1);
-                drawList->AddLine(imageTopLeft, imageBottomRight, IM_COL32_WHITE);
-                drawList->AddLine(ImVec2(imageTopLeft.x, imageBottomRight.y), ImVec2(imageBottomRight.x, imageTopLeft.y), IM_COL32_WHITE);
-            }
-                        
-            ImGui::SetCursorPosX(bottomRight.x + 8);
-            ImGui::SetCursorPosY(topLeft.y);
-                        
-            // Show the side info about the current color
-            {
-                ImGui::BeginChild("ColorInfo", ImVec2(196,filledRectSize.y));
-                
-                if (_hasActiveColor)
-                {
-                    auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
-                    
-                    ImGui::Text("%s / %s",
-                                closestColors[0].entry->className,
-                                closestColors[0].entry->colorName);
-                    
-                    ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
-                    
-                    PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
-                    ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
-                    
-                    auto hsv = _activeColorHSV_1_1_255;
-                    ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
-                    
-                    PixelLab lab = dl::convertToLab(sRgb);
-                    ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
-                    
-                    PixelXYZ xyz = convertToXYZ(sRgb);
-                    ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
-                }
-                else
-                {
-                    ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
-                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                    ImGui::BulletText("Right click on the image\nfor a contextual menu.");
-                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                    ImGui::BulletText("Left/Right arrows to\nchange mode.");
-                }
-                
-                ImGui::EndChild();
-            }
-            
-            ImGui::SetCursorPosY(bottomRight.y + 8);
-            
-            ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
-                        
-            int prevDeltaInt = int(_deltaColorThreshold + 0.5f);
-            int deltaInt = prevDeltaInt;
-            ImGui::SliderInt("Max Difference", &deltaInt, 1, 20);
-            if (deltaInt != prevDeltaInt)
-            {
-                _deltaColorThreshold = deltaInt;
-                updateDeltas();
-            }
-
-            if (ImGui::Checkbox("Plot Mode", &_plotMode))
-            {
-                updateDeltas();
-            }
-            ImGui::SameLine();
-            helpMarker("Allow more difference in saturation and value to better handle anti-aliasing on lines and curves. Better to disable it when looking at flat colors (e.g. pie charts).");
-            
-            if (_hasActiveColor)
-            {
-                ImGui::Text("Hue  in [%.0fº -> %.0fº]", (_activeColorHSV_1_1_255.x*360.f) - _deltaH_360, (_activeColorHSV_1_1_255.x*360.f) + _deltaH_360);
-                ImGui::Text("Sat. in [%.0f%% -> %.0f%%]", (_activeColorHSV_1_1_255.y*100.f) - _deltaS_100, (_activeColorHSV_1_1_255.y*100.f) + _deltaS_100);
-                ImGui::Text("Val. in [%.0f -> %.0f]", (_activeColorHSV_1_1_255.z) - _deltaV_255, (_activeColorHSV_1_1_255.z) + _deltaV_255);
-            }
-            else
-            {
-                ImGui::TextDisabled("Hue  in [N/A]");
-                ImGui::TextDisabled("Sat. in [N/A]");
-                ImGui::TextDisabled("Val. in [N/A]");
-            }
-        }
-        ImGui::End();
-    }
-    
-    void updateDeltas ()
-    {
-        // If the selected color is not saturated at all (grayscale), then we need rely on
-        // value to discriminate the treat it the same way we treat the non-plot style.
-        if (_plotMode && _activeColorHSV_1_1_255.y > 0.1)
-        {
-            _deltaH_360 = _deltaColorThreshold;
-            
-            // If the selected color is already not very saturated (like on aliased an edge), then don't tolerate a huge delta.
-            _deltaS_100 = _deltaColorThreshold * 5.f; // tolerates 3x more since the range is [0,100]
-            _deltaS_100 *= _activeColorHSV_1_1_255.y;
-            _deltaS_100 = std::max(_deltaS_100, 1.0f);
-            
-            _deltaV_255 = _deltaColorThreshold*12.f; // tolerates slighly more since the range is [0,255]
-        }
-        else
-        {
-            _deltaH_360 = _deltaColorThreshold;
-            _deltaS_100 = _deltaColorThreshold; // tolerates 3x more since the range is [0,100]
-            _deltaV_255 = _deltaColorThreshold; // tolerates slighly more since the range is [0,255]
-        }
-    }
-    
-private:
-    bool _hasActiveColor = false;
-    ImVec4 _activeColorRGB01 = ImVec4(0,0,0,1);
-    
-    // H and S within [0,1]. V within [0,255]
-    dl::PixelHSV _activeColorHSV_1_1_255 = dl::PixelHSV(0,0,0);
-    
-    float _deltaColorThreshold = 10.f;
-    float _deltaH_360 = NAN; // within [0,360º]
-    float _deltaS_100 = NAN; // within [0,100%]
-    float _deltaV_255 = NAN; // within [0,255]
-    
-    bool _plotMode = true;
-    GLShader _highlightSameColorShader;
-    
-    GLuint _attribLocationRefColor = 0;
-    GLuint _attribLocationDeltaH = 0;
-    GLuint _attribLocationDeltaS = 0;
-    GLuint _attribLocationDeltaV = 0;
-    GLuint _attribLocationFrameCount = 0;
-    
-    dl::ImageSRGBA* _im = nullptr;
-    dl::vec2i _selectedPixel = dl::vec2i(0,0);
-};
-
 struct ImageViewerWindow::Impl
 {
-    ImGuiContext* imGuiContext = nullptr;
-    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
-    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
+    ImguiGLFWWindow imguiGlfwWindow;
+    ImageViewerObserver* observer = nullptr;
     
-    DaltonViewerMode currentMode = DaltonViewerMode::None;
-    
-    HighlightRegion highlightRegion;
-    
-    bool justUpdatedImage = false;
-    
-    bool helpWindowRequested = false;
-    
-    bool shouldExit = false;
-    GLFWwindow* window = nullptr;
+    ImageViewerWindowState mutableState;
+
+    bool enabled = false;
+
+    HighlightRegionShader highlightRegionShader;
+
+    ImageCursorOverlay cursorOverlay;
+
+    struct {
+        bool inProgress = false;
+        bool needToResize = false;
+        int numAlreadyRenderedFrames = 0;
+        dl::Rect targetWindowGeometry;
+
+        void setCompleted () { *this = {}; }
+    } updateAfterContentSwitch;
     
     struct {
         GLShader normal;
@@ -495,6 +188,7 @@ struct ImageViewerWindow::Impl
     ImVec2 monitorSize = ImVec2(-1,-1);
     
     const int windowBorderSize = 0;
+    bool shouldUpdateWindowSize = false;
     
     struct {
         dl::Rect normal;
@@ -510,30 +204,30 @@ struct ImageViewerWindow::Impl
     
     void enterMode (DaltonViewerMode newMode)
     {
-        this->currentMode = newMode;
+        this->mutableState.currentMode = newMode;
     }
     
-    void cycleThroughMode (bool backwards)
+    void advanceMode (bool backwards)
     {
-        int newMode_asInt = (int)this->currentMode;
+        int newMode_asInt = (int)this->mutableState.currentMode;
         newMode_asInt += backwards ? -1 : 1;
         if (newMode_asInt < 0)
         {
-            newMode_asInt = (int)DaltonViewerMode::NumModes-1;
+            newMode_asInt = 0;
         }
         else if (newMode_asInt == (int)DaltonViewerMode::NumModes)
         {
-            newMode_asInt = 0;
+            --newMode_asInt;
         }
         
         // If we close that window, we might end up with a weird keyboard state
         // since a key release event might not be caught.
-        if (this->currentMode == DaltonViewerMode::HighlightRegions)
+        if (mutableState.currentMode == DaltonViewerMode::HighlightRegions)
         {
             resetKeyboardStateAfterWindowClose();
         }
         
-        this->currentMode = (DaltonViewerMode)newMode_asInt;
+        mutableState.currentMode = (DaltonViewerMode)newMode_asInt;
     }
     
     void resetKeyboardStateAfterWindowClose ()
@@ -547,15 +241,8 @@ struct ImageViewerWindow::Impl
     
     void onImageWidgetAreaChanged ()
     {
-        glfwSetWindowSize(window, imageWidgetRect.current.size.x + windowBorderSize*2, imageWidgetRect.current.size.y + windowBorderSize*2);
-    }
-    
-    void onWindowSizeChanged ()
-    {
-        int windowWidth, windowHeight;
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
-        imageWidgetRect.current.size.x = windowWidth - windowBorderSize*2;
-        imageWidgetRect.current.size.y = windowHeight - windowBorderSize*2;
+        imguiGlfwWindow.setWindowSize(imageWidgetRect.current.size.x + windowBorderSize * 2,
+                                      imageWidgetRect.current.size.y + windowBorderSize * 2);
     }
 };
 
@@ -572,97 +259,56 @@ ImageViewerWindow::~ImageViewerWindow()
 
 bool ImageViewerWindow::isEnabled () const
 {
-    return impl->currentMode != DaltonViewerMode::None;
+    return impl->enabled;
 }
 
-bool ImageViewerWindow::helpWindowRequested () const
+void ImageViewerWindow::setEnabled (bool enabled)
 {
-    return impl->helpWindowRequested;
-}
+    if (impl->enabled == enabled)
+        return;
 
-void ImageViewerWindow::notifyHelpWindowRequestHandled ()
-{
-    impl->helpWindowRequested = false;
-}
+    impl->enabled = enabled;
 
-void ImageViewerWindow::dismiss()
-{
-    glfwSetWindowShouldClose(impl->window, true);
-    impl->currentMode = DaltonViewerMode::None;
+    if (enabled)
+    {
+        impl->imguiGlfwWindow.setEnabled(true);
+    }
+    else
+    {
+        impl->mutableState.currentMode = DaltonViewerMode::None;
+        impl->imguiGlfwWindow.setEnabled(false);
+    }
 }
 
 void ImageViewerWindow::shutdown()
 {
-    if (impl->window)
-    {
-        ImGui::SetCurrentContext(impl->imGuiContext);
-        ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-        ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-        
-        // Cleanup
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext(impl->imGuiContext);
-        impl->imGuiContext = nullptr;
-
-        glfwDestroyWindow(impl->window);
-        impl->window = nullptr;
-    }
+    impl->imguiGlfwWindow.shutdown ();
 }
 
-bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
+bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer)
 {
+    impl->observer = observer;
+
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
     dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
 
     // Create window with graphics context.
-    glfwWindowHint(GLFW_DECORATED, true);
-    glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
-    glfwWindowHint(GLFW_FLOATING, false);
     glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
-    impl->window = glfwCreateWindow(640, 480, "Dalton Lens Image Viewer", NULL, parentWindow);
-    if (impl->window == NULL)
+
+    dl::Rect windowGeometry;
+    windowGeometry.origin.x = 0;
+    windowGeometry.origin.y = 0;
+    windowGeometry.size.x = 640;
+    windowGeometry.size.y = 480;
+    
+    if (!impl->imguiGlfwWindow.initialize (parentWindow, "Dalton Lens Image Viewer", windowGeometry, false /* viewports */))
         return false;
 
-    glfwSetWindowPos(impl->window, 0, 0);
-    
-    glfwMakeContextCurrent(impl->window);
-    glfwHideWindow(impl->window);
-    glfwSwapInterval(1); // Enable vsync
+    glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
 
-    dl::setWindowFlagsToAlwaysShowOnActiveDesktop(impl->window);
-    
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    impl->imGuiContext = ImGui::CreateContext();
-    ImGui::SetCurrentContext(impl->imGuiContext);
-    
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    // Enable Multi-Viewport / Platform Windows. Will be used by the highlight similar color companion window.
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        // style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    
-    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-    
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
-    ImGui_ImplOpenGL3_Init(glslVersion());
+    dl::setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());        
     
     impl->shaders.normal.initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
     impl->shaders.protanope.initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
@@ -671,153 +317,93 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow)
     impl->shaders.flipRedBlue.initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
     impl->shaders.flipRedBlueAndInvertRed.initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
     
-    impl->highlightRegion.initializeGL(glslVersion());
+    impl->highlightRegionShader.initializeGL (glslVersion());
     impl->gpuTexture.initialize();
     
     return true;
 }
 
-#if 0
-bool ImageViewerWindow::initialize (int argc, char** argv, GLFWwindow* parentWindow)
+ImageViewerWindowState& ImageViewerWindow::mutableState ()
 {
-    dl::ScopeTimer initTimer ("Init");
+    return impl->mutableState;
+}
 
-    for (int i = 0; i < argc; ++i)
-    {
-        dl_dbg("%d: %s", i, argv[i]);
-    }
-    
-    argparse::ArgumentParser parser("dlv", "0.1");
-    parser.add_argument("images")
-          .help("Images to visualize")
-          .remaining();
+void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
+{
+    // These key events are valid also in the control window.
+    auto& io = ImGui::GetIO();
 
-    parser.add_argument("--paste")
-          .help("Paste the image from clipboard")
-          .default_value(false)
-          .implicit_value(true);
-    
-    parser.add_argument("--geometry")
-        .help("Geometry of the image area");
-
-    try
+    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_N, GLFW_KEY_A})
     {
-        parser.parse_args(argc, argv);
-    }
-    catch (const std::runtime_error &err)
-    {
-        std::cerr << "Wrong usage" << std::endl;
-        std::cerr << err.what() << std::endl;
-        std::cerr << parser;
-        return false;
+        if (ImGui::IsKeyPressed(code))
+            processKeyEvent(code);
     }
 
-    try
+    // Those don't have direct GLFW keycodes for some reason.
+    for (const auto c : {'<', '>'})
     {
-        auto images = parser.get<std::vector<std::string>>("images");
-        dl_dbg("%d images provided", (int)images.size());
-
-        impl->imagePath = images[0];
-        bool couldLoad = dl::readPngImage(impl->imagePath, impl->im);
-        dl_assert (couldLoad, "Could not load the image!");
+        if (io.InputQueueCharacters.contains(c))
+            processKeyEvent(c);
     }
-    catch (std::logic_error& e)
+}
+
+void ImageViewerWindow::processKeyEvent (int keycode)
+{
+    switch (keycode)
     {
-        std::cerr << "No files provided" << std::endl;
-    }
+        case GLFW_KEY_UP: impl->advanceMode(true /* backwards */); break;
+        case GLFW_KEY_DOWN: impl->advanceMode(false /* forward */); break;
 
-    if (parser.present<std::string>("--geometry"))
-    {
-        std::string geometry = parser.get<std::string>("--geometry");
-        int x,y,w,h;
-        const int count = sscanf(geometry.c_str(), "%dx%d+%d+%d", &w, &h, &x, &y);
-        if (count == 4)
+        case GLFW_KEY_N: 
         {
-            impl->imageWidgetRect.normal.size.x = w;
-            impl->imageWidgetRect.normal.size.y = h;
-            impl->imageWidgetRect.normal.origin.x = x;
-            impl->imageWidgetRect.normal.origin.y = y;
-        }
-        else
-        {
-            std::cerr << "Invalid geometry string " << geometry << std::endl;
-            std::cerr << "Format is WidthxHeight+X+Y" << geometry << std::endl;
-            return false;
-        }
-    }
-    
-    if (parser.get<bool>("--paste"))
-    {
-        impl->imagePath = "Pasted from clipboard";
-
-        if (!clip::has(clip::image_format()))
-        {
-            std::cerr << "Clipboard doesn't contain an image" << std::endl;
-            return false;
-        }
-
-        clip::image clipImg;
-        if (!clip::get_image(clipImg))
-        {
-            std::cout << "Error getting image from clipboard\n";
-            return false;
-        }
-
-        clip::image_spec spec = clipImg.spec();
-
-        std::cerr << "Image in clipboard "
-            << spec.width << "x" << spec.height
-            << " (" << spec.bits_per_pixel << "bpp)\n"
-            << "Format:" << "\n"
-            << std::hex
-            << "  Red   mask: " << spec.red_mask << "\n"
-            << "  Green mask: " << spec.green_mask << "\n"
-            << "  Blue  mask: " << spec.blue_mask << "\n"
-            << "  Alpha mask: " << spec.alpha_mask << "\n"
-            << std::dec
-            << "  Red   shift: " << spec.red_shift << "\n"
-            << "  Green shift: " << spec.green_shift << "\n"
-            << "  Blue  shift: " << spec.blue_shift << "\n"
-            << "  Alpha shift: " << spec.alpha_shift << "\n";
-
-        switch (spec.bits_per_pixel)
-        {
-        case 32:
-        {
-            impl->im.ensureAllocatedBufferForSize((int)spec.width, (int)spec.height);
-            impl->im.copyDataFrom((uint8_t*)clipImg.data(), (int)spec.bytes_per_row, (int)spec.width, (int)spec.height);
+            impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
+            impl->shouldUpdateWindowSize = true;
             break;
         }
 
-        case 16:
-        case 24:
-        case 64:
-        default:
+        case GLFW_KEY_A:
         {
-            std::cerr << "Only 32bpp clipboard supported right now." << std::endl;
-            return false;
+            float ratioX = impl->imageWidgetRect.current.size.x / impl->imageWidgetRect.normal.size.x;
+            float ratioY = impl->imageWidgetRect.current.size.y / impl->imageWidgetRect.normal.size.y;
+            if (ratioX < ratioY)
+            {
+                impl->imageWidgetRect.current.size.y = ratioX * impl->imageWidgetRect.normal.size.y;
+            }
+            else
+            {
+                impl->imageWidgetRect.current.size.x = ratioY * impl->imageWidgetRect.normal.size.x;
+            }
+            impl->shouldUpdateWindowSize = true;
+            break;
         }
+
+        case '<':
+        {
+            if (impl->imageWidgetRect.current.size.x > 64 && impl->imageWidgetRect.current.size.y > 64)
+            {
+                impl->imageWidgetRect.current.size.x *= 0.5f;
+                impl->imageWidgetRect.current.size.y *= 0.5f;
+                impl->shouldUpdateWindowSize = true;
+            }
+            break;
+        }
+
+        case '>':
+        {
+            impl->imageWidgetRect.current.size.x *= 2.f;
+            impl->imageWidgetRect.current.size.y *= 2.f;
+            impl->shouldUpdateWindowSize = true;
+            break;
         }
     }
-    
-    initialize (parentWindow);
-
-    if (impl->imageWidgetRect.normal.size.x < 0) impl->imageWidgetRect.normal.size.x = impl->im.width();
-    if (impl->imageWidgetRect.normal.size.y < 0) impl->imageWidgetRect.normal.size.y = impl->im.height();
-    if (impl->imageWidgetRect.normal.origin.x < 0) impl->imageWidgetRect.normal.origin.x = impl->monitorSize.x * 0.10;
-    if (impl->imageWidgetRect.normal.origin.y < 0) impl->imageWidgetRect.normal.origin.y = impl->monitorSize.y * 0.10;
-    impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
-    
-    impl->gpuTexture.upload (impl->im);
-    impl->highlightRegion.setImage(&impl->im);
-    
-    impl->justUpdatedImage = true;
-    
-    return true;
 }
-#endif
 
-void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
+dl::Rect ImageViewerWindow::geometry () const
+{
+    return impl->imguiGlfwWindow.geometry();
+}
+
+void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::Rect& updatedWindowGeometry)
 {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -829,52 +415,59 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData)
 
     // dl::writePngImage("/tmp/debug.png", impl->im);
     
-    glfwMakeContextCurrent(impl->window);
+    impl->imguiGlfwWindow.enableContexts ();
     impl->gpuTexture.upload(impl->im);
     impl->imageWidgetRect.normal.origin = grabbedData.capturedScreenRect.origin;
     impl->imageWidgetRect.normal.size = grabbedData.capturedScreenRect.size;
     impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
     
-    impl->highlightRegion.setImage(&impl->im);
-    impl->currentMode = DaltonViewerMode::HighlightRegions;
+    impl->mutableState.highlightRegion.setImage(&impl->im);
+    impl->mutableState.currentMode = DaltonViewerMode::HighlightRegions;
     
-    impl->justUpdatedImage = true;
+    // Don't show it now, but tell it to show the window after
+    // updating the content, otherwise we can get annoying flicker.
+    impl->updateAfterContentSwitch.inProgress = true;
+    impl->updateAfterContentSwitch.needToResize = true;
+    impl->updateAfterContentSwitch.numAlreadyRenderedFrames = 0;
+    impl->updateAfterContentSwitch.targetWindowGeometry.origin.x = impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize;
+    impl->updateAfterContentSwitch.targetWindowGeometry.origin.y = impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize;
+    impl->updateAfterContentSwitch.targetWindowGeometry.size.x = impl->imageWidgetRect.normal.size.x + 2 * impl->windowBorderSize;
+    impl->updateAfterContentSwitch.targetWindowGeometry.size.y = impl->imageWidgetRect.normal.size.y + 2 * impl->windowBorderSize;
+
+    updatedWindowGeometry = impl->updateAfterContentSwitch.targetWindowGeometry;
+
 }
 
 void ImageViewerWindow::runOnce ()
 {
-    ImGui::SetCurrentContext(impl->imGuiContext);
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-
-    glfwMakeContextCurrent(impl->window);
-    
-    if (impl->justUpdatedImage)
+    if (impl->updateAfterContentSwitch.needToResize)
     {
-        glfwSetWindowSize(impl->window, impl->imageWidgetRect.normal.size.x + 2*impl->windowBorderSize, impl->imageWidgetRect.normal.size.y + 2*impl->windowBorderSize);
-        glfwSetWindowPos(impl->window, impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize, impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize);
+        impl->imguiGlfwWindow.enableContexts();
+        dl_dbg ("ImageWindow set to %d x %d (%d + %d)", 
+            int(impl->imageWidgetRect.normal.size.x), 
+            int(impl->imageWidgetRect.normal.size.y),
+            int(impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize), 
+            int(impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize));
+
+        impl->imguiGlfwWindow.setWindowSize (impl->updateAfterContentSwitch.targetWindowGeometry.size.x, 
+                                             impl->updateAfterContentSwitch.targetWindowGeometry.size.y);
+        
+        dl_dbg("[VIEWERWINDOW] new size = %d x %d",
+               int(impl->imageWidgetRect.normal.size.x + 2 * impl->windowBorderSize), 
+               int(impl->imageWidgetRect.normal.size.y + 2 * impl->windowBorderSize));
+
+        impl->updateAfterContentSwitch.needToResize = false;
     }
-    
-    // Poll and handle events (inputs, window resize, etc.)
-    // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-    // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-    glfwPollEvents();
-    
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+
+    const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();    
+
+    impl->mutableState.highlightRegion.updateFrameCount ();
 
     bool popupMenuOpen = false;
     
-    // First condition to update the window size is whether we just updated the content.
-    bool shouldUpdateWindowSize = impl->justUpdatedImage;
-    
     auto& io = ImGui::GetIO();
     
-    auto modeForThisFrame = impl->currentMode;
+    auto modeForThisFrame = impl->mutableState.currentMode;
     
     if (io.KeyShift)
     {
@@ -883,75 +476,26 @@ void ImageViewerWindow::runOnce ()
     
     if (!io.WantCaptureKeyboard)
     {
-        if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || glfwWindowShouldClose(impl->window))
+        if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || impl->imguiGlfwWindow.closeRequested())
         {
-            impl->currentMode = DaltonViewerMode::None;
-            impl->highlightRegion.clearSelection();
-            glfwSetWindowShouldClose(impl->window, false);
+            impl->mutableState.currentMode = DaltonViewerMode::None;
+            impl->mutableState.highlightRegion.clearSelection();
+            impl->imguiGlfwWindow.cancelCloseRequest ();
         }
 
-        if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
-        {
-            impl->cycleThroughMode (true /* backwards */);
-        }
-
-        if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT) || ImGui::IsKeyPressed(GLFW_KEY_SPACE))
-        {
-            impl->cycleThroughMode (false /* not backwards */);
-        }
-    }
-
-    if (ImGui::IsKeyPressed(GLFW_KEY_N))
-    {
-        impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
-        shouldUpdateWindowSize = true;
+        checkImguiGlobalImageKeyEvents ();
     }
     
-    if (ImGui::IsKeyPressed(GLFW_KEY_A))
-    {
-        float ratioX = impl->imageWidgetRect.current.size.x / impl->imageWidgetRect.normal.size.x;
-        float ratioY = impl->imageWidgetRect.current.size.y / impl->imageWidgetRect.normal.size.y;
-        if (ratioX < ratioY)
-        {
-            impl->imageWidgetRect.current.size.y = ratioX * impl->imageWidgetRect.normal.size.y;
-        }
-        else
-        {
-            impl->imageWidgetRect.current.size.x = ratioY * impl->imageWidgetRect.normal.size.x;
-        }
-        shouldUpdateWindowSize = true;
-    }
-    
-    if (io.InputQueueCharacters.contains('<'))
-    {
-        if (impl->imageWidgetRect.current.size.x > 64 && impl->imageWidgetRect.current.size.y > 64)
-        {
-            impl->imageWidgetRect.current.size.x *= 0.5f;
-            impl->imageWidgetRect.current.size.y *= 0.5f;
-            shouldUpdateWindowSize = true;
-        }
-    }
-    
-    if (io.InputQueueCharacters.contains('>'))
-    {
-        impl->imageWidgetRect.current.size.x *= 2.f;
-        impl->imageWidgetRect.current.size.y *= 2.f;
-        shouldUpdateWindowSize = true;
-    }
-                
-    if (shouldUpdateWindowSize)
+    if (impl->shouldUpdateWindowSize)
     {
         impl->onImageWidgetAreaChanged();
+        impl->shouldUpdateWindowSize = false;
     }
     
-    int platformWindowX, platformWindowY;
-    glfwGetWindowPos(impl->window, &platformWindowX, &platformWindowY);
-    
-    int platformWindowWidth, platformWindowHeight;
-    glfwGetWindowSize(impl->window, &platformWindowWidth, &platformWindowHeight);
+    dl::Rect platformWindowGeometry = impl->imguiGlfwWindow.geometry();
 
-    ImGui::SetNextWindowPos(ImVec2(platformWindowX, platformWindowY), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(platformWindowWidth, platformWindowHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth, frameInfo.frameBufferHeight), ImGuiCond_Always);
 
     ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
                             | ImGuiWindowFlags_NoResize
@@ -968,32 +512,34 @@ void ImageViewerWindow::runOnce ()
     bool isOpen = true;
     
     std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);        
-    glfwSetWindowTitle(impl->window, mainWindowName.c_str());
-    
+    glfwSetWindowTitle(impl->imguiGlfwWindow.glfwWindow(), mainWindowName.c_str());
+
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
         if (!isOpen)
         {
-            impl->currentMode = DaltonViewerMode::None;
+            impl->mutableState.currentMode = DaltonViewerMode::None;
         }
 
+#if 0 // popup menu
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
         // Don't open the popup if Ctrl + right click was used, this is to zoom out.
         const bool ctrlKeyPressedAndMenuNotAlreadyOpen = (io.KeyCtrl && !popupMenuOpen);
         if (!ctrlKeyPressedAndMenuNotAlreadyOpen && ImGui::BeginPopupContextWindow())
         {
             popupMenuOpen = true;
-            if (ImGui::MenuItem("Highlight Similar Colors")) impl->currentMode = DaltonViewerMode::HighlightRegions;
-            if (ImGui::MenuItem("Daltonize - Protanope")) impl->currentMode = DaltonViewerMode::Protanope;
-            if (ImGui::MenuItem("Daltonize - Deuteranope")) impl->currentMode = DaltonViewerMode::Deuteranope;
-            if (ImGui::MenuItem("Daltonize - Tritanope")) impl->currentMode = DaltonViewerMode::Tritanope;
-            if (ImGui::MenuItem("Flip Red & Blue")) impl->currentMode = DaltonViewerMode::FlipRedBlue;
-            if (ImGui::MenuItem("Flip Red & Blue and Invert Red")) impl->currentMode = DaltonViewerMode::FlipRedBlueInvertRed;
-            if (ImGui::MenuItem("Help")) impl->helpWindowRequested = true;
+            if (ImGui::MenuItem("Highlight Similar Colors")) impl->mutableState.currentMode = DaltonViewerMode::HighlightRegions;
+            if (ImGui::MenuItem("Daltonize - Protanope")) impl->mutableState.currentMode = DaltonViewerMode::Protanope;
+            if (ImGui::MenuItem("Daltonize - Deuteranope")) impl->mutableState.currentMode = DaltonViewerMode::Deuteranope;
+            if (ImGui::MenuItem("Daltonize - Tritanope")) impl->mutableState.currentMode = DaltonViewerMode::Tritanope;
+            if (ImGui::MenuItem("Flip Red & Blue")) impl->mutableState.currentMode = DaltonViewerMode::FlipRedBlue;
+            if (ImGui::MenuItem("Flip Red & Blue and Invert Red")) impl->mutableState.currentMode = DaltonViewerMode::FlipRedBlueInvertRed;
+            if (ImGui::MenuItem("Help")) { if (impl->observer) impl->observer->onHelpRequested(); }
             ImGui::EndPopup();
         }
         ImGui::PopStyleVar();
-                        
+#endif
+                      
         ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
         
         ImVec2 uv0 (0,0);
@@ -1014,7 +560,7 @@ void ImageViewerWindow::runOnce ()
         switch (modeForThisFrame)
         {
             case DaltonViewerMode::Original: impl->shaders.normal.enable(); break;
-            case DaltonViewerMode::HighlightRegions: impl->highlightRegion.enableShader(); break;
+            case DaltonViewerMode::HighlightRegions: impl->highlightRegionShader.enableShader(impl->mutableState.highlightRegion.mutableData.shaderParams); break;
             case DaltonViewerMode::Protanope: impl->shaders.protanope.enable(); break;
             case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.enable(); break;
             case DaltonViewerMode::Tritanope: impl->shaders.tritanope.enable(); break;
@@ -1032,7 +578,7 @@ void ImageViewerWindow::runOnce ()
         switch (modeForThisFrame)
         {
             case DaltonViewerMode::Original: impl->shaders.normal.disable(); break;
-            case DaltonViewerMode::HighlightRegions: impl->highlightRegion.disableShader(); break;
+            case DaltonViewerMode::HighlightRegions: impl->highlightRegionShader.disableShader(); break;
             case DaltonViewerMode::Protanope: impl->shaders.protanope.disable(); break;
             case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.disable(); break;
             case DaltonViewerMode::Tritanope: impl->shaders.tritanope.disable(); break;
@@ -1056,22 +602,22 @@ void ImageViewerWindow::runOnce ()
         bool showCursorOverlay = !popupMenuOpen && ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
         if (showCursorOverlay)
         {
-            bool showBecauseOfHighlightMode = (modeForThisFrame == DaltonViewerMode::HighlightRegions && !impl->highlightRegion.hasActiveColor());
+            bool showBecauseOfHighlightMode = (modeForThisFrame == DaltonViewerMode::HighlightRegions && !impl->mutableState.highlightRegion.hasActiveColor());
             bool showBecauseOfShift = io.KeyShift;
             showCursorOverlay &= (showBecauseOfHighlightMode || showBecauseOfShift);
         }
         
         if (showCursorOverlay)
         {
-            dl::showImageCursorOverlayTooptip (impl->im,
-                                               impl->gpuTexture,
-                                               imageWidgetTopLeft,
-                                               imageWidgetSize,
-                                               uv0,
-                                               uv1,
-                                               ImVec2(15,15));
-        }
-        
+            impl->cursorOverlay.showTooltip(impl->im,
+                                            impl->gpuTexture,
+                                            imageWidgetTopLeft,
+                                            imageWidgetSize,
+                                            uv0,
+                                            uv1,
+                                            ImVec2(15, 15));
+        }    
+
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && io.KeyCtrl)
         {
             if ((impl->im.width() / float(impl->zoom.zoomFactor)) > 16.f
@@ -1086,27 +632,35 @@ void ImageViewerWindow::runOnce ()
         {
             if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
             {
-                impl->highlightRegion.togglePlotMode();
+                impl->mutableState.highlightRegion.togglePlotMode();
             }
         }
         
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && io.KeyCtrl)
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
         {
-            if (impl->zoom.zoomFactor >= 2)
-                impl->zoom.zoomFactor /= 2;
+            if (io.KeyCtrl)
+            {
+                if (impl->zoom.zoomFactor >= 2)
+                    impl->zoom.zoomFactor /= 2;
+            }
+            else
+            {
+                // xv-like controls focus.
+                if (impl->observer) impl->observer->onControlsRequested();
+            }
         }
-                
+
         if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
         {
             // Accept Alt in case the user is still zooming in.
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !io.KeyCtrl && !io.KeySuper && !io.KeyShift)
             {
-                impl->highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
+                impl->mutableState.highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
             }
             
             if (io.MouseWheel != 0.f)
             {
-                impl->highlightRegion.addSliderDelta (io.MouseWheel * 5.f);
+                impl->mutableState.highlightRegion.addSliderDelta (io.MouseWheel * 5.f);
             }
         }
     }
@@ -1114,18 +668,22 @@ void ImageViewerWindow::runOnce ()
     ImGui::End();
     ImGui::PopStyleVar();
     
-    if (impl->currentMode == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
+    if (impl->mutableState.currentMode == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
     {
         const int expectedHighlightWindowWidthWithPadding = 364;
-        if (platformWindowX > expectedHighlightWindowWidthWithPadding)
+        if (platformWindowGeometry.origin.x > expectedHighlightWindowWidthWithPadding)
         {
             // Put it on the left since there is room.
-            ImGui::SetNextWindowPos(ImVec2(platformWindowX - expectedHighlightWindowWidthWithPadding, platformWindowY), ImGuiCond_Appearing);
+            ImGui::SetNextWindowPos(ImVec2(platformWindowGeometry.origin.x - expectedHighlightWindowWidthWithPadding,
+                                           platformWindowGeometry.origin.y), 
+                                    ImGuiCond_Appearing);
         }
-        else if ((impl->monitorSize.x - platformWindowX - platformWindowWidth) > expectedHighlightWindowWidthWithPadding)
+        else if ((impl->monitorSize.x - platformWindowGeometry.origin.x - platformWindowGeometry.size.x) > expectedHighlightWindowWidthWithPadding)
         {
             // No room on the left, then put it on the right since there is room.
-            ImGui::SetNextWindowPos(ImVec2(platformWindowX + platformWindowWidth + 8, platformWindowY), ImGuiCond_Appearing);
+            ImGui::SetNextWindowPos(ImVec2(platformWindowGeometry.origin.x + platformWindowGeometry.size.x + 8,
+                                           platformWindowGeometry.origin.y),
+                                    ImGuiCond_Appearing);
         }
         else
         {
@@ -1137,73 +695,31 @@ void ImageViewerWindow::runOnce ()
         // was buggy, the key release event would not get caught if the press happened on the
         // highlight window.
         const bool collapsed = (modeForThisFrame != DaltonViewerMode::HighlightRegions);
-        impl->highlightRegion.render(collapsed);
+        renderHighlightRegionControls (impl->mutableState.highlightRegion, collapsed);
     }
     
-    // Rendering
-    ImGui::Render();
+    impl->imguiGlfwWindow.endFrame ();
 
-    // Not rendering any main window anymore.
-    int display_w, display_h;
-    glfwGetFramebufferSize(impl->window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(0.3, 0.3, 0.3, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    
-    // Update and Render additional Platform Windows
-    // This is used by the highlight similar color companion window.
+    if (impl->updateAfterContentSwitch.inProgress)
     {
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        ++impl->updateAfterContentSwitch.numAlreadyRenderedFrames;
+        
+        if (impl->updateAfterContentSwitch.numAlreadyRenderedFrames >= 2)
         {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
+            setEnabled(true);
+            impl->imguiGlfwWindow.setWindowPos(impl->updateAfterContentSwitch.targetWindowGeometry.origin.x,
+                                               impl->updateAfterContentSwitch.targetWindowGeometry.origin.y);
+            impl->updateAfterContentSwitch.setCompleted(); // not really needed, just to be explicit.
         }
     }
-    
-    glfwSwapBuffers(impl->window);
-    
-    if (impl->justUpdatedImage)
-    {
-        GlfwMaintainWindowPosAfterScope _ (impl->window);
-        // Only show it now, after the swap buffer. Otherwise we'll have the old image for a split second.
-        glfwShowWindow(impl->window);
-    }
-    
-    impl->justUpdatedImage = false;
     
     // User pressed q, escape or closed the window. We need to do an empty rendering to
     // make sure the platform windows will get hidden and won't stay as ghosts and create
     // flicker when we enable this again.
-    if (impl->currentMode == DaltonViewerMode::None)
+    if (impl->mutableState.currentMode == DaltonViewerMode::None)
     {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-
-        // Reset the keyboard state to make sure we won't re-enter the next time
-        // with 'q' or 'escape' already pressed from before.
-        impl->resetKeyboardStateAfterWindowClose();
-
-        ImGui::NewFrame();
-        ImGui::Render();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            GLFWwindow* backup_current_context = glfwGetCurrentContext();
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
-            glfwMakeContextCurrent(backup_current_context);
-        }
-        
-        glfwHideWindow(impl->window);
+        if (impl->observer) impl->observer->onDismissRequested ();
     }
-}
-
-bool ImageViewerWindow::shouldExit() const
-{
-    return impl->shouldExit;
 }
 
 } // dl

@@ -13,6 +13,7 @@
 #include <Dalton/ColorConversion.h>
 
 #include <GLFW/glfw3.h>
+#include <clip/clip.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -48,11 +49,7 @@ struct GrabScreenAreaWindow::Impl
     };
     State currentState = State::Initial;
     
-    ImGuiContext* imGuiContext = nullptr;
-    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
-    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
-    
-    GLFWwindow* window = nullptr;
+    ImguiGLFWWindow imguiGlfwWindow;
 
     bool justGotEnabled = false;
     
@@ -65,7 +62,9 @@ struct GrabScreenAreaWindow::Impl
     ScreenGrabber grabber;
     
     RectSelection currentSelectionInScreen;
-    
+
+    ImageCursorOverlay cursorOverlay;
+
     void finishGrabbing ();
 };
 
@@ -92,7 +91,7 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
         this->grabbedData.texture.reset (); // not valid anymore.
     }
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
-    glfwHideWindow(this->window);
+    imguiGlfwWindow.setEnabled (false);
     dl_dbg ("[GrabScreen] hide window");
 }
 
@@ -119,221 +118,55 @@ const GrabScreenData& GrabScreenAreaWindow::grabbedData () const
 
 void GrabScreenAreaWindow::shutdown()
 {
-    if (impl->window)
-    {
-        ImGui::SetCurrentContext(impl->imGuiContext);
-        ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-        ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-        
-        // Cleanup
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext(impl->imGuiContext);
-        impl->imGuiContext = nullptr;
-
-        glfwDestroyWindow (impl->window);
-        impl->window = nullptr;
-    }
+    impl->imguiGlfwWindow.shutdown();
 }
 
 bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 {
+    dl::Rect geometry;
+    {
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        int xpos, ypos, width, height;
+        glfwGetMonitorWorkarea(monitor, &xpos, &ypos, &width, &height);
+        impl->monitorWorkAreaSize = ImVec2(width, height);
+        impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
+        geometry.size.x = impl->monitorWorkAreaSize.x;
+        geometry.size.y = impl->monitorWorkAreaSize.y;
+        geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
+        geometry.origin.y = impl->monitorWorkAreaTopLeft.y;
+    }
+
     // Create the window always on top.
     glfwWindowHint(GLFW_DECORATED, false);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, true);
-    
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    
+
+    if (!impl->imguiGlfwWindow.initialize (parentContext, "DaltonLens Grab Screen", geometry))
     {
-        int xpos, ypos, width, height;
-        glfwGetMonitorWorkarea(monitor, &xpos, &ypos, &width, &height);
-        impl->monitorWorkAreaSize = ImVec2(width, height);
-        impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
-    }
-    
-    impl->window = glfwCreateWindow(impl->monitorWorkAreaSize.x, impl->monitorWorkAreaSize.y, "DaltonLens Grab Screen", NULL, parentContext);
-    if (impl->window == NULL)
         return false;
+    }
+
+    // Restore the default settings.
+    glfwWindowHint(GLFW_DECORATED, true);
+    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 0);
+    glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
+    glfwWindowHint(GLFW_FLOATING, false);    
     
-    glfwHideWindow(impl->window);
-    
-    glfwSetWindowPos(impl->window, impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y);
-    
-    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->window);
-    
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    impl->imGuiContext = ImGui::CreateContext();
-    ImGui::SetCurrentContext(impl->imGuiContext);
-   
-    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    
-    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-        
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
-    ImGui_ImplOpenGL3_Init(glslVersion());
+    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());    
     return true;
-}
-
-void showImageCursorOverlayTooptip (const dl::ImageSRGBA& image,
-                                    GLTexture& imageTexture,
-                                    ImVec2 imageWidgetTopLeft,
-                                    ImVec2 imageWidgetSize,
-                                    const ImVec2& uvTopLeft,
-                                    const ImVec2& uvBottomRight,
-                                    const ImVec2& roiWindowSize)
-{
-    auto& io = ImGui::GetIO();
-    
-    ImVec2 imageSize (image.width(), image.height());
-    
-    ImVec2 mousePosInImage (0,0);
-    ImVec2 mousePosInTexture (0,0);
-    {
-        // This 0.5 offset is important since the mouse coordinate is an integer.
-        // So when we are in the center of a pixel we'll return 0,0 instead of
-        // 0.5,0.5.
-        ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - imageWidgetTopLeft;
-        ImVec2 uv_window = widgetPos / imageWidgetSize;
-        mousePosInTexture = (uvBottomRight-uvTopLeft)*uv_window + uvTopLeft;
-        mousePosInImage = mousePosInTexture * imageSize;
-    }
-    
-    if (!image.contains(mousePosInImage.x, mousePosInImage.y))
-        return;
-    
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-    {
-        ImGui::BeginTooltip();
-        
-        const auto sRgb = image((int)mousePosInImage.x, (int)mousePosInImage.y);
-        
-        // Show the zoomed image.
-        const ImVec2 zoomItemSize (128,128);
-        {
-            const int zoomLenInPixels = int(roiWindowSize.x);
-            ImVec2 pixelSizeInZoom = zoomItemSize / ImVec2(zoomLenInPixels,zoomLenInPixels);
-            
-            const ImVec2 zoomLen_uv (float(zoomLenInPixels) / image.width(), float(zoomLenInPixels) / image.height());
-            ImVec2 zoom_uv0 = mousePosInTexture - zoomLen_uv*0.5f;
-            ImVec2 zoom_uv1 = mousePosInTexture + zoomLen_uv*0.5f;
-            
-            ImVec2 zoomImageTopLeft = ImGui::GetCursorScreenPos();
-            ImGui::Image(reinterpret_cast<ImTextureID>(imageTexture.textureId()), zoomItemSize, zoom_uv0, zoom_uv1);
-            
-            auto* drawList = ImGui::GetWindowDrawList();
-            ImVec2 p1 = pixelSizeInZoom * (zoomLenInPixels / 2) + zoomImageTopLeft;
-            ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomImageTopLeft;
-            drawList->AddRect(p1, p2, IM_COL32(0,0,0,255));
-            drawList->AddRect(p1 - ImVec2(1,1), p2 + ImVec2(1,1), IM_COL32(255,255,255,255));
-        }
-                
-        ImGui::SameLine();
-        
-        // Show the central pixel color as a filled square
-        {
-            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - ImGui::GetCursorPos();
-            ImVec2 topLeft = ImGui::GetCursorPos();
-            ImVec2 bottomRight = topLeft + ImVec2(128,128);
-            auto* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
-            ImGui::SetCursorPosX(bottomRight.x + 8);
-        }
-        
-        // Show the help
-        {
-            ImGui::BeginChild("ColorInfo", ImVec2(196,zoomItemSize.y));
-            ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
-
-            PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
-            ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
-            
-            auto hsv = dl::convertToHSV(sRgb);
-            ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x*360.f, hsv.y*100.f, hsv.z);
-            
-            PixelLab lab = dl::convertToLab(sRgb);
-            ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
-            
-            PixelXYZ xyz = convertToXYZ(sRgb);
-            ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
-            
-            ImGui::EndChild();
-        }
-        
-        auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
-        
-        {
-            ImVec2 topLeft = ImGui::GetCursorPos();
-            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + ImVec2(16,16);
-            
-            // Raw draw is in screen space.
-            auto* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(topLeft + screenFromWindow,
-                                    bottomRight + screenFromWindow,
-                                    IM_COL32(closestColors[0].entry->r, closestColors[0].entry->g, closestColors[0].entry->b, 255));
-            
-            ImGui::SetCursorPosX(bottomRight.x + 8);
-        }
-        ImGui::Text("%s / %s [dist=%.1f] [%d %d %d]",
-                    closestColors[0].entry->className,
-                    closestColors[0].entry->colorName,
-                    closestColors[0].distance,
-                    closestColors[0].entry->r,
-                    closestColors[0].entry->g,
-                    closestColors[0].entry->b);
-        
-        {
-            ImVec2 topLeft = ImGui::GetCursorPos();
-            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + ImVec2(16,16);
-            
-            auto* drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(topLeft + screenFromWindow,
-                                    bottomRight + screenFromWindow,
-                                    IM_COL32(closestColors[1].entry->r, closestColors[1].entry->g, closestColors[1].entry->b, 255));
-            ImGui::SetCursorPosX(bottomRight.x + 8);
-        }
-        ImGui::Text("%s / %s [dist=%.1f] [%d %d %d]",
-                    closestColors[1].entry->className,
-                    closestColors[1].entry->colorName,
-                    closestColors[1].distance,
-                    closestColors[1].entry->r,
-                    closestColors[1].entry->g,
-                    closestColors[1].entry->b);
-                
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar();
 }
 
 void GrabScreenAreaWindow::runOnce ()
 {
-    ImGui::SetCurrentContext(impl->imGuiContext);
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-    
-    glfwMakeContextCurrent(impl->window);
-    
-    // Poll and handle events (inputs, window resize, etc.)
-    glfwPollEvents();
-    
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
 
     auto& io = ImGui::GetIO();
     
     if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
     {
         impl->finishGrabbing ();
-        ImGui::Render();
+        impl->imguiGlfwWindow.endFrame();
         return;
     }
 
@@ -350,7 +183,7 @@ void GrabScreenAreaWindow::runOnce ()
     if (ImGui::IsKeyReleased(GLFW_KEY_SPACE))
     {
         impl->finishGrabbing ();
-        ImGui::Render();
+        impl->imguiGlfwWindow.endFrame();
         return;
     }
     
@@ -367,7 +200,7 @@ void GrabScreenAreaWindow::runOnce ()
         if (impl->currentState == Impl::State::MouseDragging)
         {
             impl->finishGrabbing ();
-            ImGui::Render();
+            impl->imguiGlfwWindow.endFrame();
             return;
         }
     }
@@ -403,12 +236,12 @@ void GrabScreenAreaWindow::runOnce ()
         const auto imageWidgetTopLeft = ImGui::GetCursorPos();
         const auto imageWidgetSize = impl->monitorWorkAreaSize;
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->grabbedData.texture->textureId()), imageWidgetSize);
-        
-        showImageCursorOverlayTooptip (*impl->grabbedData.srgbaImage,
-                                       *impl->grabbedData.texture,
-                                       imageWidgetTopLeft,
-                                       imageWidgetSize);
-        
+
+        impl->cursorOverlay.showTooltip(*impl->grabbedData.srgbaImage,
+                                        *impl->grabbedData.texture,
+                                        imageWidgetTopLeft,
+                                        imageWidgetSize);
+
         ImVec2 selectionFirstCornerInWindow = impl->currentSelectionInScreen.firstCorner - impl->monitorWorkAreaTopLeft;
         ImVec2 selectionSecondCornerInWindow = impl->currentSelectionInScreen.secondCorner - impl->monitorWorkAreaTopLeft;
             
@@ -425,24 +258,12 @@ void GrabScreenAreaWindow::runOnce ()
     
     ImGui::PopStyleColor();
         
-    // Rendering
-    ImGui::Render();
-    
-    // Not rendering any main window anymore.
-    int display_w, display_h;
-    glfwGetFramebufferSize(impl->window, &display_w, &display_h);
-    glViewport(0, 0, display_w, display_h);
-    glClearColor(0, 0, 0, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    
-    glfwSwapBuffers(impl->window);
+    impl->imguiGlfwWindow.endFrame();
     
     if (impl->justGotEnabled)
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        glfwShowWindow(impl->window);
+        impl->imguiGlfwWindow.setEnabled (true);
         dl_dbg ("[GrabScreen] show window");
         impl->justGotEnabled = false;
     }
@@ -450,11 +271,9 @@ void GrabScreenAreaWindow::runOnce ()
 
 bool GrabScreenAreaWindow::startGrabbing ()
 {
-    ImGui::SetCurrentContext(impl->imGuiContext);
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-    
-    glfwMakeContextCurrent(impl->window);
+    // Make sure we have the right GL state.
+    // FIXME: should we disable it after?
+    impl->imguiGlfwWindow.enableContexts ();
     
     impl->currentState = Impl::State::Initial;
     impl->justGotEnabled = true;
@@ -483,6 +302,208 @@ bool GrabScreenAreaWindow::isGrabbing() const
 void GrabScreenAreaWindow::dismiss ()
 {
     impl->finishGrabbing();
+}
+
+} // dl
+
+namespace dl
+{
+
+void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
+                                     GLTexture &imageTexture,
+                                     ImVec2 imageWidgetTopLeft,
+                                     ImVec2 imageWidgetSize,
+                                     const ImVec2 &uvTopLeft,
+                                     const ImVec2 &uvBottomRight,
+                                     const ImVec2 &roiWindowSize)
+{
+    auto& io = ImGui::GetIO();
+    
+    ImVec2 imageSize (image.width(), image.height());
+    
+    ImVec2 mousePosInImage (0,0);
+    ImVec2 mousePosInTexture (0,0);
+    {
+        // This 0.5 offset is important since the mouse coordinate is an integer.
+        // So when we are in the center of a pixel we'll return 0,0 instead of
+        // 0.5,0.5.
+        ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - imageWidgetTopLeft;
+        ImVec2 uv_window = widgetPos / imageWidgetSize;
+        mousePosInTexture = (uvBottomRight-uvTopLeft)*uv_window + uvTopLeft;
+        mousePosInImage = mousePosInTexture * imageSize;
+    }
+    
+    if (!image.contains(mousePosInImage.x, mousePosInImage.y))
+        return;
+    
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
+    {
+        ImGui::BeginTooltip();
+        
+        const auto sRgb = image((int)mousePosInImage.x, (int)mousePosInImage.y);
+        
+        const int squareSize = 128;
+
+        // Show the zoomed image.
+        const ImVec2 zoomItemSize (squareSize,squareSize);
+        {
+            const int zoomLenInPixels = int(roiWindowSize.x);
+            ImVec2 pixelSizeInZoom = zoomItemSize / ImVec2(zoomLenInPixels,zoomLenInPixels);
+            
+            const ImVec2 zoomLen_uv (float(zoomLenInPixels) / image.width(), float(zoomLenInPixels) / image.height());
+            ImVec2 zoom_uv0 = mousePosInTexture - zoomLen_uv*0.5f;
+            ImVec2 zoom_uv1 = mousePosInTexture + zoomLen_uv*0.5f;
+            
+            ImVec2 zoomImageTopLeft = ImGui::GetCursorScreenPos();
+            ImGui::Image(reinterpret_cast<ImTextureID>(imageTexture.textureId()), zoomItemSize, zoom_uv0, zoom_uv1);
+            
+            auto* drawList = ImGui::GetWindowDrawList();
+            ImVec2 p1 = pixelSizeInZoom * (zoomLenInPixels / 2) + zoomImageTopLeft;
+            ImVec2 p2 = pixelSizeInZoom * ((zoomLenInPixels / 2) + 1) + zoomImageTopLeft;
+            drawList->AddRect(p1, p2, IM_COL32(0,0,0,255));
+            drawList->AddRect(p1 - ImVec2(1,1), p2 + ImVec2(1,1), IM_COL32(255,255,255,255));
+        }
+                
+        ImGui::SameLine();
+        
+        float bottomOfSquares = NAN;
+
+        // Show the central pixel color as a filled square
+        {
+            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - ImGui::GetCursorPos();
+            ImVec2 topLeft = ImGui::GetCursorPos();
+            ImVec2 bottomRight = topLeft + ImVec2(squareSize,squareSize);
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
+            ImGui::SetCursorPosX(topLeft.x + 8);
+            ImGui::SetCursorPosY(topLeft.y + 20);
+            bottomOfSquares = bottomRight.y;
+        }
+        
+        // Show the help
+        {
+            ImVec4 color (1, 1, 1, 1);
+
+            const auto hsv = dl::convertToHSV(sRgb);
+            
+            // White won't be visible on unsaturated (gray) and high intensity
+            if (hsv.z > 200 && hsv.y < 0.3f)
+            {
+                color = ImVec4(0.3, 0.3, 0.3, 1.0);
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+
+            auto intRnd = [](float f) { return (int)std::roundf(f); };
+
+            ImGui::BeginChild("ColorInfo", ImVec2(128 - 8, zoomItemSize.y));
+            ImGui::Text("sRGB %3d %3d %3d", sRgb.r, sRgb.g, sRgb.b);
+
+            PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
+            ImGui::Text(" RGB %3d %3d %3d", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
+            
+            ImGui::Text(" HSV %3d %3d %3d", intRnd(hsv.x*360.f), intRnd(hsv.y*100.f), intRnd(hsv.z));
+            
+            PixelLab lab = dl::convertToLab(sRgb);
+            ImGui::Text(" Lab %3d %3d %3d", intRnd(lab.l), intRnd(lab.a), intRnd(lab.b));
+            
+            PixelXYZ xyz = convertToXYZ(sRgb);
+            ImGui::Text(" XYZ %3d %3d %3d", intRnd(xyz.x), intRnd(xyz.y), intRnd(xyz.z));
+                        
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+        }
+        
+        auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
+        
+        ImGui::SetCursorPosY (bottomOfSquares + 8);
+
+        {
+            ImVec2 topLeft = ImGui::GetCursorPos();
+            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
+            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            
+            // Raw draw is in screen space.
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft + screenFromWindow,
+                                    bottomRight + screenFromWindow,
+                                    IM_COL32(closestColors[0].entry->r, closestColors[0].entry->g, closestColors[0].entry->b, 255));
+            
+            ImGui::SetCursorPosX(bottomRight.x + 8);
+        }
+
+        auto addColorNameAndRGB = [](const ColorEntry& entry, const int targetNameSize)
+        {
+            auto colorName = formatted("%s / %s", entry.className, entry.colorName);
+            if (colorName.size() > targetNameSize)
+            {
+                colorName = colorName.substr(0, targetNameSize - 3) + "...";
+            }
+            else if (colorName.size() < targetNameSize)
+            {
+                colorName += std::string(targetNameSize - colorName.size(), ' ');
+            }
+            
+            ImGui::Text("%s [%3d %3d %3d]",
+                        colorName.c_str(),
+                        entry.r,
+                        entry.g,
+                        entry.b);
+        };
+
+        addColorNameAndRGB (*closestColors[0].entry, 20);
+        
+        {
+            ImVec2 topLeft = ImGui::GetCursorPos();
+            ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
+            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            
+            auto* drawList = ImGui::GetWindowDrawList();
+            drawList->AddRectFilled(topLeft + screenFromWindow,
+                                    bottomRight + screenFromWindow,
+                                    IM_COL32(closestColors[1].entry->r, closestColors[1].entry->g, closestColors[1].entry->b, 255));
+            ImGui::SetCursorPosX(bottomRight.x + 8);
+        }
+
+        addColorNameAndRGB (*closestColors[1].entry, 20);
+
+        if (!isnan(_timeOfLastCopyToClipboard))
+        {
+            if (currentDateInSeconds() - _timeOfLastCopyToClipboard < 1.0)
+            {
+                ImGui::Text ("Copied to clipboard.");
+            }
+            else
+            {
+                _timeOfLastCopyToClipboard = NAN;
+            }
+        }        
+
+        ImGui::EndTooltip();
+
+        if (ImGui::IsKeyPressed(GLFW_KEY_C))
+        {
+            std::string clipboardText;
+            clipboardText += formatted("sRGB %d %d %d\n", sRgb.r, sRgb.g, sRgb.b);
+            
+            const PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
+            clipboardText += formatted("linearRGB %.1f %.1f %.1f\n", lrgb.r, lrgb.g, lrgb.b);
+
+            const auto hsv = dl::convertToHSV(sRgb);
+            clipboardText += formatted("HSV %.1fº %.1f%% %.1f\n", hsv.x*360.f, hsv.y*100.f, hsv.z);
+
+            PixelLab lab = dl::convertToLab(sRgb);
+            clipboardText += formatted("L*a*b %.1f %.1f %.1f\n", lab.l, lab.a, lab.b);
+            
+            PixelXYZ xyz = convertToXYZ(sRgb);
+            clipboardText += formatted("XYZ %.1f %.1f %.1f\n", xyz.x, xyz.y, xyz.z);
+
+            // glfwSetClipboardString(nullptr, clipboardText.c_str());
+            clip::set_text (clipboardText.c_str());
+            _timeOfLastCopyToClipboard = currentDateInSeconds();
+        }
+    }
+    ImGui::PopStyleVar();
 }
 
 } // dl

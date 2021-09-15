@@ -10,6 +10,7 @@ add_library(dalton
     Common.h
     Image.h
     MathUtils.h
+    Platform.h
     Simulator.cpp
     Simulator.h
     Utils.cpp

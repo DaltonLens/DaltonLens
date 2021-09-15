@@ -64,4 +64,6 @@ namespace dl
         double _lastCallTs = NAN;
     };
 
+    std::string currentThreadId ();
+
 } // dl
