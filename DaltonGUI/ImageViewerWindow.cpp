@@ -470,8 +470,15 @@ void ImageViewerWindow::runOnce ()
 
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();    
 
-    impl->imageWidgetRect.current.size.x = frameInfo.frameBufferWidth;
-    impl->imageWidgetRect.current.size.y = frameInfo.frameBufferHeight;
+    // If we do not have a pending resize request, then adjust the content size to the
+    // actual window size. The framebuffer might be bigger depending on the retina scale
+    // factor.
+    if (!impl->shouldUpdateWindowSize)
+    {
+        const float dpiScale = ImGui::GetWindowDpiScale();
+        impl->imageWidgetRect.current.size.x = frameInfo.frameBufferWidth / dpiScale;
+        impl->imageWidgetRect.current.size.y = frameInfo.frameBufferHeight / dpiScale;
+    }
 
     impl->mutableState.highlightRegion.updateFrameCount ();
 

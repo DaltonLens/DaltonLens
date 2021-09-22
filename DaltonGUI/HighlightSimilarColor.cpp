@@ -212,8 +212,8 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
     // if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
     {
         const auto sRgb = dl::PixelSRGBA((int)(255.f * data.shaderParams.activeColorRGB01.x + 0.5f),
-                                            (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
-                                            (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
+                                         (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
+                                         (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
 
         const auto filledRectSize = ImVec2(128, 128);
         ImVec2 topLeft = ImGui::GetCursorPos();

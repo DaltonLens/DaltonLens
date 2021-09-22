@@ -258,7 +258,7 @@ void ImageViewer::showGrabbedData (const GrabScreenData& grabbedData)
 {
     dl::Rect updatedViewerWindowGeometry;
     impl->imageWindow.showGrabbedData (grabbedData, updatedViewerWindowGeometry);
-    impl->controlsWindow.repositionAfterNextRendering (updatedViewerWindowGeometry, false /* don't show by default */);
+    impl->controlsWindow.repositionAfterNextRendering (updatedViewerWindowGeometry, true /* don't show by default */);
     
     // Not calling setEnabled on purpose, to avoid showing the window
     // before we do one render pass and thus potentially before it got moved.

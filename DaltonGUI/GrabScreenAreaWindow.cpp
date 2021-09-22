@@ -138,7 +138,7 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 
     // Create the window always on top.
     glfwWindowHint(GLFW_DECORATED, false);
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
+    // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, true);
 
@@ -149,7 +149,7 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 
     // Restore the default settings.
     glfwWindowHint(GLFW_DECORATED, true);
-    glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 0);
+    // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 0);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, false);    
     

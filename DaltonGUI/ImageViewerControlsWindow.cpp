@@ -59,11 +59,14 @@ void ImageViewerControlsWindow::setEnabled(bool enabled)
 { 
     impl->imguiGlfwWindow.setEnabled(enabled);
     
-    if (enabled && impl->updateAfterContentSwitch.needRepositioning)
+    if (enabled)
     {
-        // Needs to be after on Linux.
-        impl->imguiGlfwWindow.setWindowPos(impl->updateAfterContentSwitch.targetPosition.x,
-                                           impl->updateAfterContentSwitch.targetPosition.y);                                           
+        if (impl->updateAfterContentSwitch.needRepositioning)
+        {
+            // Needs to be after on Linux.
+            impl->imguiGlfwWindow.setWindowPos(impl->updateAfterContentSwitch.targetPosition.x,
+                                               impl->updateAfterContentSwitch.targetPosition.y);
+        }
         impl->updateAfterContentSwitch.setCompleted ();
     }
 }
@@ -95,7 +98,7 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
     geometry.origin.x = (impl->monitorSize.x - geometry.size.x)/2;
     geometry.origin.y = (impl->monitorSize.y - geometry.size.y)/2;
 
-    // glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
+    glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
     bool ok = impl->imguiGlfwWindow.initialize (parentWindow, "DaltonLens Controls", geometry);
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
     return ok;
@@ -153,7 +156,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
 
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Quit", "q", false))
+            if (ImGui::MenuItem("Close", "q", false))
             {
                 impl->observer->onDismissRequested();
             }
@@ -198,9 +201,11 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
                               | ImGuiWindowFlags_NoDocking
                               | ImGuiWindowFlags_NoNav);
 
+    const float dpiScale = ImGui::GetWindowDpiScale();
+    
     // Always show the ImGui window filling the GLFW window.
     ImGui::SetNextWindowPos(ImVec2(0, menuBarHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth, frameInfo.frameBufferHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth / dpiScale, frameInfo.frameBufferHeight / dpiScale), ImGuiCond_Always);
     if (ImGui::Begin("DaltonLens Controls", nullptr, flags))
     {
         auto& viewerState = activeImageWindow->mutableState();
