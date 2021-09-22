@@ -28,8 +28,11 @@ public:
 
     uint32_t textureId() const { return _textureId; }
 
+    void setLinearInterpolationEnabled (bool enabled);
+
 private:
     uint32_t _textureId = 0;
+    bool _linearInterpolationEnabled = false;
 };
 
 } // dl

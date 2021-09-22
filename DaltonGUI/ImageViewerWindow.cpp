@@ -295,7 +295,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserve
     dl_dbg ("Primary monitor size = %f x %f", impl->monitorSize.x, impl->monitorSize.y);
 
     // Create window with graphics context.
-    glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
+    // glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
 
     dl::Rect windowGeometry;
     windowGeometry.origin.x = 0;
@@ -351,8 +351,17 @@ void ImageViewerWindow::processKeyEvent (int keycode)
 {
     switch (keycode)
     {
-        case GLFW_KEY_UP: impl->advanceMode(true /* backwards */); break;
-        case GLFW_KEY_DOWN: impl->advanceMode(false /* forward */); break;
+        case GLFW_KEY_UP: 
+        {
+            impl->advanceMode(true /* backwards */); 
+            break;
+        }
+
+        case GLFW_KEY_DOWN:
+        {
+            impl->advanceMode(false /* forward */);
+            break;
+        }
 
         case GLFW_KEY_N: 
         {
@@ -461,6 +470,9 @@ void ImageViewerWindow::runOnce ()
 
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();    
 
+    impl->imageWidgetRect.current.size.x = frameInfo.frameBufferWidth;
+    impl->imageWidgetRect.current.size.y = frameInfo.frameBufferHeight;
+
     impl->mutableState.highlightRegion.updateFrameCount ();
 
     bool popupMenuOpen = false;
@@ -520,27 +532,8 @@ void ImageViewerWindow::runOnce ()
         {
             impl->mutableState.currentMode = DaltonViewerMode::None;
         }
-
-#if 0 // popup menu
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
-        // Don't open the popup if Ctrl + right click was used, this is to zoom out.
-        const bool ctrlKeyPressedAndMenuNotAlreadyOpen = (io.KeyCtrl && !popupMenuOpen);
-        if (!ctrlKeyPressedAndMenuNotAlreadyOpen && ImGui::BeginPopupContextWindow())
-        {
-            popupMenuOpen = true;
-            if (ImGui::MenuItem("Highlight Similar Colors")) impl->mutableState.currentMode = DaltonViewerMode::HighlightRegions;
-            if (ImGui::MenuItem("Daltonize - Protanope")) impl->mutableState.currentMode = DaltonViewerMode::Protanope;
-            if (ImGui::MenuItem("Daltonize - Deuteranope")) impl->mutableState.currentMode = DaltonViewerMode::Deuteranope;
-            if (ImGui::MenuItem("Daltonize - Tritanope")) impl->mutableState.currentMode = DaltonViewerMode::Tritanope;
-            if (ImGui::MenuItem("Flip Red & Blue")) impl->mutableState.currentMode = DaltonViewerMode::FlipRedBlue;
-            if (ImGui::MenuItem("Flip Red & Blue and Invert Red")) impl->mutableState.currentMode = DaltonViewerMode::FlipRedBlueInvertRed;
-            if (ImGui::MenuItem("Help")) { if (impl->observer) impl->observer->onHelpRequested(); }
-            ImGui::EndPopup();
-        }
-        ImGui::PopStyleVar();
-#endif
                       
-        ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
+        const ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
         
         ImVec2 uv0 (0,0);
         ImVec2 uv1 (1.f/impl->zoom.zoomFactor,1.f/impl->zoom.zoomFactor);
@@ -569,12 +562,36 @@ void ImageViewerWindow::runOnce ()
             default: break;
         }
         
+        const bool imageHasNonMultipleSize = int(impl->imageWidgetRect.current.size.x) % int(impl->imageWidgetRect.normal.size.x) != 0;
+        const bool hasZoom = impl->zoom.zoomFactor != 1;
+        const bool useLinearFiltering = imageHasNonMultipleSize && !hasZoom;
+        // Enable it just for that rendering otherwise the pointer overlay will get filtered too.
+        if (useLinearFiltering)
+        {
+            ImGui::GetWindowDrawList()->AddCallback([](const ImDrawList *parent_list, const ImDrawCmd *cmd)
+                                                    {
+                                                        ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
+                                                        that->impl->gpuTexture.setLinearInterpolationEnabled(true);
+                                                    },
+                                                    this);
+        }
+
         const auto imageWidgetSize = imSize(impl->imageWidgetRect.current);
         ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
                      imageWidgetSize,
                      uv0,
-                     uv1);
-        
+                     uv1);        
+
+        if (useLinearFiltering)
+        {
+            ImGui::GetWindowDrawList()->AddCallback([](const ImDrawList *parent_list, const ImDrawCmd *cmd)
+                                                    {
+                                                        ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
+                                                        that->impl->gpuTexture.setLinearInterpolationEnabled(false);
+                                                    },
+                                                    this);
+        }
+
         switch (modeForThisFrame)
         {
             case DaltonViewerMode::Original: impl->shaders.normal.disable(); break;

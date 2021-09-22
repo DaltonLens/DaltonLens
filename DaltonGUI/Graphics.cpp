@@ -89,6 +89,22 @@ void GLTexture::upload (const dl::ImageSRGBA& im)
     glBindTexture(GL_TEXTURE_2D, prevTexture);
 }
 
+void GLTexture::setLinearInterpolationEnabled (bool enabled)
+{
+    if (_linearInterpolationEnabled == enabled)
+        return;
+        
+    _linearInterpolationEnabled = enabled;
+    GLint prevTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+
+    glBindTexture(GL_TEXTURE_2D, _textureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, enabled ? GL_LINEAR : GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, enabled ? GL_LINEAR : GL_NEAREST);
+
+    glBindTexture(GL_TEXTURE_2D, prevTexture);
+}
+
 } // dl
 
 namespace dl

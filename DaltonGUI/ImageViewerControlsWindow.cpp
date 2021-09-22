@@ -136,7 +136,12 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
 {
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || impl->imguiGlfwWindow.closeRequested())
+    if (impl->imguiGlfwWindow.closeRequested())
+    {
+        setEnabled (false);
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
     {
         impl->observer->onDismissRequested();
     }
