@@ -10,6 +10,7 @@
 #include "MathUtils.h"
 
 #include <array>
+#include <cstdint>
 
 namespace dl
 {

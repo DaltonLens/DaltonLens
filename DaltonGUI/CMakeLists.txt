@@ -68,10 +68,16 @@ if (APPLE)
     target_compile_options(daltonGUI PUBLIC -x objective-c++)
 endif()
 
+# Gcc 3.8 requires that.
+if (CMAKE_COMPILER_IS_GNUCXX)
+    set (FS_LIBRARY stdc++fs)
+endif()
+
 target_link_libraries(daltonGUI 
     glfw3
     clip
     dalton
+    ${FS_LIBRARY}
 )
 
 if (APPLE)

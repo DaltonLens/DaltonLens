@@ -1,3 +1,6 @@
+![image](https://img.shields.io/github/workflow/status/DaltonLens/DaltonLens/CMake?label=Linux%20build%20%26%20tests)
+![image](https://img.shields.io/github/workflow/status/DaltonLens/DaltonLens/Xcode%20-%20Build?label=macOS%20build)
+
 # DaltonLens
 
 DaltonLens is a utility to help colorblind people by providing color filters and highlighting tools. It is especially useful to read color-coded charts and plots. Here are the main features:

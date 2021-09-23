@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <cstring>
+#include <cstdint>
 
 #include "MathUtils.h"
 

@@ -1,0 +1,23 @@
+name: Xcode - Build
+
+on:
+  push:
+    branches: [ master, dev, github-actions ]
+  pull_request:
+    branches: [ master, dev, github-actions ]
+
+jobs:
+  build:
+    name: Build DaltonLens and the login helper with xcodebuild
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+      - name: Build
+        run: |
+          cd DaltonLens/macOS
+          xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO -scheme DaltonLens | xcpretty && exit ${PIPESTATUS[0]}
+          xcodebuild build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO -scheme DaltonLensLaunchAtLoginHelper | xcpretty && exit ${PIPESTATUS[0]}
