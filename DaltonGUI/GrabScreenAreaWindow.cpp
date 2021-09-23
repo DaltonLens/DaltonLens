@@ -87,8 +87,20 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
         croppedImageRect *= screenToImageScale;
         
         this->grabbedData.capturedScreenRect = croppedScreenRect;
-        *this->grabbedData.srgbaImage = dl::crop (*this->grabbedData.srgbaImage, croppedImageRect);
-        this->grabbedData.texture.reset (); // not valid anymore.
+
+        auto imageRect = dl::Rect::from_x_y_w_h (0, 0, this->grabbedData.srgbaImage->width(), this->grabbedData.srgbaImage->height());
+
+        if (imageRect.intersect (croppedImageRect).area() > 0)
+        {
+            *this->grabbedData.srgbaImage = dl::crop (*this->grabbedData.srgbaImage, croppedImageRect);
+            this->grabbedData.texture.reset(); // not valid anymore.
+        }
+        else
+        {
+            // This can happen on Linux if the front most window is the task bar, as
+            // it does not overlap with the captured window.
+            this->grabbedData.isValid = false;
+        }
     }
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     imguiGlfwWindow.setEnabled (false);
@@ -138,6 +150,8 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 
     // Create the window always on top.
     glfwWindowHint(GLFW_DECORATED, false);
+    // The transparent framebuffer leads to issues on macOS with the black font.
+    // And we don't need it anymore anyway.
     // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, 1);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, true);
@@ -153,7 +167,6 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, true);
     glfwWindowHint(GLFW_FLOATING, false);    
     
-    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());    
     return true;
 }
 
@@ -264,6 +277,8 @@ void GrabScreenAreaWindow::runOnce ()
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         impl->imguiGlfwWindow.setEnabled (true);
+        // Not really needed anymore since we just capture the current desktop once.
+        // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow()); 
         dl_dbg ("[GrabScreen] show window");
         impl->justGotEnabled = false;
     }

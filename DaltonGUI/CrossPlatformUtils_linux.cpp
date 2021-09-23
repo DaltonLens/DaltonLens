@@ -12,11 +12,17 @@
 #define GLFW_EXPOSE_NATIVE_X11 1
 #include <GLFW/glfw3native.h>
 
+#include <xdo/xdo_mini.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
 #include <thread>
 #include <mutex>
+
+// getpid
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace dl
 {
@@ -160,7 +166,10 @@ ScreenGrabber::~ScreenGrabber ()
 bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& cpuImage, GLTexture& gpuTexture)
 {
     // FIXME: is it slow to open/close the display everytime? Could keep it open?
-    Display* display = XOpenDisplay(nullptr);
+    Display* display = glfwGetX11Display();
+    if (!display)
+        return false;
+
     Window root = DefaultRootWindow(display);
 
     XWindowAttributes attributes = {0};
@@ -206,63 +215,158 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
         XDestroyImage(img);
     }
      
-    XCloseDisplay(display);
     return img != nullptr;
 }
 
+
+
+struct WindowUnderPointerFinder
+{
+    WindowUnderPointerFinder ()
+    {
+        display = glfwGetX11Display();
+        root = DefaultRootWindow(display);
+        atom_wmstate = XInternAtom(display, "WM_STATE", False);
+        daltonLens_pid = getpid();
+    }
+
+    ~WindowUnderPointerFinder ()
+    {
+    }
+
+    struct WindowInfo
+    {
+        Window w = 0;
+        dl::Rect rect;
+        std::string name;
+    };
+
+    dl::Rect findWindowGeometryUnderPointer ()
+    {
+        Window root_return = 0;
+        Window child_return = 0;
+        int root_x_return = 0, root_y_return = 0, win_x_return = 0, win_y_return = 0;
+        unsigned int mask_return = 0;
+        Bool success = XQueryPointer(display, root,
+                                     &root_return, &child_return,
+                                     &root_x_return, &root_y_return,
+                                     &win_x_return, &win_y_return,
+                                     &mask_return);
+        if (success == 0)
+        {
+            return dl::Rect();
+        }
+
+        std::vector<WindowInfo> acc; acc.reserve (256);
+        dl::Point pointer (win_x_return, win_y_return);
+        appendCompatibleChildren (acc, root, pointer);
+        if (acc.empty())
+        {
+            return dl::Rect();
+        }
+
+        WindowInfo frontMost = acc.back();
+
+        if (frontMost.rect.area() > 0)
+        {
+            return frontMost.rect;
+        }
+
+        return dl::Rect();
+    }
+
+    void appendCompatibleChildren(std::vector<WindowInfo> &acc, Window parent, const dl::Point& pointer)
+    {
+        dl_dbg("appendCompatibleChildren on %ld", parent);
+
+        Window root_return = 0;
+        Window parent_return = 0;
+        unsigned int numChildren = 0;
+        Window *children = nullptr;
+        XQueryTree(display, parent, &root_return, &parent_return, &children, &numChildren);
+
+        for (int i = 0; i < numChildren; ++i)
+        {
+            Window child = children[i];
+
+            XWindowAttributes attributes;
+            XGetWindowAttributes(display, parent, &attributes);
+            if (attributes.map_state != IsViewable)
+                continue;
+
+            dl::Rect rect = dlRectFromAttributes (attributes, parent);
+            if (!rect.contains(pointer))
+                continue;
+
+            long items = 0;
+            xdo_get_window_property_by_atom(display, child, atom_wmstate, &items, NULL, NULL);
+
+            if (items > 0)
+            {
+                const int window_pid = xdo_get_pid_window (display, child);
+                if (window_pid == daltonLens_pid)
+                {
+                    dl_dbg("Discarding window with PID (%d)", window_pid);
+                    continue;
+                }
+
+                unsigned char* name_ret_unsigned = nullptr;
+                int name_len_ret = 0;
+                int name_type = 0;
+                xdo_get_window_name(display,
+                                    child,
+                                    &name_ret_unsigned,
+                                    &name_len_ret,
+                                    &name_type);
+                char* name_ret = reinterpret_cast<char*>(name_ret_unsigned);             
+
+                if (name_ret)
+                {
+                    dl_dbg("Adding window %s (%ld)", name_ret, child);
+                    WindowInfo info;
+                    info.w = child;
+                    info.rect = rect;
+                    info.name = std::string(name_ret);
+                    acc.push_back (info);
+                }
+
+                XFree(name_ret);
+            }
+
+            appendCompatibleChildren (acc, child, pointer);
+        }
+
+        XFree(children);
+    }
+
+    dl::Rect dlRectFromAttributes(const XWindowAttributes &attributes, Window parent) const
+    {
+        int x = attributes.x, y = attributes.y;
+        if (parent != root)
+        {
+            Window unused_child;
+            XTranslateCoordinates(display, parent, root,
+                                  0, 0, &x, &y, &unused_child);
+        }
+
+        dl::Rect rect;
+        rect.origin.x = x;
+        rect.origin.y = y;
+        rect.size.x = attributes.width;
+        rect.size.y = attributes.height;
+        return rect;
+    }
+
+    Display *display = nullptr;
+    Window root = 0;
+    Atom atom_wmstate;
+    pid_t daltonLens_pid = 0;
+};
+
 dl::Rect getFrontWindowGeometry()
 {
-#if 0
-    dl::Rect output;
-    output.origin = dl::Point(-1,-1);
-    output.size = dl::Point(-1,-1);
-    
-    CFArrayRef windowList_cf = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
-    NSArray* windowList = CFBridgingRelease(windowList_cf);
-    const unsigned windowCount = (unsigned)windowList.count;
-    
-    dl::Point mousePos = getMouseCursor();
-    mousePos.y = NSScreen.mainScreen.frame.size.height - mousePos.y;
-    
-    NSLog(@"Window list = %@", windowList);
-    NSLog(@"mousePos = %f %f", mousePos.x, mousePos.y);
-    
-    //Iterate through the CFArrayRef and fill the vector
-    for (int i = 0; i < windowCount ; ++i)
-    {
-        NSDictionary* dict = (NSDictionary*)[windowList objectAtIndex:i];
-        int layer = [(NSNumber*)[dict objectForKey:@"kCGWindowLayer"] intValue];
-        
-        NSString* owner = (NSString*)[dict objectForKey:@"kCGWindowOwnerName"];
-        if ([owner isEqualToString:@"DaltonLens"])
-            continue;
-        
-        if (layer == 0)
-        {
-            NSDictionary* bounds = (NSDictionary*)[dict objectForKey:@"kCGWindowBounds"];
-            dl::Rect windowRect;
-            windowRect.size.x = [(NSNumber*)bounds[@"Width"] intValue];
-            windowRect.size.y = [(NSNumber*)bounds[@"Height"] intValue];
-            windowRect.origin.x = [(NSNumber*)bounds[@"X"] intValue];
-            windowRect.origin.y = [(NSNumber*)bounds[@"Y"] intValue];
-            
-            if (windowRect.contains(mousePos))
-            {
-                output = windowRect;
-                break;
-            }
-            else if (output.size.x < 0)
-            {
-                // If the mouse is not over any window, save at least first window that had valid bounds
-                // since the windows come in order, the front-most first.
-                output = windowRect;
-            }
-        }
-    }
-    
-    return output;
-#endif
-    return dl::Rect();
+    WindowUnderPointerFinder finder;
+    return finder.findWindowGeometryUnderPointer ();
 }
 
 } // dl
@@ -279,11 +383,19 @@ dl::Point getMouseCursor()
 {
     // NSPoint mousePos = [NSEvent mouseLocation];
     // return dl::Point(mousePos.x, mousePos.y);
+    dl_assert (false, "Not implemented");
     return dl::Point(0,0);
 }
 
+
+
 void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window)
 {
+    Display* display = glfwGetX11Display();
+    Window w = glfwGetX11Window (window);
+    xdo_set_desktop_for_window (display, w, -1 /* all desktops */);
+
+    
     // NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(window);
     // dl_assert (nsWindow, "Not working?");
     // nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace;

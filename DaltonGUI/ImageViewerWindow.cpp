@@ -307,8 +307,6 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserve
         return false;
 
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
-
-    dl::setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());        
     
     impl->shaders.normal.initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
     impl->shaders.protanope.initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);

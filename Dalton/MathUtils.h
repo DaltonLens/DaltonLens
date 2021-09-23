@@ -116,6 +116,16 @@ namespace dl
         Point origin;
         Point size;
         
+        static Rect from_x_y_w_h (double x, double y, double w, double h)
+        {
+            dl::Rect r;
+            r.origin.x = x;
+            r.origin.y = y;
+            r.size.x = w;
+            r.size.y = h;
+            return r;
+        }
+
         bool contains (const Point& p) const
         {
             return (p.x >= origin.x
@@ -123,6 +133,20 @@ namespace dl
                     && p.y >= origin.y
                     && p.y < origin.y + size.y);
         }
+
+        dl::Rect intersect (const dl::Rect& rhs) const
+        {
+            dl::Rect intersection;
+            intersection.origin.x = std::max (origin.x, rhs.origin.x);
+            intersection.origin.y = std::max (origin.y, rhs.origin.y);
+            intersection.size.x = std::min (origin.x + size.x, rhs.origin.x + rhs.size.x) - intersection.origin.x;
+            intersection.size.y = std::min (origin.y + size.y, rhs.origin.y + rhs.size.y) - intersection.origin.y;
+            if (intersection.size.x < 0.)  intersection.size.x = 0.;
+            if (intersection.size.y < 0.)  intersection.size.y = 0.;
+            return intersection;
+        }
+
+        double area () const { return size.x * size.y; }
         
         Rect& operator*= (double s)
         {

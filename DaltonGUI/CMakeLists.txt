@@ -17,7 +17,11 @@ set (deps_SOURCES
 if (APPLE)
     set (daltonGUI_platform_specific_sources CrossPlatformUtils_macOS.cpp)
 else (UNIX)
-    set (daltonGUI_platform_specific_sources CrossPlatformUtils_linux.cpp)
+    set (daltonGUI_platform_specific_sources 
+        CrossPlatformUtils_linux.cpp
+        ${DEPS_DIR}/xdo/xdo_mini.h
+        ${DEPS_DIR}/xdo/xdo_mini.cpp
+    )
 endif()
 
 set (daltonGUI_SOURCES 

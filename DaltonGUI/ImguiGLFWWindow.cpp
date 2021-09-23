@@ -175,8 +175,6 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     if (impl->window == NULL)
         return false;
     
-    setWindowFlagsToAlwaysShowOnActiveDesktop (impl->window);
-    
     glfwSetWindowPos(impl->window, geometry.origin.x, geometry.origin.y);
 
     // glfwSetWindowUserPointer(impl->window, this);
