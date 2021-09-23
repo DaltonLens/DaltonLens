@@ -27,9 +27,15 @@ endif()
 set (daltonGUI_SOURCES 
     ${deps_SOURCES}
     ${daltonGUI_platform_specific_sources}
+    
+    # Binary resource.
+    DaltonLensIcon_xxd.cpp
+
     CrossPlatformUtils.h
     DaltonLensGUI.cpp
     DaltonLensGUI.h
+    DaltonLensIcon.h
+    DaltonLensIcon.cpp
     # DaltonLensGUI_macOS.h
     GrabScreenAreaWindow.cpp
     GrabScreenAreaWindow.h

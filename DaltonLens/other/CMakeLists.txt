@@ -1,4 +1,4 @@
-add_executable(daltonlens main.cpp DaltonLensIcon_xxd.cpp)
+add_executable(daltonlens main.cpp)
 
 # App indicator includes the required gtk3 headers
 find_package(PkgConfig REQUIRED)

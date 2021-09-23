@@ -16,7 +16,7 @@ ExternalProject_Add(glfw-deps
   PREFIX glfw
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw"
   CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Debug
+        -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/glfw
         -DGLFW_BUILD_DOCS=OFF

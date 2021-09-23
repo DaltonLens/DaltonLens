@@ -1,2 +1,2 @@
 *.a filter=lfs diff=lfs merge=lfs -text
-DaltonLens/other/DaltonLensIcon_xxd.cpp filter=lfs diff=lfs merge=lfs -text
+*_xxd.cpp filter=lfs diff=lfs merge=lfs -text

@@ -6,8 +6,10 @@
 
 #include "ImguiGLFWWindow.h"
 
-#include "Graphics.h"
-#include "ImguiUtils.h"
+#include <DaltonGUI/Graphics.h>
+#include <DaltonGUI/ImguiUtils.h>
+#include <DaltonGUI/DaltonLensIcon.h>
+
 #include <Dalton/Utils.h>
 
 #include "CrossPlatformUtils.h"
@@ -174,6 +176,15 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     impl->window = glfwCreateWindow(geometry.size.x, geometry.size.y, title.c_str(), NULL, parentWindow);
     if (impl->window == NULL)
         return false;
+
+    GLFWimage glfwImage;
+    glfwImage.pixels = const_cast<unsigned char*>(DaltonLensIcon::instance().rgba32x32());
+    if (glfwImage.pixels)
+    {
+        glfwImage.width = 32;
+        glfwImage.height = 32;
+        glfwSetWindowIcon(impl->window, 1, &glfwImage);
+    }
     
     glfwSetWindowPos(impl->window, geometry.origin.x, geometry.origin.y);
 
