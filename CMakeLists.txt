@@ -88,3 +88,6 @@ add_subdirectory(DaltonGUI)
 if (NOT APPLE)
   add_subdirectory(DaltonLens/other)
 endif()
+
+enable_testing()
+add_subdirectory(DaltonTests)
