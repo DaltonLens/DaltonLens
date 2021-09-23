@@ -6,6 +6,7 @@
 
 #include "DaltonLensIcon.h"
 
+#include <Dalton/Platform.h>
 #include <Dalton/Utils.h>
 
 #include <stb/stb_image.h>
@@ -31,6 +32,8 @@ DaltonLensIcon& DaltonLensIcon::instance()
 
 DaltonLensIcon::DaltonLensIcon()
 {
+    // We don't have filesystem on macOS without bumping the deployment target to 10.15 :-(
+#if !PLATFORM_MACOS
     // Include the uid to avoid issues with multiple users.
     fs::path icon_path = fs::temp_directory_path() / (std::string("dalton_lens_tray_icon_") + std::to_string(getuid()) + ".png");
     {
@@ -59,11 +62,14 @@ DaltonLensIcon::DaltonLensIcon()
     {
         _rgba32x32.clear ();
     }
+#endif
 }
 
 DaltonLensIcon::~DaltonLensIcon()
 {
+#if !PLATFORM_MACOS
     fs::remove(_absolute_png_path);
+#endif
 }
 
 } // dl

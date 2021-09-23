@@ -177,6 +177,7 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     if (impl->window == NULL)
         return false;
 
+    // Won't do anything on macOS, we don't even load the file.
     GLFWimage glfwImage;
     glfwImage.pixels = const_cast<unsigned char*>(DaltonLensIcon::instance().rgba32x32());
     if (glfwImage.pixels)

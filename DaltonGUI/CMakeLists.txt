@@ -89,5 +89,7 @@ elseif (UNIX)
         dl # for gl3w
         pthread
         xcb # for clip. FIXME: should use a find_library
+        X11
+        ${APPINDICATOR_LIBRARIES}
     )
 endif()

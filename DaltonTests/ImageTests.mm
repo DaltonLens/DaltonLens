@@ -6,7 +6,6 @@
 
 #import <XCTest/XCTest.h>
 
-#include <Dalton/Simulator.h>
 #include <Dalton/Image.h>
 #include <Dalton/Utils.h>
 

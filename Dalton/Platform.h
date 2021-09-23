@@ -6,6 +6,14 @@
 
 #pragma once
 
+#if __APPLE__
+# include <TargetConditionals.h>
+#endif
+
 #ifdef __linux__
 # define PLATFORM_LINUX 1
+#endif
+
+#if TARGET_OS_OSX
+# define PLATFORM_MACOS 1
 #endif
