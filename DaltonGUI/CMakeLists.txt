@@ -7,11 +7,13 @@ set (deps_SOURCES
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
     ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
     
-    ${IMGUI_DIR}/examples/imgui_impl_opengl3.cpp
-    ${IMGUI_DIR}/examples/imgui_impl_glfw.cpp
-    ${IMGUI_DIR}/examples/libs/gl3w/GL/gl3w.c
-    ${IMGUI_DIR}/examples/libs/gl3w/GL/gl3w.h
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    
+    ${DEPS_DIR}/gl3w/GL/gl3w.c
+    ${DEPS_DIR}/gl3w/GL/gl3w.h
 )    
 
 if (APPLE)

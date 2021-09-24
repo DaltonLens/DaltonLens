@@ -23,14 +23,13 @@
 #include "GLFWUtils.h"
 
 #include <cstdio>
+#include <unordered_set>
 
 namespace dl
 {
 struct ImguiGLFWWindow::Impl
 {
     ImGuiContext* imGuiContext = nullptr;
-    ImGui_ImplGlfw_Context* imGuiContext_glfw = nullptr;
-    ImGui_ImplOpenGL3_Context* imGuiContext_GL3 = nullptr;
 
     GLFWwindow* window = nullptr;
     bool enabled = false;
@@ -41,6 +40,78 @@ struct ImguiGLFWWindow::Impl
     
     std::string title;
 };
+
+class ImGuiScopedContext
+{
+public:
+    ImGuiScopedContext (GLFWwindow* w)
+    {
+        void* ptr = glfwGetWindowUserPointer(w);
+        ImguiGLFWWindow* window = reinterpret_cast<ImguiGLFWWindow*>(ptr);
+        initialize (window->impl->imGuiContext);
+    }
+    
+    ImGuiScopedContext (ImGuiContext* context)
+    {
+        initialize (context);
+    }
+    
+    void initialize (ImGuiContext* context)
+    {
+        prevContext = ImGui::GetCurrentContext();
+        ImGui::SetCurrentContext (context);
+    }
+    
+    ~ImGuiScopedContext ()
+    {
+        ImGui::SetCurrentContext(prevContext);
+    }
+    
+private:
+    ImGuiContext* prevContext;
+};
+
+// Singleton class to keep track of all the contexts.
+class ImGuiContextTracker
+{
+public:
+    static ImGuiContextTracker* instance() { static ImGuiContextTracker v; return &v; }
+    
+public:
+    void addContext (ImGuiContext* context) { _contexts.insert (context); }
+    void removeContext (ImGuiContext* context) { _contexts.erase (context); }
+    const std::unordered_set<ImGuiContext*>& contexts () const { return _contexts; }
+    
+private:
+    ImGuiContextTracker () = default;
+    
+private:
+    std::unordered_set<ImGuiContext*> _contexts;
+};
+
+namespace {
+// Forward all the events to the imgui backend, but first making sure that the right ImGui context is set.
+void dl_glfw_WindowFocusCallback(GLFWwindow* w, int focused) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_WindowFocusCallback (w, focused); }
+void dl_glfw_CursorEnterCallback(GLFWwindow* w, int entered) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_CursorEnterCallback (w, entered); }
+void dl_glfw_MouseButtonCallback(GLFWwindow* w, int button, int action, int mods) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_MouseButtonCallback (w, button, action, mods); }
+void dl_glfw_ScrollCallback(GLFWwindow* w, double xoffset, double yoffset) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_ScrollCallback (w, xoffset, yoffset); }
+void dl_glfw_KeyCallback(GLFWwindow* w, int key, int scancode, int action, int mods) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_KeyCallback (w, key, scancode, action, mods); }
+void dl_glfw_CharCallback(GLFWwindow* w, unsigned int c) { ImGuiScopedContext _ (w); ImGui_ImplGlfw_CharCallback (w, c); }
+
+// We need to make sure that all the ImGui contexts will get the monitor update info
+void dl_glfw_MonitorCallback(GLFWmonitor* m, int event)
+{
+    ImGuiContextTracker* tracker = ImGuiContextTracker::instance();
+    ImGuiContext* prevContext = ImGui::GetCurrentContext();
+    for (auto* context : tracker->contexts())
+    {
+        ImGui::SetCurrentContext(context);
+        ImGui_ImplGlfw_MonitorCallback (m, event);
+    }
+    ImGui::SetCurrentContext(prevContext);
+}
+
+} // anonymous
 
 ImguiGLFWWindow::ImguiGLFWWindow()
 : impl (new Impl())
@@ -143,6 +214,7 @@ void ImguiGLFWWindow::shutdown()
         // Cleanup
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
+        ImGuiContextTracker::instance()->removeContext(impl->imGuiContext);
         ImGui::DestroyContext(impl->imGuiContext);
         impl->imGuiContext = nullptr;
 
@@ -189,10 +261,16 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     
     glfwSetWindowPos(impl->window, geometry.origin.x, geometry.origin.y);
 
-    // glfwSetWindowUserPointer(impl->window, this);
-    // glfwSetWindowPosCallback(impl->window, [](GLFWwindow* w, int x, int y) { 
-    //     reinterpret_cast<ImGuiGLFWWindow*>(glfwGetWindowUserPointer(w))->impl->windowPosCallback (w, h)
-    // });
+    glfwSetWindowUserPointer(impl->window, this);
+    {
+        glfwSetWindowFocusCallback(impl->window, dl_glfw_WindowFocusCallback);
+        glfwSetCursorEnterCallback(impl->window, dl_glfw_CursorEnterCallback);
+        glfwSetMouseButtonCallback(impl->window, dl_glfw_MouseButtonCallback);
+        glfwSetScrollCallback(impl->window,      dl_glfw_ScrollCallback);
+        glfwSetKeyCallback(impl->window,         dl_glfw_KeyCallback);
+        glfwSetCharCallback(impl->window,        dl_glfw_CharCallback);
+        glfwSetMonitorCallback(dl_glfw_MonitorCallback);
+    }
 
     glfwMakeContextCurrent(impl->window);
     
@@ -204,6 +282,7 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     impl->imGuiContext = ImGui::CreateContext();
+    ImGuiContextTracker::instance()->addContext(impl->imGuiContext);
     ImGui::SetCurrentContext(impl->imGuiContext);
     
     // FIXME: temporarily keeping the viewport setting.
@@ -214,14 +293,11 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
 
-    impl->imGuiContext_glfw = ImGui_ImplGlfw_CreateContext();
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    
-    impl->imGuiContext_GL3 = ImGui_ImplOpenGL3_CreateContext();
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
-    
     // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(impl->window, true);
+    ImGui_ImplGlfw_InitForOpenGL(impl->window,
+                                 false /* do NOT install callbacks,
+                                        we'll forward manually to properly handle multiple contexts
+                                        */);
     ImGui_ImplOpenGL3_Init(glslVersion());
     
     return true;
@@ -261,16 +337,12 @@ static void TextURL( const char* name_, const char* URL_, bool SameLineBefore_, 
 void ImguiGLFWWindow::enableContexts ()
 {
     ImGui::SetCurrentContext(impl->imGuiContext);
-    ImGui_ImplGlfw_SetCurrentContext(impl->imGuiContext_glfw);
-    ImGui_ImplOpenGL3_SetCurrentContext(impl->imGuiContext_GL3);
     glfwMakeContextCurrent(impl->window);
 }
 
 void ImguiGLFWWindow::disableContexts ()
 {
     ImGui::SetCurrentContext(nullptr);
-    ImGui_ImplGlfw_SetCurrentContext(nullptr);
-    ImGui_ImplOpenGL3_SetCurrentContext(nullptr);
 }
 
 ImguiGLFWWindow::FrameInfo ImguiGLFWWindow::beginFrame ()

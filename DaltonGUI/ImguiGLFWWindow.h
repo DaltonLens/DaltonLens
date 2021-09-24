@@ -66,6 +66,7 @@ private:
     struct Impl;
     friend struct Impl;
     std::unique_ptr<Impl> impl;
+    friend class ImGuiScopedContext;
 };
 
 } // dl

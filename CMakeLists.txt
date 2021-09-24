@@ -74,8 +74,8 @@ set (DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 set (IMGUI_DIR "${DEPS_DIR}/imgui")
 include_directories(
     ${IMGUI_DIR} 
-    ${IMGUI_DIR}/examples 
-    ${IMGUI_DIR}/examples/libs/gl3w
+    ${IMGUI_DIR}/backends 
+    ${DEPS_DIR}/gl3w
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

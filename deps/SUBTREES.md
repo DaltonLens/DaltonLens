@@ -3,3 +3,6 @@ git subtree pull --prefix deps/imgui https://github.com/ocornut/imgui.git dockin
 
 Tray Jul 31, 2018 - 8dd1358
 https://github.com/zserge/tray.git
+
+deps/gl3w taken from Imgui 1.83, before they removed it.
+
