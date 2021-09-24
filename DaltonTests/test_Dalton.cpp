@@ -14,7 +14,7 @@ using namespace dl;
 
 UTEST(Image, BasicRGBA)
 {
-    ImageSRGBA im1(639, 479);
+    ImageSRGBA im1(639, 480);
     std::fill(im1.atRowPtr(0), im1.atRowPtr(480), PixelSRGBA(255, 127, 63, 31));
 
     ASSERT_TRUE(im1(320, 240) == PixelSRGBA(255, 127, 63, 31));
@@ -34,13 +34,14 @@ UTEST(Image, BasicRGBA)
     im3.ensureAllocatedBufferForSize(639, 479);
     ASSERT_EQ(im3.data(), prevData);
 
-    // Still equal since padding should compensate.
-    // FIXME: this test is actually failing! What should we do?
+    // Expected to still be equal since padding should have allocated 640 pixels on each row
+    // in the first place.
     im3.ensureAllocatedBufferForSize(640, 480);
     ASSERT_EQ(im3.data(), prevData);
 
     im3.ensureAllocatedBufferForSize(641, 480);
     // This test is actually not guaranteed, since the OS might very well reuse the same address.
+    // This actually tends to happen on macOS.
     // XCTAssert(im3.data() != prevData);
     im3(640, 479) = PixelSRGBA(255, 255, 63, 31);
     ASSERT_TRUE(im3(640, 479) == PixelSRGBA(255, 255, 63, 31));
