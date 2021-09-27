@@ -8,7 +8,7 @@
 
 #include "HighlightSimilarColor.h"
 
-#include <DaltonGUI/Graphics.h>
+#include <Dalton/OpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
@@ -26,102 +26,6 @@
 namespace dl
 {
 
-struct HighlightRegionShader::Impl
-{
-    Params currentParams;
-
-    GLShader highlightSameColorShader;
-    GLuint attribLocationRefColor = 0;
-    GLuint attribLocationDeltaH = 0;
-    GLuint attribLocationDeltaS = 0;
-    GLuint attribLocationDeltaV = 0;
-    GLuint attribLocationFrameCount = 0;
-};
-
-HighlightRegionShader::HighlightRegionShader()
-    : impl(new Impl())
-{
-}
-
-HighlightRegionShader::~HighlightRegionShader() = default;
-
-void HighlightRegionShader::initializeGL(const char *glslVersion)
-{
-    const GLchar *fragmentShader_highlightSameColor = R"(
-            uniform sampler2D Texture;
-            uniform vec3 u_refColor;
-            uniform float u_deltaH_360;
-            uniform float u_deltaS_100;
-            uniform float u_deltaV_255;
-            uniform int u_frameCount;
-            in vec2 Frag_UV;
-            in vec4 Frag_Color;
-            out vec4 Out_Color;
-        
-            bool checkHSVDelta(vec3 hsv1, vec3 hsv2)
-            {
-                vec3 diff = abs(hsv1 - hsv2);
-                diff.x = min (diff.x, 1.0-diff.x); // h is modulo 360º
-                return (diff.x*360.0    < u_deltaH_360
-                        && diff.y*100.0 < u_deltaS_100
-                        && diff.z*255.0 < u_deltaV_255);
-            }
-        
-            void main()
-            {
-                vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-                vec3 hsv = HSVFromSRGB(srgba.rgb);                
-                vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
-                
-                bool isSame = checkHSVDelta(ref_hsv, hsv);
-                                
-                float t = u_frameCount;
-                float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1
-                float timeWeightedIntensity = timeWeight;
-                hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
-        
-                vec4 transformedSRGB = sRGBAFromHSV(hsv, 1.0);
-                Out_Color = transformedSRGB;
-            }
-        )";
-
-    impl->highlightSameColorShader.initialize("Highlight Same Color", glslVersion, nullptr, fragmentShader_highlightSameColor);
-    GLuint shaderHandle = impl->highlightSameColorShader.shaderHandle();
-
-    impl->attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
-    impl->attribLocationDeltaH = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaH_360");
-    impl->attribLocationDeltaS = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaS_100");
-    impl->attribLocationDeltaV = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaV_255");
-    impl->attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
-
-    impl->highlightSameColorShader.setExtraUserCallback([this](GLShader &shader)
-                                                        {
-                                                            glUniform3f(impl->attribLocationRefColor, impl->currentParams.activeColorRGB01.x, impl->currentParams.activeColorRGB01.y, impl->currentParams.activeColorRGB01.z);
-                                                            glUniform1f(impl->attribLocationDeltaH, impl->currentParams.deltaH_360);
-                                                            glUniform1f(impl->attribLocationDeltaS, impl->currentParams.deltaS_100);
-                                                            glUniform1f(impl->attribLocationDeltaV, impl->currentParams.deltaV_255);
-                                                            glUniform1i(impl->attribLocationFrameCount, impl->currentParams.frameCount / 2);
-                                                        });
-}
-
-void HighlightRegionShader::enableShader(const Params& params)
-{
-    impl->currentParams = params;
-    if (impl->currentParams.hasActiveColor)
-        impl->highlightSameColorShader.enable();
-}
-
-void HighlightRegionShader::disableShader()
-{
-    if (impl->currentParams.hasActiveColor)
-        impl->highlightSameColorShader.disable();
-}
-
-} // dl
-
-namespace dl
-{
-
 void HighlightRegionState::updateFrameCount ()
 {
     mutableData.shaderParams.frameCount = ImGui::GetFrameCount();
@@ -130,7 +34,7 @@ void HighlightRegionState::updateFrameCount ()
 void HighlightRegionState::clearSelection()
 {
     mutableData.shaderParams.hasActiveColor = false;
-    mutableData.shaderParams.activeColorRGB01 = ImVec4(0, 0, 0, 1);
+    mutableData.shaderParams.activeColorRGB01 = vec4d(0, 0, 0, 1);
     _selectedPixel = dl::vec2i(-1, -1);
 }
 

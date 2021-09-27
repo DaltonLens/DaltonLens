@@ -6,7 +6,6 @@
 
 #include "ImageViewerControlsWindow.h"
 
-#include <DaltonGUI/Graphics.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 #include <DaltonGUI/ImageViewerWindow.h>

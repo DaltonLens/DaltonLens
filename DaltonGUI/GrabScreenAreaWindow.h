@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <DaltonGUI/Graphics.h>
+#include <Dalton/OpenGL.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 
 #include <Dalton/Image.h>

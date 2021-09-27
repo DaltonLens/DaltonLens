@@ -89,6 +89,15 @@ namespace dl
         return lhs.x == rhs.x && lhs.y == rhs.y;
     }
 
+    struct vec4d
+    {
+        vec4d (double x = 0., double y = 0., double z = 0., double w = 0.) : x(x), y(y), z(z), w(w) {}
+        
+        union {
+            double v[4];
+            struct { double x, y, z, w; };
+        };
+    };
     struct Point
     {
         Point() = default;

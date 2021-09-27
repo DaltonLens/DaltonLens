@@ -10,10 +10,7 @@ set (deps_SOURCES
     ${IMGUI_DIR}/imgui_tables.cpp
     
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-    
-    ${DEPS_DIR}/gl3w/GL/gl3w.c
-    ${DEPS_DIR}/gl3w/GL/gl3w.h
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp    
 )    
 
 if (APPLE)
@@ -43,12 +40,12 @@ set (daltonGUI_SOURCES
     GrabScreenAreaWindow.h
     GLFWUtils.h
     GLFWUtils.cpp
-    Graphics.cpp
-    Graphics.h
     HighlightSimilarColor.h
     HighlightSimilarColor.cpp
     ImguiGLFWWindow.h
     ImguiGLFWWindow.cpp
+    ImguiOpenGL.cpp
+    ImguiOpenGL.h
     HelpWindow.cpp
     HelpWindow.h
     ImageViewerControlsWindow.cpp

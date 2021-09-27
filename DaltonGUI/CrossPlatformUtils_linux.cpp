@@ -7,6 +7,7 @@
 #include "CrossPlatformUtils.h"
 
 #include <Dalton/Utils.h>
+#include <Dalton/OpenGL.h>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_X11 1

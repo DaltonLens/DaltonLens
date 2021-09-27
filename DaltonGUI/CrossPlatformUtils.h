@@ -8,12 +8,14 @@
 
 #include <DaltonGUI/ImguiUtils.h>
 #include <Dalton/Image.h>
-#include "Graphics.h"
+#include <Dalton/OpenGL.h>
 
 struct GLFWwindow;
 
 namespace dl
 {
+
+class GLTexture;
 
 // CrossPlatform APIs
 

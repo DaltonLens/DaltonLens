@@ -10,7 +10,7 @@
 #include "ImageViewerWindowState.h"
 
 #include <DaltonGUI/GrabScreenAreaWindow.h>
-#include <DaltonGUI/Graphics.h>
+#include <DaltonGUI/ImguiOpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/CrossPlatformUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
@@ -26,6 +26,7 @@
 #include <Dalton/Utils.h>
 #include <Dalton/MathUtils.h>
 #include <Dalton/ColorConversion.h>
+#include <Dalton/Filters.h>
 
 // Note: need to include that before GLFW3 for some reason.
 #include <GL/gl3w.h>
@@ -39,100 +40,6 @@
 
 namespace dl
 {
-
-const GLchar *fragmentShader_Normal_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
-        Out_Color = vec4(srgb.r, srgb.g, srgb.b, srgb.a);
-    }
-)";
-
-const GLchar *fragmentShader_FlipRedBlue_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
-        vec3 yCbCr = yCbCrFromSRGBA(srgb);
-        vec3 transformedYCbCr = yCbCr;
-        transformedYCbCr.x = yCbCr.x;
-        transformedYCbCr.y = yCbCr.z;
-        transformedYCbCr.z = yCbCr.y;
-        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
-    }
-)";
-
-const GLchar *fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
-        vec3 yCbCr = yCbCrFromSRGBA(srgb);
-        vec3 transformedYCbCr = yCbCr;
-        transformedYCbCr.x = yCbCr.x;
-        transformedYCbCr.y = -yCbCr.z; // flip Cb
-        transformedYCbCr.z = yCbCr.y;
-        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
-    }
-)";
-
-const GLchar *fragmentShader_DaltonizeV1_Protanope_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-        vec3 lms = lmsFromSRGBA(srgba);
-        vec3 lmsSimulated = applyProtanope(lms);
-        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
-        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
-        Out_Color = srgbaOut;
-    }
-)";
-
-const GLchar *fragmentShader_DaltonizeV1_Deuteranope_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-        vec3 lms = lmsFromSRGBA(srgba);
-        vec3 lmsSimulated = applyDeuteranope(lms);
-        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
-        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
-        Out_Color = srgbaOut;
-    }
-)";
-
-const GLchar *fragmentShader_DaltonizeV1_Tritanope_glsl_130 = R"(
-    uniform sampler2D Texture;
-    in vec2 Frag_UV;
-    in vec4 Frag_Color;
-    out vec4 Out_Color;
-    void main()
-    {
-        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
-        vec3 lms = lmsFromSRGBA(srgba);
-        vec3 lmsSimulated = applyTritanope(lms);
-        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
-        vec4 srgbaOut = daltonizeV1(srgba, srgbaSimulated);
-        Out_Color = srgbaOut;
-    }
-)";
 
 std::string daltonViewerModeName (DaltonViewerMode mode)
 {
@@ -159,8 +66,6 @@ struct ImageViewerWindow::Impl
 
     bool enabled = false;
 
-    HighlightRegionShader highlightRegionShader;
-
     ImageCursorOverlay cursorOverlay;
 
     struct {
@@ -173,14 +78,14 @@ struct ImageViewerWindow::Impl
     } updateAfterContentSwitch;
     
     struct {
-        GLShader normal;
-        GLShader protanope;
-        GLShader deuteranope;
-        GLShader tritanope;
-        GLShader flipRedBlue;
-        GLShader flipRedBlueAndInvertRed;
-    } shaders;
+        Filter_Daltonize daltonize;
+        Filter_FlipRedBlue flipRedBlue;
+        Filter_FlipRedBlue flipRedBlueAndInvertRed;
+        Filter_HighlightSimilarColors highlightSimilarColors;
+    } filters;
     
+    ImguiImageFilter imguiImageFilter;
+
     GLTexture gpuTexture;
     dl::ImageSRGBA im;
     std::string imagePath;
@@ -243,6 +148,21 @@ struct ImageViewerWindow::Impl
     {
         imguiGlfwWindow.setWindowSize(imageWidgetRect.current.size.x + windowBorderSize * 2,
                                       imageWidgetRect.current.size.y + windowBorderSize * 2);
+    }
+
+    GLFilter* filterForMode (DaltonViewerMode modeForThisFrame)
+    {
+        switch (modeForThisFrame)
+        {
+            case DaltonViewerMode::Original:    return nullptr;
+            case DaltonViewerMode::Protanope:   return &filters.daltonize;
+            case DaltonViewerMode::Deuteranope: return &filters.daltonize;
+            case DaltonViewerMode::Tritanope:   return &filters.daltonize;
+            case DaltonViewerMode::FlipRedBlue: return &filters.flipRedBlue;
+            case DaltonViewerMode::FlipRedBlueInvertRed: return &filters.flipRedBlueAndInvertRed;
+            case DaltonViewerMode::HighlightRegions:     return &filters.highlightSimilarColors;
+            default: return nullptr;
+        }
     }
 };
 
@@ -308,14 +228,13 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserve
 
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
     
-    impl->shaders.normal.initialize("Original", glslVersion(), nullptr, fragmentShader_Normal_glsl_130);
-    impl->shaders.protanope.initialize("Daltonize - Protanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Protanope_glsl_130);
-    impl->shaders.deuteranope.initialize("Daltonize - Deuteranope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Deuteranope_glsl_130);
-    impl->shaders.tritanope.initialize("Daltonize - Tritanope", glslVersion(), nullptr, fragmentShader_DaltonizeV1_Tritanope_glsl_130);
-    impl->shaders.flipRedBlue.initialize("Flip Red/Blue", glslVersion(), nullptr, fragmentShader_FlipRedBlue_glsl_130);
-    impl->shaders.flipRedBlueAndInvertRed.initialize("Flip Red/Blue and Invert Red", glslVersion(), nullptr, fragmentShader_FlipRedBlue_InvertRed_glsl_130);
-    
-    impl->highlightRegionShader.initializeGL (glslVersion());
+    impl->filters.daltonize.initializeGL();
+    impl->filters.flipRedBlue.initializeGL();
+    impl->filters.flipRedBlueAndInvertRed.initializeGL();
+    impl->filters.highlightSimilarColors.initializeGL();
+
+    checkGLError ();
+
     impl->gpuTexture.initialize();
     
     return true;
@@ -554,17 +473,34 @@ void ImageViewerWindow::runOnce ()
         if (uv1.y > 1.f) deltaToAdd.y = 1.f-uv1.y;
         uv0 += deltaToAdd;
         uv1 += deltaToAdd;
-        
+    
+        // Set the params of the active filter.
         switch (modeForThisFrame)
         {
-            case DaltonViewerMode::Original: impl->shaders.normal.enable(); break;
-            case DaltonViewerMode::HighlightRegions: impl->highlightRegionShader.enableShader(impl->mutableState.highlightRegion.mutableData.shaderParams); break;
-            case DaltonViewerMode::Protanope: impl->shaders.protanope.enable(); break;
-            case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.enable(); break;
-            case DaltonViewerMode::Tritanope: impl->shaders.tritanope.enable(); break;
-            case DaltonViewerMode::FlipRedBlue: impl->shaders.flipRedBlue.enable(); break;
-            case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.enable(); break;
+            case DaltonViewerMode::HighlightRegions: 
+            {
+                impl->filters.highlightSimilarColors.setParams(impl->mutableState.highlightRegion.mutableData.shaderParams);
+                break;
+            }
+            
+            case DaltonViewerMode::Protanope:
+            case DaltonViewerMode::Deuteranope:
+            case DaltonViewerMode::Tritanope:
+            {
+                Filter_Daltonize::Params params;
+                params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)modeForThisFrame - (int)DaltonViewerMode::Protanope);
+                params.simulateOnly = false;
+                impl->filters.daltonize.setParams (params);
+                break;
+            }
+
             default: break;
+        }
+
+        GLFilter* activeFilter = impl->filterForMode(modeForThisFrame);
+        if (activeFilter)
+        {
+            impl->imguiImageFilter.enable(activeFilter);
         }
         
         const bool imageHasNonMultipleSize = int(impl->imageWidgetRect.current.size.x) % int(impl->imageWidgetRect.normal.size.x) != 0;
@@ -597,18 +533,12 @@ void ImageViewerWindow::runOnce ()
                                                     this);
         }
 
-        switch (modeForThisFrame)
+        // Disable the current filter.
+        if (activeFilter)
         {
-            case DaltonViewerMode::Original: impl->shaders.normal.disable(); break;
-            case DaltonViewerMode::HighlightRegions: impl->highlightRegionShader.disableShader(); break;
-            case DaltonViewerMode::Protanope: impl->shaders.protanope.disable(); break;
-            case DaltonViewerMode::Deuteranope: impl->shaders.deuteranope.disable(); break;
-            case DaltonViewerMode::Tritanope: impl->shaders.tritanope.disable(); break;
-            case DaltonViewerMode::FlipRedBlue: impl->shaders.flipRedBlue.disable(); break;
-            case DaltonViewerMode::FlipRedBlueInvertRed: impl->shaders.flipRedBlueAndInvertRed.disable(); break;
-            default: break;
+            impl->imguiImageFilter.disable();
         }
-        
+
         ImVec2 mousePosInImage (0,0);
         ImVec2 mousePosInTexture (0,0);
         {

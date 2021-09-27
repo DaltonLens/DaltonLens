@@ -6,7 +6,6 @@
 
 #include "GrabScreenAreaWindow.h"
 
-#include "Graphics.h"
 #include "CrossPlatformUtils.h"
 
 #include <Dalton/Utils.h>

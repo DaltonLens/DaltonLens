@@ -6,10 +6,10 @@
 
 #include "ImguiGLFWWindow.h"
 
-#include <DaltonGUI/Graphics.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/DaltonLensIcon.h>
 
+#include <Dalton/OpenGL.h>
 #include <Dalton/Utils.h>
 
 #include "CrossPlatformUtils.h"

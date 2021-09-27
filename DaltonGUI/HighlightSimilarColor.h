@@ -7,37 +7,12 @@
 #pragma once
 
 #include <Dalton/Image.h>
+#include <Dalton/Filters.h>
 
 #include "imgui.h"
 
 namespace dl
 {
-
-class HighlightRegionShader
-{
-public:
-    HighlightRegionShader();
-    ~HighlightRegionShader();
-
-    struct Params
-    {
-        bool hasActiveColor = false;
-        ImVec4 activeColorRGB01 = ImVec4(0,0,0,1);
-        float deltaH_360 = NAN; // within [0,360º]
-        float deltaS_100 = NAN; // within [0,100%]
-        float deltaV_255 = NAN; // within [0,255]
-        int frameCount = 0;
-    };
-
-    void initializeGL (const char* glslVersion);
-
-    void enableShader (const Params& params);
-    void disableShader ();
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> impl;
-};
 
 class HighlightRegionState
 {
@@ -45,7 +20,7 @@ public:
     // Can access these guys directly, but may need to call updateDeltas after changing them.
     struct MutableData
     {
-        HighlightRegionShader::Params shaderParams;
+        Filter_HighlightSimilarColors::Params shaderParams;
 
         // H and S within [0,1]. V within [0,255]
         dl::PixelHSV activeColorHSV_1_1_255 = dl::PixelHSV(0, 0, 0);

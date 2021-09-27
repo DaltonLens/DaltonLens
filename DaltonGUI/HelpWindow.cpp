@@ -6,7 +6,7 @@
 
 #include "HelpWindow.h"
 
-#include <DaltonGUI/Graphics.h>
+#include <Dalton/OpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 
