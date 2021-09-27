@@ -250,6 +250,11 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
             renderHighlightRegionControls(viewerState.highlightRegion, false);
         }
 
+        if (viewerModeIsDaltonize(viewerState.currentMode))
+        {
+            ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeShouldSimulateOnly);
+        }
+
         activeImageWindow->checkImguiGlobalImageKeyEvents ();
     }
     ImGui::End();

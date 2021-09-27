@@ -26,10 +26,14 @@ enum class DaltonViewerMode {
 };
 
 std::string daltonViewerModeName (DaltonViewerMode mode);
+
+bool viewerModeIsDaltonize (DaltonViewerMode mode);
+
 struct ImageViewerWindowState
 {
     HighlightRegionState highlightRegion;
     DaltonViewerMode currentMode = DaltonViewerMode::None;
+    bool daltonizeShouldSimulateOnly = false;
 };
 
 } // dl

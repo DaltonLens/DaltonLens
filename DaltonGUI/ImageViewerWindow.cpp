@@ -41,6 +41,20 @@
 namespace dl
 {
 
+bool viewerModeIsDaltonize (DaltonViewerMode mode)
+{
+    switch (mode)
+    {
+        case DaltonViewerMode::Protanope:
+        case DaltonViewerMode::Deuteranope:
+        case DaltonViewerMode::Tritanope:
+        {
+            return true;
+        }
+        default: return false;
+    }
+}
+
 std::string daltonViewerModeName (DaltonViewerMode mode)
 {
     switch (mode)
@@ -250,7 +264,7 @@ void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
     // These key events are valid also in the control window.
     auto& io = ImGui::GetIO();
 
-    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_N, GLFW_KEY_A})
+    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_N, GLFW_KEY_A, GLFW_KEY_SPACE})
     {
         if (ImGui::IsKeyPressed(code))
             processKeyEvent(code);
@@ -319,6 +333,15 @@ void ImageViewerWindow::processKeyEvent (int keycode)
             impl->imageWidgetRect.current.size.x *= 2.f;
             impl->imageWidgetRect.current.size.y *= 2.f;
             impl->shouldUpdateWindowSize = true;
+            break;
+        }
+
+        case GLFW_KEY_SPACE:
+        {
+            if (viewerModeIsDaltonize(impl->mutableState.currentMode))
+            {
+                impl->mutableState.daltonizeShouldSimulateOnly = !impl->mutableState.daltonizeShouldSimulateOnly;
+            }
             break;
         }
     }
@@ -489,7 +512,7 @@ void ImageViewerWindow::runOnce ()
             {
                 Filter_Daltonize::Params params;
                 params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)modeForThisFrame - (int)DaltonViewerMode::Protanope);
-                params.simulateOnly = false;
+                params.simulateOnly = impl->mutableState.daltonizeShouldSimulateOnly;
                 impl->filters.daltonize.setParams (params);
                 break;
             }
