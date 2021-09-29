@@ -8,7 +8,7 @@
 #include <Dalton/MathUtils.h>
 #include <Dalton/Image.h>
 
-#include <DaltonTests/Common.h>
+#include <tests/Common.h>
 
 using namespace dl;
 

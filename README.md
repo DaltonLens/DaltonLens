@@ -1,5 +1,5 @@
-![image](https://img.shields.io/github/workflow/status/DaltonLens/DaltonLens/CMake?label=Linux%20build%20%26%20tests)
-![image](https://img.shields.io/github/workflow/status/DaltonLens/DaltonLens/Xcode%20-%20Build?label=macOS%20build)
+[![CMake Build and Test](https://github.com/DaltonLens/DaltonLens/actions/workflows/cmake_build_and_test.yml/badge.svg)](https://github.com/DaltonLens/DaltonLens/actions/workflows/cmake_build_and_test.yml)
+[![Xcode - Build](https://github.com/DaltonLens/DaltonLens/actions/workflows/xcode.yml/badge.svg)](https://github.com/DaltonLens/DaltonLens/actions/workflows/xcode.yml)
 
 # DaltonLens
 

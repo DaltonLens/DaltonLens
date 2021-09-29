@@ -39,13 +39,11 @@
 		2D7CC5552701F93E0015EFEC /* Filters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D7CC54F2701F93E0015EFEC /* Filters.cpp */; };
 		2D7CC5562701F93E0015EFEC /* Filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D7CC5502701F93E0015EFEC /* Filters.h */; };
 		2D7CC5572701F93F0015EFEC /* OpenGL_Shaders.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D7CC5512701F93E0015EFEC /* OpenGL_Shaders.cpp */; };
-		2D7CC55A2701F95D0015EFEC /* ImguiOpenGL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D7CC5592701F95D0015EFEC /* ImguiOpenGL.cpp */; };
 		2D7CC55B2701F96F0015EFEC /* gl3w.c in Sources */ = {isa = PBXBuildFile; fileRef = 2D941DD025A0DB23008B6647 /* gl3w.c */; };
 		2D7CC55C2701FA2D0015EFEC /* libglfw3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83AC2517FE4300EB76AD /* libglfw3.a */; };
 		2D7CC55E2701FA420015EFEC /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7CC55D2701FA420015EFEC /* Cocoa.framework */; };
 		2D7F49151F00398600919399 /* ColorConversion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D5A56411D527B0500D5148B /* ColorConversion.cpp */; };
 		2D7F49181F00398600919399 /* Image_macOS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DB2FFD51D46B43C003610D9 /* Image_macOS.cpp */; };
-		2D7F49191F00398600919399 /* Simulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E8991D57CB6E00C9380A /* Simulator.cpp */; };
 		2D7F491A1F00398600919399 /* Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DF3E86E1D57972400C9380A /* Utils.cpp */; };
 		2D7F491C1F0039F000919399 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F491B1F0039F000919399 /* CoreGraphics.framework */; };
 		2D7F491E1F0039F600919399 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F491D1F0039F600919399 /* ImageIO.framework */; };
@@ -192,13 +190,10 @@
 		2D7CC54F2701F93E0015EFEC /* Filters.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Filters.cpp; sourceTree = "<group>"; };
 		2D7CC5502701F93E0015EFEC /* Filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Filters.h; sourceTree = "<group>"; };
 		2D7CC5512701F93E0015EFEC /* OpenGL_Shaders.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = OpenGL_Shaders.cpp; sourceTree = "<group>"; };
-		2D7CC5582701F95D0015EFEC /* ImguiOpenGL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImguiOpenGL.h; sourceTree = "<group>"; };
-		2D7CC5592701F95D0015EFEC /* ImguiOpenGL.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImguiOpenGL.cpp; sourceTree = "<group>"; };
 		2D7CC55D2701FA420015EFEC /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		2D7F490C1F00381C00919399 /* libDalton.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libDalton.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D7F491B1F0039F000919399 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		2D7F491D1F0039F600919399 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
-		2D8070311D5A6C7A003CC8EB /* Common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Common.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		2D8E03431F2E5EFC00FE96A3 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
 		2D941C5425A0DA99008B6647 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
 		2D941C5525A0DA99008B6647 /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
@@ -251,8 +246,6 @@
 		2DEC11021DC684970095C4A0 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		2DF3E86E1D57972400C9380A /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Utils.cpp; sourceTree = "<group>"; };
 		2DF3E86F1D57972400C9380A /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
-		2DF3E8991D57CB6E00C9380A /* Simulator.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; lineEnding = 0; path = Simulator.cpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
-		2DF3E89A1D57CB6E00C9380A /* Simulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = Simulator.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 		2DF3E89D1D57CC8600C9380A /* MathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MathUtils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -335,8 +328,6 @@
 				2D941C3C25A0DA99008B6647 /* imgui */,
 				2DA1F5C526F3C60700928A4E /* ImguiGLFWWindow.cpp */,
 				2DA1F5C326F3C60700928A4E /* ImguiGLFWWindow.h */,
-				2D7CC5592701F95D0015EFEC /* ImguiOpenGL.cpp */,
-				2D7CC5582701F95D0015EFEC /* ImguiOpenGL.h */,
 				2D19734F2532F1AE00D1FBD4 /* ImguiUtils.h */,
 			);
 			name = DaltonGUI;
@@ -378,14 +369,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		2D5FD3F01F003CDF008305C3 /* DaltonTests */ = {
+		2D5FD3F01F003CDF008305C3 /* tests */ = {
 			isa = PBXGroup;
 			children = (
 				2DB2FFD81D4736D5003610D9 /* ImageTests.mm */,
 				2D5FD3F31F003CDF008305C3 /* Info.plist */,
 			);
-			name = DaltonTests;
-			path = ../../DaltonTests;
+			name = tests;
+			path = ../../tests;
 			sourceTree = "<group>";
 		};
 		2D7F490D1F00381C00919399 /* Dalton */ = {
@@ -394,7 +385,6 @@
 				2D941DCE25A0DB23008B6647 /* gl3w */,
 				2D5A56411D527B0500D5148B /* ColorConversion.cpp */,
 				2D5A56421D527B0500D5148B /* ColorConversion.h */,
-				2D8070311D5A6C7A003CC8EB /* Common.h */,
 				2D7CC54F2701F93E0015EFEC /* Filters.cpp */,
 				2D7CC5502701F93E0015EFEC /* Filters.h */,
 				2DB2FFD51D46B43C003610D9 /* Image_macOS.cpp */,
@@ -405,8 +395,6 @@
 				2D7CC54D2701F93E0015EFEC /* OpenGL.cpp */,
 				2D7CC54E2701F93E0015EFEC /* OpenGL.h */,
 				2DA1F5D226FCFE7500928A4E /* Platform.h */,
-				2DF3E8991D57CB6E00C9380A /* Simulator.cpp */,
-				2DF3E89A1D57CB6E00C9380A /* Simulator.h */,
 				2DF3E86E1D57972400C9380A /* Utils.cpp */,
 				2DF3E86F1D57972400C9380A /* Utils.h */,
 			);
@@ -486,12 +474,12 @@
 		2DCBB8CA1D3BEAA60035D461 = {
 			isa = PBXGroup;
 			children = (
-				2D1973392532DBFD00D1FBD4 /* DaltonGUI */,
 				2D28D1401F7C552D00BD8040 /* LICENSE */,
 				2D28D13E1F7C523D00BD8040 /* README.md */,
+				2D1973392532DBFD00D1FBD4 /* DaltonGUI */,
 				2DCBB8D51D3BEAA60035D461 /* DaltonLens */,
 				2D7F490D1F00381C00919399 /* Dalton */,
-				2D5FD3F01F003CDF008305C3 /* DaltonTests */,
+				2D5FD3F01F003CDF008305C3 /* tests */,
 				2DCBB8D41D3BEAA60035D461 /* Products */,
 				2DA18B741E92E7D2001B1CAD /* Frameworks */,
 				2D4C76DC1E77404F00DCBBB7 /* DaltonLensLaunchAtLoginHelper.xcodeproj */,
@@ -727,7 +715,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2D7F49181F00398600919399 /* Image_macOS.cpp in Sources */,
-				2D7F49191F00398600919399 /* Simulator.cpp in Sources */,
 				2D7F49151F00398600919399 /* ColorConversion.cpp in Sources */,
 				2D7CC5552701F93E0015EFEC /* Filters.cpp in Sources */,
 				2D7CC55B2701F96F0015EFEC /* gl3w.c in Sources */,
@@ -750,7 +737,6 @@
 			files = (
 				2D941D3E25A0DA99008B6647 /* imgui.cpp in Sources */,
 				2D941DA825A0DA99008B6647 /* imgui_impl_glfw.cpp in Sources */,
-				2D7CC55A2701F95D0015EFEC /* ImguiOpenGL.cpp in Sources */,
 				2D941D8725A0DA99008B6647 /* imgui_impl_opengl3.cpp in Sources */,
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
 				2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */,
@@ -1096,7 +1082,6 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MARKETING_VERSION = 2.0;
-				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "DaltonLens-Bridging-Header.h";

@@ -7,12 +7,12 @@ endif()
 set (dalton_deps_sources
     ${DEPS_DIR}/gl3w/GL/gl3w.c
     ${DEPS_DIR}/gl3w/GL/gl3w.h
+    ${DEPS_DIR}/stb/stb_impl.cpp
 )
 
 add_library(dalton 
     ColorConversion.cpp
     ColorConversion.h
-    Common.h
     Filters.h
     Filters.cpp
     Image.h    
@@ -22,8 +22,6 @@ add_library(dalton
     OpenGL_Shaders.h
     OpenGL_Shaders.cpp
     Platform.h
-    Simulator.cpp
-    Simulator.h
     Utils.cpp
     Utils.h
     ${dalton_platform_specific_sources}

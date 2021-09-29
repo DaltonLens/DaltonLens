@@ -143,37 +143,31 @@ const char* commonFragmentLibrary = R"(
 )";
 
 const char* defaultVertexShader_glsl_130 =
-    "uniform mat4 ProjMtx;\n"
     "in vec2 Position;\n"
     "in vec2 UV;\n"
-    "in vec4 Color;\n"
     "out vec2 Frag_UV;\n"
-    "out vec4 Frag_Color;\n"
     "void main()\n"
     "{\n"
     "    Frag_UV = UV;\n"
-    "    Frag_Color = Color;\n"
-    "    gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+    "    gl_Position = vec4(Position.xy, 0, 1);\n"
     "}\n";
     
 const char* defaultFragmentShader_glsl_130 =
     "uniform sampler2D Texture;\n"
     "in vec2 Frag_UV;\n"
-    "in vec4 Frag_Color;\n"
     "out vec4 Out_Color;\n"
     "void main()\n"
     "{\n"
-    "    Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+    "    Out_Color = texture(Texture, Frag_UV.st);\n"
     "}\n";
 
 const char* fragmentShader_Normal_glsl_130 = R"(
     uniform sampler2D Texture;
     in vec2 Frag_UV;
-    in vec4 Frag_Color;
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        vec4 srgb = texture(Texture, Frag_UV.st);
         Out_Color = vec4(srgb.r, srgb.g, srgb.b, srgb.a);
     }
 )";
@@ -181,11 +175,10 @@ const char* fragmentShader_Normal_glsl_130 = R"(
 const char* fragmentShader_FlipRedBlue_glsl_130 = R"(
     uniform sampler2D Texture;
     in vec2 Frag_UV;
-    in vec4 Frag_Color;
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        vec4 srgb = texture(Texture, Frag_UV.st);
         vec3 yCbCr = yCbCrFromSRGBA(srgb);
         vec3 transformedYCbCr = yCbCr;
         transformedYCbCr.x = yCbCr.x;
@@ -198,11 +191,10 @@ const char* fragmentShader_FlipRedBlue_glsl_130 = R"(
 const char* fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
     uniform sampler2D Texture;
     in vec2 Frag_UV;
-    in vec4 Frag_Color;
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgb = Frag_Color * texture(Texture, Frag_UV.st);
+        vec4 srgb = texture(Texture, Frag_UV.st);
         vec3 yCbCr = yCbCrFromSRGBA(srgb);
         vec3 transformedYCbCr = yCbCr;
         transformedYCbCr.x = yCbCr.x;
@@ -217,11 +209,10 @@ const char* fragmentShader_DaltonizeV1_glsl_130 = R"(
     uniform int u_kind;
     uniform bool u_simulateOnly;
     in vec2 Frag_UV;
-    in vec4 Frag_Color;
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+        vec4 srgba = texture(Texture, Frag_UV.st);
         vec3 lms = lmsFromSRGBA(srgba);
         vec3 lmsSimulated = vec3(0,1,0);
         switch (u_kind) {
@@ -243,7 +234,6 @@ const char* fragmentShader_highlightSameColor = R"(
     uniform float u_deltaV_255;
     uniform int u_frameCount;
     in vec2 Frag_UV;
-    in vec4 Frag_Color;
     out vec4 Out_Color;
 
     bool checkHSVDelta(vec3 hsv1, vec3 hsv2)
@@ -257,7 +247,7 @@ const char* fragmentShader_highlightSameColor = R"(
 
     void main()
     {
-        vec4 srgba = Frag_Color * texture(Texture, Frag_UV.st);
+        vec4 srgba = texture(Texture, Frag_UV.st);
         vec3 hsv = HSVFromSRGB(srgba.rgb);                
         vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
         

@@ -14,6 +14,8 @@ namespace dl
 {
 
 struct GLShaderHandles;
+class GLShader;
+class GLTexture;
 
 class GLFilter
 {
@@ -31,6 +33,7 @@ public:
     virtual void enableGLShader ();
     virtual void disableGLShader ();
     const GLShaderHandles &glHandles() const;
+    GLShader* glShader () const;
 
 protected:
     void initializeGL(const char* glslVersionString, const char* vertexShader, const char* fragmentShader);
@@ -38,9 +41,22 @@ protected:
 private:
     struct Impl;
     std::unique_ptr<Impl> impl;
+};
 
-protected:
-    std::string _name;
+class GLFilterProcessor
+{
+public:
+    GLFilterProcessor();
+    ~GLFilterProcessor();
+
+public:
+    void initializeGL ();
+    void render (GLFilter& filter, uint32_t inputTextureId, int width, int height, ImageSRGBA* output = nullptr);
+    GLTexture& filteredTexture();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl;
 };
 
 class Filter_FlipRedBlue : public GLFilter
@@ -76,6 +92,7 @@ public:
 public:
     virtual void initializeGL () override;
     virtual void enableGLShader () override;
+    virtual void applyCPU (const ImageSRGBA& input, ImageSRGBA& output) const override;
 
 private:
     Params _currentParams;

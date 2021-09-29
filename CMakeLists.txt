@@ -90,4 +90,4 @@ if (NOT APPLE)
 endif()
 
 enable_testing()
-add_subdirectory(DaltonTests)
+add_subdirectory(tests)

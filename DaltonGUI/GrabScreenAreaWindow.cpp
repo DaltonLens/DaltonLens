@@ -103,7 +103,6 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
     }
     ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     imguiGlfwWindow.setEnabled (false);
-    dl_dbg ("[GrabScreen] hide window");
 }
 
 GrabScreenAreaWindow::GrabScreenAreaWindow()
@@ -278,7 +277,6 @@ void GrabScreenAreaWindow::runOnce ()
         impl->imguiGlfwWindow.setEnabled (true);
         // Not really needed anymore since we just capture the current desktop once.
         // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow()); 
-        dl_dbg ("[GrabScreen] show window");
         impl->justGotEnabled = false;
     }
 }

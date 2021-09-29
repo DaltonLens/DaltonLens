@@ -278,8 +278,6 @@ struct WindowUnderPointerFinder
 
     void appendCompatibleChildren(std::vector<WindowInfo> &acc, Window parent, const dl::Point& pointer)
     {
-        dl_dbg("appendCompatibleChildren on %ld", parent);
-
         Window root_return = 0;
         Window parent_return = 0;
         unsigned int numChildren = 0;
@@ -323,7 +321,6 @@ struct WindowUnderPointerFinder
 
                 if (name_ret)
                 {
-                    dl_dbg("Adding window %s (%ld)", name_ret, child);
                     WindowInfo info;
                     info.w = child;
                     info.rect = rect;

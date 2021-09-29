@@ -9,4 +9,7 @@ function (add_dl_test)
     target_link_libraries("${ARGV0}" daltonGUI)
 endfunction()
 
-add_dl_test (test_Dalton)
+add_definitions(-DTEST_IMAGES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/images/")
+
+add_dl_test (test_Utils)
+add_dl_test (test_Filters)

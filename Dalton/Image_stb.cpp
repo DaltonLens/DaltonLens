@@ -15,36 +15,23 @@
 
 namespace dl {
     
-    bool
-    readPngImage (const uint8_t* inputBuffer,
-                  size_t         inputSize,
-                  ImageSRGBA&    outputImage)
-    {
-        assert(false); // not implemented
-        return false;
-    }
-
     bool readPngImage (const std::string& inputFileName, ImageSRGBA& outputImage)
     {
-        std::ifstream f (inputFileName.c_str(), std::ios::binary|std::ios::ate);
-        
-        if (!f.is_open())
+        int width = -1, height = -1, channels = -1;
+        uint8_t* data = stbi_load(inputFileName.c_str(), &width, &height, &channels, 4);
+        if (!data)
         {
-            dl_dbg ("Could not open the file %s: %s", inputFileName.c_str(), strerror(errno));
             return false;
         }
-        
-        std::ifstream::pos_type fileSizeInBytes = f.tellg();
-        std::vector<char> result(fileSizeInBytes);
-        f.seekg(0, std::ios::beg);
-        f.read(reinterpret_cast<char*>(result.data()), fileSizeInBytes);        
-        return readPngImage ((const uint8_t*)result.data(), fileSizeInBytes, outputImage);
+
+        outputImage.ensureAllocatedBufferForSize (width, height);
+        outputImage.copyDataFrom (data, width*4, width, height);
+        return true;
     }
     
     bool writePngImage (const std::string& filePath, const ImageSRGBA& image)
     {
-        assert(false); // not implemented
-        return false;
+        return stbi_write_png(filePath.c_str(), image.width(), image.height(), 4, image.data(), image.bytesPerRow());
     }
     
 } // dl

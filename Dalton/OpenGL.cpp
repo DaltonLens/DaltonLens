@@ -6,6 +6,7 @@
 
 #include "OpenGL.h"
 
+#include <Dalton/Platform.h>
 #include <Dalton/Utils.h>
 #include <Dalton/OpenGL_Shaders.h>
 
@@ -13,6 +14,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
+#include <array>
 
 namespace dl
 {
@@ -26,7 +28,7 @@ void checkGLError ()
 const char* glslVersion()
 {
     // Decide GL+GLSL versions
-#if __APPLE__
+#if PLATFORM_MACOS
     // GL 3.2 + GLSL 150
     return "#version 150";
 #else
@@ -119,23 +121,23 @@ void GLShader::initialize(const char* glslVersionString, const char* vertexShade
     _glHandles.shaderHandle = glCreateProgram();
     glAttachShader(_glHandles.shaderHandle, _glHandles.vertHandle);
     glAttachShader(_glHandles.shaderHandle, _glHandles.fragHandle);
+    glBindAttribLocation(_glHandles.shaderHandle, (GLuint)Attribute::VertexPos,    "Position");
+    glBindAttribLocation(_glHandles.shaderHandle, (GLuint)Attribute::VertexNormal, "Normal");
+    glBindAttribLocation(_glHandles.shaderHandle, (GLuint)Attribute::VertexUV,     "UV");
+    glBindAttribLocation(_glHandles.shaderHandle, (GLuint)Attribute::VertexColor,  "Color");
     glLinkProgram(_glHandles.shaderHandle);
     gl_checkProgram(_glHandles.shaderHandle, "shader program", glslVersionString);
-    
-    _glHandles.attribLocationTex = glGetUniformLocation(_glHandles.shaderHandle, "Texture");
-    _glHandles.attribLocationProjMtx = glGetUniformLocation(_glHandles.shaderHandle, "ProjMtx");
-    _glHandles.attribLocationVtxPos = (GLuint)glGetAttribLocation(_glHandles.shaderHandle, "Position");
-    _glHandles.attribLocationVtxUV = (GLuint)glGetAttribLocation(_glHandles.shaderHandle, "UV");
-    _glHandles.attribLocationVtxColor = (GLuint)glGetAttribLocation(_glHandles.shaderHandle, "Color");
-    
+
+    _glHandles.textureUniformLocation = glGetUniformLocation(_glHandles.shaderHandle, "Texture");
     checkGLError();
 }
 
-void GLShader::enable ()
+void GLShader::enable (int32_t textureId)
 {
     dl_assert (_glHandles.shaderHandle != 0, "Forgot to call initialize()?");
     glGetIntegerv(GL_CURRENT_PROGRAM, &impl->prevHandle);
     glUseProgram (_glHandles.shaderHandle);
+    glUniform1i (_glHandles.textureUniformLocation, textureId);
 }
 
 void GLShader::disable ()
@@ -158,12 +160,14 @@ GLTexture::~GLTexture()
     releaseGL();
 }
 
-void GLTexture::initializeWithExistingTextureID(uint32_t textureId)
+void GLTexture::initializeWithExistingTextureID(uint32_t textureId, int width, int height)
 {
     if (_textureId != 0)
         releaseGL();
 
     _textureId = textureId;
+    _width = width;
+    _height = height;
 
     GLint prevTexture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
@@ -194,6 +198,19 @@ void GLTexture::initialize()
     glBindTexture(GL_TEXTURE_2D, prevTexture);
 }
 
+void GLTexture::ensureAllocatedForRGBA (int width, int height)
+{
+    GLint prevTexture;
+    glGetIntegerv (GL_TEXTURE_BINDING_2D, &prevTexture);
+        
+    glBindTexture(GL_TEXTURE_2D, _textureId);
+    _width = width;
+    _height = height;
+    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+    glBindTexture (GL_TEXTURE_2D, prevTexture);
+}
+
 void GLTexture::upload(const dl::ImageSRGBA& im)
 {
     GLint prevTexture;
@@ -203,6 +220,9 @@ void GLTexture::upload(const dl::ImageSRGBA& im)
     glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)(im.bytesPerRow() / im.bytesPerPixel()));
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, im.width(), im.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
+    _width = im.width();
+    _height = im.height();
 
     glBindTexture(GL_TEXTURE_2D, prevTexture);
 }
@@ -240,6 +260,13 @@ struct GLContext::Impl
 GLContext::GLContext(GLContext* parentContext)
 : impl (new Impl ())
 {
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);    
+#if PLATFORM_MACOS
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+#endif
+
     GLFWwindow* parentWindow = parentContext ? parentContext->impl->window : nullptr;
     glfwWindowHint(GLFW_VISIBLE, false);
     impl->window = glfwCreateWindow (16, 16, "offscreen context", nullptr, parentWindow);
@@ -260,6 +287,188 @@ void GLContext::makeCurrent ()
 void GLContext::setCurrentToNull ()
 {
     glfwMakeContextCurrent (nullptr);
+}
+
+} // dl
+
+// --------------------------------------------------------------------------------
+// GLFrameBuffer
+// --------------------------------------------------------------------------------
+
+namespace dl 
+{
+
+struct GLFrameBuffer::Impl
+{
+    bool fboInitialized = false;
+    GLuint fbo = 0;
+    // GLuint rbo = 0;
+    GLuint rbo_depth = 0;
+    GLint fboBeforeEnabled = 0;
+
+    GLTexture outputColorTexture;
+};
+
+GLFrameBuffer::GLFrameBuffer ()
+: impl (new Impl())
+{}
+
+GLFrameBuffer::~GLFrameBuffer ()
+{
+    if (impl->fboInitialized)
+    {
+        glDeleteFramebuffers(1, &impl->fbo);
+        // glDeleteRenderbuffers(1, &impl->rbo);
+        glDeleteRenderbuffers(1, &impl->rbo_depth);
+    }
+}
+
+GLTexture& GLFrameBuffer::outputColorTexture ()
+{
+    return impl->outputColorTexture;
+}
+
+void GLFrameBuffer::enable(int width, int height)
+{
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &impl->fboBeforeEnabled);
+
+    if (!impl->fboInitialized)
+    {
+        glGenFramebuffers(1, &impl->fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, impl->fbo);
+        
+        glGenRenderbuffers(1, &impl->rbo_depth);
+        // glGenRenderbuffers(1, &impl->rbo);
+        impl->outputColorTexture.initialize ();
+
+        impl->fboInitialized = true;
+    }
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, impl->fbo);     
+
+    if (impl->outputColorTexture.width() != width || impl->outputColorTexture.height() != height)
+    {
+        // We should not need a RBO for the color attachment anymore, the texture should be enough.
+        // glBindRenderbuffer(GL_RENDERBUFFER, impl->rbo);
+        // glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, width, height);
+        // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, impl->rbo);
+
+        impl->outputColorTexture.ensureAllocatedForRGBA (width, height);
+        glBindTexture(GL_TEXTURE_2D, impl->outputColorTexture.textureId());
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, impl->outputColorTexture.textureId(), 0);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, impl->rbo_depth);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, impl->rbo_depth);
+        
+        dl_assert (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "FB creation failed.");
+    }
+
+    glViewport(0,0,width,height);
+}
+
+void GLFrameBuffer::disable()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, impl->fboBeforeEnabled); 
+    impl->fboBeforeEnabled = 0;
+}
+
+void GLFrameBuffer::downloadBuffer(ImageSRGBA& output) const
+{
+    output.ensureAllocatedBufferForSize (impl->outputColorTexture.width(), impl->outputColorTexture.height());
+    glPixelStorei (GL_UNPACK_ROW_LENGTH, GLint(output.bytesPerRow() / output.bytesPerPixel()));
+    glReadPixels(0, 0,
+                 impl->outputColorTexture.width(), impl->outputColorTexture.height(),
+                 GL_RGBA,
+                 GL_UNSIGNED_BYTE,
+                 output.data());
+    glPixelStorei (GL_UNPACK_ROW_LENGTH, 0);
+}
+
+} // dl
+
+// --------------------------------------------------------------------------------
+// ImageRenderer
+// --------------------------------------------------------------------------------
+
+namespace dl 
+{
+
+struct DrawVert
+{
+    vec2f pos;
+    vec2f uv;
+};
+
+GLImageRenderer::~GLImageRenderer ()
+{
+    if (_vbo)
+    {
+        glDeleteBuffers (1, &_vbo);
+        _vbo = 0;
+    }
+
+    if (_elementbuffer)
+    {
+        glDeleteBuffers (1, &_elementbuffer);
+        _elementbuffer = 0;
+    }
+
+    if (_vao)
+    {
+        glDeleteVertexArrays (1, &_vao);
+        _vao = 0;
+    }
+}
+
+void GLImageRenderer::initializeGL ()
+{
+    glGenBuffers (1, &_vbo);
+    glGenVertexArrays (1, &_vao);
+
+    // OpenGL NDC goes from -1 to 1 so this will cover the full view.
+    // UV coordinates bottomLeft is at (0,0), topRight at (1,1)
+    static std::array<DrawVert, 4> vertices = {
+        DrawVert { {-1,-1}, {0,0} }, // bottom left
+        DrawVert { {-1, 1}, {0,1} }, // top left
+        DrawVert { { 1, 1}, {1,1} }, // top right
+        DrawVert { { 1,-1}, {1,0} }, // bottom right
+    };
+
+    // Setup the layout.
+    glBindBuffer (GL_ARRAY_BUFFER, _vbo);
+    glBufferData (GL_ARRAY_BUFFER, vertices.size () * sizeof (DrawVert), (const GLvoid*)vertices.data (), GL_STATIC_DRAW);
+
+    glBindVertexArray (_vao);
+    glEnableVertexAttribArray ((GLuint)GLShader::Attribute::VertexPos);
+    glEnableVertexAttribArray ((GLuint)GLShader::Attribute::VertexUV);
+    glVertexAttribPointer ((GLuint)GLShader::Attribute::VertexPos, 2, GL_FLOAT, GL_FALSE, sizeof (DrawVert), (GLvoid*)offsetof (DrawVert, pos));
+    glVertexAttribPointer ((GLuint)GLShader::Attribute::VertexUV, 2, GL_FLOAT, GL_FALSE, sizeof (DrawVert), (GLvoid*)offsetof (DrawVert, uv));
+
+    glBindVertexArray (0);
+    glBindBuffer (GL_ARRAY_BUFFER, 0);
+
+    GLubyte indices[] = { 0,1,2, // first triangle (bottom left - top left - top right)
+                          0,2,3 }; // second triangle (bottom left - top right - bottom right)
+    glGenBuffers (1, &_elementbuffer);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, _elementbuffer);
+    glBufferData (GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof (GLubyte), indices, GL_STATIC_DRAW);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    checkGLError ();
+}
+
+void GLImageRenderer::render ()
+{
+    glBindVertexArray (_vao);
+    glBindBuffer (GL_ARRAY_BUFFER, _vbo);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, _elementbuffer);
+
+    glDrawElements (GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0); // uses the GL_ELEMENT_ARRAY_BUFFER
+
+    glBindBuffer (GL_ARRAY_BUFFER, 0);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindVertexArray (0);
 }
 
 } // dl

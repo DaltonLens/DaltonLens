@@ -9,6 +9,7 @@
 #include <Dalton/OpenGL.h>
 #include <Dalton/OpenGL_Shaders.h>
 #include <Dalton/Utils.h>
+#include <Dalton/ColorConversion.h>
 
 #include <gl3w/GL/gl3w.h>
 namespace dl
@@ -31,6 +32,11 @@ void GLFilter::initializeGL(const char *glslVersionString, const char *vertexSha
     impl->shader.initialize (glslVersionString, vertexShader, fragmentShader);
 }
 
+GLShader* GLFilter::glShader () const
+{
+    return &impl->shader;
+}
+
 void GLFilter::enableGLShader()
 {
     impl->shader.enable ();
@@ -49,6 +55,51 @@ const GLShaderHandles& GLFilter::glHandles () const
 void GLFilter::applyCPU (const ImageSRGBA& input, ImageSRGBA& output) const
 {
     dl_assert (false, "unimplemented");
+}
+
+} // dl
+
+// --------------------------------------------------------------------------------
+// GLFilterProcessor
+// --------------------------------------------------------------------------------
+
+namespace dl 
+{
+
+struct GLFilterProcessor::Impl
+{
+    GLFrameBuffer frameBuffer;
+    GLImageRenderer renderer;
+};
+
+GLFilterProcessor::GLFilterProcessor()
+: impl (new Impl())
+{}
+
+GLFilterProcessor::~GLFilterProcessor() = default;
+
+void GLFilterProcessor::initializeGL ()
+{
+    impl->renderer.initializeGL();
+}
+
+void GLFilterProcessor::render (GLFilter& filter, uint32_t inputTextureId, int width, int height, ImageSRGBA* output)
+{
+    impl->frameBuffer.enable(width, height);
+    glBindTexture(GL_TEXTURE_2D, inputTextureId);
+    filter.enableGLShader ();
+    impl->renderer.render ();
+    filter.disableGLShader ();
+    if (output)
+    {
+        impl->frameBuffer.downloadBuffer (*output);
+    }
+    impl->frameBuffer.disable();
+}
+
+GLTexture& GLFilterProcessor::filteredTexture()
+{
+    return impl->frameBuffer.outputColorTexture();
 }
 
 } // dl
@@ -120,6 +171,74 @@ void Filter_Daltonize::enableGLShader ()
     GLFilter::enableGLShader ();
     glUniform1i(_attribLocationKind, static_cast<int>(_currentParams.kind));
     glUniform1i(_attribLocationSimulateOnly, _currentParams.simulateOnly);
+}
+
+void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kind blindness)
+{
+    // From daltonize.py:
+    //        lms2lmsp = [0 2.02344 -2.52581; 0 1 0; 0 0 1] ;
+    //        lms2lmsd = [1 0 0; 0.494207 0 1.24827; 0 0 1] ;
+    //        lms2lmst = [1 0 0; 0 1 0; -0.395913 0.801109 0] ;
+    
+    auto protanope = [](int c, int r, PixelLMS& p) {
+        p.l = /* 0*p.l + */ 2.02344*p.m - 2.52581*p.s;
+    };
+    
+    auto deuteranope = [](int c, int r, PixelLMS& p) {
+        p.m = 0.494207*p.l /* + 0*p.m */ + 1.24827*p.s;
+    };
+    
+    auto tritanope = [](int c, int r, PixelLMS& p) {
+        p.s = -0.395913*p.l + 0.801109*p.m /* + 0*p.s */;
+    };
+    
+    switch (blindness)
+    {
+        case Filter_Daltonize::Params::Protanope:
+            lmsImage.apply (protanope);
+            break;
+            
+        case Filter_Daltonize::Params::Deuteranope:
+            lmsImage.apply (deuteranope);
+            break;
+            
+        case Filter_Daltonize::Params::Tritanope:
+            lmsImage.apply (tritanope);
+            break;
+            
+        default:
+            assert (false);
+    }
+}
+
+void Filter_Daltonize::applyCPU (const ImageSRGBA& input, ImageSRGBA& output) const
+{
+    SRGBAToLMSConverter converter;
+    ImageLMS lmsImage;
+    converter.convertToLms (input, lmsImage);
+    applyDaltonizeSimulation (lmsImage, _currentParams.kind);
+
+    ImageSRGBA simulatedSRGBA;
+    converter.convertToSrgba (lmsImage, simulatedSRGBA);
+
+    output = input;
+    output.apply ([&](int c, int r, PixelSRGBA& srgba) {
+
+        // [0, 0, 0],
+        // [0.7, 1, 0],
+        // [0.7, 0, 1]
+
+        const auto& simRgba = simulatedSRGBA (c, r);
+
+        float rError = srgba.r - simRgba.r;
+        float gError = srgba.g - simRgba.g;
+        float bError = srgba.b - simRgba.b;
+
+        float updatedG = srgba.g + 0.7 * rError + 1.0 * gError + 0.0 * bError;
+        float updatedB = srgba.b + 0.7 * rError + 0.0 * gError + 1.0 * bError;
+        srgba.g = saturateAndCast (updatedG);
+        srgba.b = saturateAndCast (updatedB);
+    });
 }
 
 } // dl

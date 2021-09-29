@@ -39,13 +39,11 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "args": ["/Users/nb/Perso/DaltonLensDrive/Plots/MeshLab plots.png"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb",
-            "miDebuggerPath": "/Applications/Xcode.app/Contents/Developer/usr/bin/lldb"
+            "MIMode": "lldb"
         },
     ],    
 }

@@ -105,12 +105,6 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
 
 void ImageViewerControlsWindow::repositionAfterNextRendering (const dl::Rect& viewerWindowGeometry, bool showRequested)
 {
-    dl_dbg("Read viewerGeometry is %d x %d (%d + %d)",
-           int(viewerWindowGeometry.size.x),
-           int(viewerWindowGeometry.size.y),
-           int(viewerWindowGeometry.origin.x),
-           int(viewerWindowGeometry.origin.y));    
-
     // FIXME: padding probably depends on the window manager
     const int expectedHighlightWindowWidthWithPadding = impl->windowSize.x + 12;
     if (viewerWindowGeometry.origin.x > expectedHighlightWindowWidthWithPadding)

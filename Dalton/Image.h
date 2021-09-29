@@ -131,8 +131,8 @@ namespace dl
             if (!rhs.hasData())
                 return *this;
                 
-            allocateOwnedBuffer (rhs.width, rhs.height);
-            copyFrom (rhs);
+            allocateOwnedBuffer (rhs._width, rhs._height);
+            copyDataFrom (rhs._data, rhs._bytesPerRow, rhs._width, rhs._height);
             return *this;
         }
         

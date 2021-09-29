@@ -89,6 +89,15 @@ namespace dl
         return lhs.x == rhs.x && lhs.y == rhs.y;
     }
 
+    struct vec2f
+    {
+        vec2f (float x = 0, float y = 0) : x(x), y(y) {}
+        
+        union {
+            float v[2];
+            struct { float x, y; };
+        };
+    };
     struct vec4d
     {
         vec4d (double x = 0., double y = 0., double z = 0., double w = 0.) : x(x), y(y), z(z), w(w) {}

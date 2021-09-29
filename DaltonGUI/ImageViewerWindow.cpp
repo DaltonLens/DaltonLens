@@ -10,7 +10,6 @@
 #include "ImageViewerWindowState.h"
 
 #include <DaltonGUI/GrabScreenAreaWindow.h>
-#include <DaltonGUI/ImguiOpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/CrossPlatformUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
@@ -98,7 +97,7 @@ struct ImageViewerWindow::Impl
         Filter_HighlightSimilarColors highlightSimilarColors;
     } filters;
     
-    ImguiImageFilter imguiImageFilter;
+    GLFilterProcessor filterProcessor;
 
     GLTexture gpuTexture;
     dl::ImageSRGBA im;
@@ -174,7 +173,14 @@ struct ImageViewerWindow::Impl
             case DaltonViewerMode::Tritanope:   return &filters.daltonize;
             case DaltonViewerMode::FlipRedBlue: return &filters.flipRedBlue;
             case DaltonViewerMode::FlipRedBlueInvertRed: return &filters.flipRedBlueAndInvertRed;
-            case DaltonViewerMode::HighlightRegions:     return &filters.highlightSimilarColors;
+            
+            case DaltonViewerMode::HighlightRegions: 
+            {
+                if (mutableState.highlightRegion.hasActiveColor())
+                    return &filters.highlightSimilarColors;
+                return nullptr;
+            }
+
             default: return nullptr;
         }
     }
@@ -242,6 +248,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserve
 
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
     
+    impl->filterProcessor.initializeGL();
     impl->filters.daltonize.initializeGL();
     impl->filters.flipRedBlue.initializeGL();
     impl->filters.flipRedBlueAndInvertRed.initializeGL();
@@ -392,18 +399,9 @@ void ImageViewerWindow::runOnce ()
     if (impl->updateAfterContentSwitch.needToResize)
     {
         impl->imguiGlfwWindow.enableContexts();
-        dl_dbg ("ImageWindow set to %d x %d (%d + %d)", 
-            int(impl->imageWidgetRect.normal.size.x), 
-            int(impl->imageWidgetRect.normal.size.y),
-            int(impl->imageWidgetRect.normal.origin.x - impl->windowBorderSize), 
-            int(impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize));
 
         impl->imguiGlfwWindow.setWindowSize (impl->updateAfterContentSwitch.targetWindowGeometry.size.x, 
-                                             impl->updateAfterContentSwitch.targetWindowGeometry.size.y);
-        
-        dl_dbg("[VIEWERWINDOW] new size = %d x %d",
-               int(impl->imageWidgetRect.normal.size.x + 2 * impl->windowBorderSize), 
-               int(impl->imageWidgetRect.normal.size.y + 2 * impl->windowBorderSize));
+                                             impl->updateAfterContentSwitch.targetWindowGeometry.size.y);        
 
         impl->updateAfterContentSwitch.needToResize = false;
     }
@@ -521,9 +519,16 @@ void ImageViewerWindow::runOnce ()
         }
 
         GLFilter* activeFilter = impl->filterForMode(modeForThisFrame);
+        GLTexture* imageTexture = &impl->gpuTexture;
         if (activeFilter)
         {
-            impl->imguiImageFilter.enable(activeFilter);
+            impl->filterProcessor.render (
+                *activeFilter,
+                impl->gpuTexture.textureId (),
+                impl->gpuTexture.width (),
+                impl->gpuTexture.height ()
+            );
+            imageTexture = &impl->filterProcessor.filteredTexture();
         }
         
         const bool imageHasNonMultipleSize = int(impl->imageWidgetRect.current.size.x) % int(impl->imageWidgetRect.normal.size.x) != 0;
@@ -535,13 +540,16 @@ void ImageViewerWindow::runOnce ()
             ImGui::GetWindowDrawList()->AddCallback([](const ImDrawList *parent_list, const ImDrawCmd *cmd)
                                                     {
                                                         ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
+                                                        // Doing both since we're not sure which one will be used.
+                                                        // Could store it as a member, but well.
                                                         that->impl->gpuTexture.setLinearInterpolationEnabled(true);
+                                                        that->impl->filterProcessor.filteredTexture().setLinearInterpolationEnabled(true);
                                                     },
                                                     this);
         }
 
         const auto imageWidgetSize = imSize(impl->imageWidgetRect.current);
-        ImGui::Image(reinterpret_cast<ImTextureID>(impl->gpuTexture.textureId()),
+        ImGui::Image(reinterpret_cast<ImTextureID>(imageTexture->textureId()),
                      imageWidgetSize,
                      uv0,
                      uv1);        
@@ -552,14 +560,9 @@ void ImageViewerWindow::runOnce ()
                                                     {
                                                         ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
                                                         that->impl->gpuTexture.setLinearInterpolationEnabled(false);
+                                                        that->impl->filterProcessor.filteredTexture().setLinearInterpolationEnabled(false);
                                                     },
                                                     this);
-        }
-
-        // Disable the current filter.
-        if (activeFilter)
-        {
-            impl->imguiImageFilter.disable();
         }
 
         ImVec2 mousePosInImage (0,0);

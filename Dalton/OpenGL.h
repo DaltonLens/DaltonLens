@@ -20,24 +20,32 @@ const char* glslVersion();
 
 struct GLShaderHandles
 {
-    unsigned shaderHandle = 0;
-    unsigned vertHandle = 0;
-    unsigned fragHandle = 0;
-    unsigned attribLocationTex = 0;
-    unsigned attribLocationProjMtx = 0;
-    unsigned attribLocationVtxPos = 0;
-    unsigned attribLocationVtxUV = 0;
-    unsigned attribLocationVtxColor = 0;
+    uint32_t shaderHandle = 0;
+    uint32_t vertHandle = 0;
+    uint32_t fragHandle = 0;
+    uint32_t textureUniformLocation = 0;
 };
 class GLShader
-{    
+{
+public:
+    // Predefined attribute locations meant to be enforced via
+    // glbindattriblocation so we can switch shaders without having
+    // to adjust the rendering code.
+
+    enum class Attribute : uint32_t { 
+        VertexPos    = 0,
+        VertexNormal = 1,
+        VertexColor  = 2,
+        VertexUV     = 3,
+    };
+
 public:
     GLShader();
     ~GLShader();
     
-    void initialize(const char* glslVersionString, const char* vertexShader, const char* fragmentShader);
+    void initialize (const char* glslVersionString, const char* vertexShader, const char* fragmentShader);
 
-    void enable ();
+    void enable (int32_t textureId = 0);
     void disable ();
 
     const GLShaderHandles& glHandles () const { return _glHandles; }
@@ -55,10 +63,14 @@ class GLTexture
 public:
     ~GLTexture();
     
+    int width () const { return _width; }
+    int height () const { return _height; }
+
     void initialize ();
-    void initializeWithExistingTextureID (uint32_t textureId);
+    void initializeWithExistingTextureID (uint32_t textureId, int width, int height);
     void releaseGL ();
 
+    void ensureAllocatedForRGBA (int width, int height);
     void upload (const dl::ImageSRGBA& im);
 
     uint32_t textureId() const { return _textureId; }
@@ -68,13 +80,15 @@ public:
 private:
     uint32_t _textureId = 0;
     bool _linearInterpolationEnabled = false;
+    int _width = 0;
+    int _height = 0;
 };
 
 // Offscreen GL context.
 class GLContext
 {
 public:
-    GLContext(GLContext* parentContext);
+    GLContext(GLContext* parentContext = nullptr);
     ~GLContext ();
 
     void makeCurrent ();
@@ -85,6 +99,37 @@ public:
 private:
     struct Impl;
     std::unique_ptr<Impl> impl;
+};
+
+class GLFrameBuffer
+{
+public:
+    GLFrameBuffer ();
+    ~GLFrameBuffer ();
+
+public:
+    void enable (int width, int height);
+    void disable ();
+    void downloadBuffer (ImageSRGBA& output) const;
+    GLTexture& outputColorTexture ();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl;
+};
+
+class GLImageRenderer
+{
+public:
+    ~GLImageRenderer ();
+
+    void initializeGL ();
+    void render ();
+
+private:
+    uint32_t _vbo = 0;
+    uint32_t _vao = 0;
+    uint32_t _elementbuffer = 0;
 };
 
 } // dl

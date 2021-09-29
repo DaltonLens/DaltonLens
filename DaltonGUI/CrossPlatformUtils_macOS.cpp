@@ -210,7 +210,7 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
     
     NSError* error = nil;
     GLKTextureInfo* textureInfo = [GLKTextureLoader textureWithCGImage:cgImage options:@{} error:&error];
-    gpuTexture.initializeWithExistingTextureID(textureInfo.name);
+    gpuTexture.initializeWithExistingTextureID(textureInfo.name, textureInfo.width, textureInfo.height);
         
     // Note: the image size is NOT the same as screenRect.size on retina displays.
     // So we need to get it from the texture to avoid losing resolution.

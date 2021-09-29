@@ -63,7 +63,6 @@ void HighlightRegionState::setSelectedPixel(float x, float y)
 
 void HighlightRegionState::addSliderDelta(float delta)
 {
-    dl_dbg("delta = %f", delta);
     mutableData.deltaColorThreshold -= delta;
     mutableData.deltaColorThreshold = dl::keepInRange(mutableData.deltaColorThreshold, 1.f, 20.f);
     updateDeltas();

@@ -1,7 +1,6 @@
 add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GL3W=1)
 
 set (deps_SOURCES
-    ${DEPS_DIR}/stb/stb_impl.cpp
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui.h
     ${IMGUI_DIR}/imgui_draw.cpp
@@ -44,8 +43,6 @@ set (daltonGUI_SOURCES
     HighlightSimilarColor.cpp
     ImguiGLFWWindow.h
     ImguiGLFWWindow.cpp
-    ImguiOpenGL.cpp
-    ImguiOpenGL.h
     HelpWindow.cpp
     HelpWindow.h
     ImageViewerControlsWindow.cpp

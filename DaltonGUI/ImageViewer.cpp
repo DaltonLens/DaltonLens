@@ -9,7 +9,6 @@
 #include "ImageViewer.h"
 #include "GrabScreenAreaWindow.h"
 
-#include <DaltonGUI/ImguiOpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/CrossPlatformUtils.h>
 
