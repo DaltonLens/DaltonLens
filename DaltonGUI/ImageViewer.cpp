@@ -10,7 +10,7 @@
 #include "GrabScreenAreaWindow.h"
 
 #include <DaltonGUI/ImguiUtils.h>
-#include <DaltonGUI/CrossPlatformUtils.h>
+#include <DaltonGUI/PlatformSpecific.h>
 
 #include "imgui.h"
 
@@ -46,8 +46,6 @@ ImageViewer::ImageViewer()
 
 ImageViewer::~ImageViewer()
 {
-    dl_dbg("ImageViewerWindow::~ImageViewerWindow");
-    
     shutdown();
 }
 

@@ -4,7 +4,7 @@
 // of the BSD license.  See the LICENSE file for details.
 //
 
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #include <Dalton/Utils.h>
 
@@ -232,7 +232,7 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
     return true;
 }
 
-dl::Rect getFrontWindowGeometry()
+dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle)
 {
     dl::Rect output;
     output.origin = dl::Point(-1,-1);

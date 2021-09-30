@@ -13,13 +13,17 @@ set (deps_SOURCES
 )    
 
 if (APPLE)
-    set (daltonGUI_platform_specific_sources CrossPlatformUtils_macOS.cpp)
-else (UNIX)
+    set (daltonGUI_platform_specific_sources PlatformSpecific_macOS.cpp)
+elseif (UNIX)
     set (daltonGUI_platform_specific_sources 
-        CrossPlatformUtils_linux.cpp
+        PlatformSpecific_linux.cpp
         ${DEPS_DIR}/xdo/xdo_mini.h
         ${DEPS_DIR}/xdo/xdo_mini.cpp
     )
+elseif (WIN32)
+    set (daltonGUI_platform_specific_sources 
+        PlatformSpecific_windows.cpp
+    )    
 endif()
 
 set (daltonGUI_SOURCES 
@@ -29,7 +33,7 @@ set (daltonGUI_SOURCES
     # Binary resource.
     DaltonLensIcon_xxd.cpp
 
-    CrossPlatformUtils.h
+    PlatformSpecific.h
     DaltonLensGUI.cpp
     DaltonLensGUI.h
     DaltonLensIcon.h

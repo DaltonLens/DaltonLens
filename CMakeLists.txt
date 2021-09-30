@@ -11,12 +11,19 @@ set(PRECOMPILED_FOLDER "${CMAKE_SOURCE_DIR}/deps/prebuilt/${CMAKE_SYSTEM_NAME}")
 set(semicolon_smuggle "-+-")
 string(REPLACE ";" "${semicolon_smuggle}" cmake_osx_archs_special_separator "${CMAKE_OSX_ARCHITECTURES}")
 
+# DebugFast does not exist for the deps, so need to set it to Debug.
+if (CMAKE_BUILD_TYPE STREQUAL DebugFast OR CMAKE_BUILD_TYPE STREQUAL DEBUGFAST)
+  set (CMAKE_DEPS_CONFIG Debug)
+else()
+  set (CMAKE_DEPS_CONFIG ${CMAKE_BUILD_TYPE})
+endif()
+
 ExternalProject_Add(glfw-deps
   LIST_SEPARATOR "${semicolon_smuggle}"
   PREFIX glfw
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glfw"
   CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=${CMAKE_DEPS_CONFIG}
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/glfw
         -DGLFW_BUILD_DOCS=OFF
@@ -24,16 +31,22 @@ ExternalProject_Add(glfw-deps
         -DGLFW_BUILD_TESTS=OFF
 )
 
+set(GLFW_LIBRARY_FILENAME "${CMAKE_STATIC_LIBRARY_PREFIX}glfw3${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_library(glfw3 STATIC IMPORTED)
-set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${PRECOMPILED_FOLDER}/glfw/lib/libglfw3.a)
+set_target_properties(glfw3 PROPERTIES IMPORTED_LOCATION ${PRECOMPILED_FOLDER}/glfw/lib/${GLFW_LIBRARY_FILENAME})
 include_directories(glfw3 PROPERTIES IMPORTED_LOCATION ${PRECOMPILED_FOLDER}/glfw/include)
 
+if (WIN32)
+  target_link_libraries(glfw3 INTERFACE opengl32)
+endif()
+
+set(CLIP_LIBRARY_FILENAME "${CMAKE_STATIC_LIBRARY_PREFIX}clip${CMAKE_STATIC_LIBRARY_SUFFIX}")
 ExternalProject_Add(clip-deps
   LIST_SEPARATOR "${semicolon_smuggle}"
   PREFIX clip
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/clip"
   CMAKE_ARGS
-        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_BUILD_TYPE=${CMAKE_DEPS_CONFIG}
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/clip
         -DCLIP_EXAMPLES=OFF
@@ -41,12 +54,15 @@ ExternalProject_Add(clip-deps
         -DCLIP_X11_WITH_PNG=OFF
   INSTALL_COMMAND 
         cmake -E make_directory "${PRECOMPILED_FOLDER}/clip/lib/"
-        COMMAND cmake -E copy "<BINARY_DIR>/libclip.a" "${PRECOMPILED_FOLDER}/clip/lib/"
+        COMMAND cmake -E copy "<BINARY_DIR>/${CLIP_LIBRARY_FILENAME}" "${PRECOMPILED_FOLDER}/clip/lib/"
 )
 
 add_library(clip STATIC IMPORTED)
-set_target_properties(clip PROPERTIES IMPORTED_LOCATION ${PRECOMPILED_FOLDER}/clip/lib/libclip.a)
+set_target_properties(clip PROPERTIES IMPORTED_LOCATION ${PRECOMPILED_FOLDER}/clip/lib/${CLIP_LIBRARY_FILENAME})
 include_directories(clip PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/deps)
+if (WIN32)
+  target_link_libraries(clip INTERFACE Shlwapi)
+endif()
 
 # ExternalProject_Add(glew-deps
 #   PREFIX glew
@@ -62,8 +78,18 @@ include_directories(clip PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" "RelWithDebInfo" "DebugFast")
 set(CMAKE_CXX_FLAGS_DEBUGFAST "${CMAKE_CXX_FLAGS_DEBUG} -Os" CACHE STRING "" FORCE)
+set(CMAKE_C_FLAGS_DEBUGFAST "${CMAKE_C_FLAGS_DEBUG}" CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_DEBUGFAST "${CMAKE_EXE_LINKER_FLAGS_DEBUG}" CACHE STRING "" FORCE)
+set(CMAKE_SHARED_LINKER_FLAGS_DEBUGFAST "${CMAKE_SHARED_LINKER_FLAGS_DEBUG}" CACHE STRING "" FORCE)
+mark_as_advanced(
+  CMAKE_CXX_FLAGS_DEBUGFAST
+  CMAKE_C_FLAGS_DEBUGFAST
+  CMAKE_EXE_LINKER_FLAGS_DEBUGFAST
+  CMAKE_SHARED_LINKER_FLAGS_DEBUGFAST)
+# Update the documentation string of CMAKE_BUILD_TYPE for GUIs
+
+set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" "RelWithDebInfo" "DebugFast")
 
 # add_compile_options(
 #     $<$<CONFIG:Debug>:-Os>
@@ -81,6 +107,10 @@ include_directories(
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/deps/other)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/deps/stb)
+
+if (WIN32)
+  add_definitions(-D_USE_MATH_DEFINES)
+endif()
 
 add_subdirectory(Dalton)
 add_subdirectory(DaltonGUI)

@@ -21,7 +21,7 @@ class GLTexture;
 
 dl::Point getMouseCursor();
 
-dl::Rect getFrontWindowGeometry();
+dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle);
 
 void setAppFocusEnabled (bool enabled);
 
@@ -78,5 +78,17 @@ void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window);
 void openURLInBrowser(const char* url);
 
 void getVersionAndBuildNumber(std::string& version, std::string& build);
+
+struct StartupManager
+{
+    StartupManager ();
+    
+    bool isLaunchAtStartupEnabled () const { return _isEnabled; }
+
+    void setLaunchAtStartupEnabled (bool enabled);
+
+private:
+    bool _isEnabled;
+};
 
 } // dl

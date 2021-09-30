@@ -13,7 +13,7 @@
 #define DL_MULTI_STATEMENT_MACRO(X) do { X } while(0)
 
 #ifndef NDEBUG
-#define dl_dbg(...) DL_MULTI_STATEMENT_MACRO ( fprintf (stderr, "DEBUG: "); fprintf (stderr, __VA_ARGS__); fprintf (stderr, "\n"); )
+#define dl_dbg(...) DL_MULTI_STATEMENT_MACRO ( dl::consoleMessage ("DEBUG: "); dl::consoleMessage (__VA_ARGS__); dl::consoleMessage ("\n"); )
 #else
 #define dl_dbg(...)
 #endif // !DEBUG
@@ -30,6 +30,8 @@ namespace dl
     std::string formatted (const char* fmt, ...);
 
     void handle_assert_failure(const char* cond, const char* fileName, int line, const char* fmt, ...);
+
+    void consoleMessage (const char* fmt, ...);
         
 } // dl
 
@@ -37,6 +39,8 @@ namespace dl
 {
 
     double currentDateInSeconds ();
+
+    std::string getUserId ();
     
     struct ScopeTimer
     {

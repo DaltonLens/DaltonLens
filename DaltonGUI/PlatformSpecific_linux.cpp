@@ -4,7 +4,7 @@
 // of the BSD license.  See the LICENSE file for details.
 //
 
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #include <Dalton/Utils.h>
 #include <Dalton/OpenGL.h>
@@ -361,7 +361,7 @@ struct WindowUnderPointerFinder
     pid_t daltonLens_pid = 0;
 };
 
-dl::Rect getFrontWindowGeometry()
+dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle)
 {
     WindowUnderPointerFinder finder;
     return finder.findWindowGeometryUnderPointer ();
@@ -401,7 +401,9 @@ void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window)
 
 void openURLInBrowser(const char* url)
 {
-    // [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]];
+    // Can't call that super safe, but well, we only call it with our own fixed strings.
+    std::string op = std::string("xdg-open \"") + url + "\"";
+    system(op.c_str());
 }
 
 void getVersionAndBuildNumber(std::string& version, std::string& build)
@@ -414,6 +416,20 @@ void getVersionAndBuildNumber(std::string& version, std::string& build)
     // build = [buildNumber UTF8String];
     version = "1.0";
     build = "linux";
+}
+
+// --------------------------------------------------------------------------------
+// StartupManager
+// --------------------------------------------------------------------------------
+
+StartupManager::StartupManager ()
+{
+    _isEnabled = false;
+}
+
+void StartupManager::setLaunchAtStartupEnabled (bool enabled)
+{
+    dl_assert (false, "not implemented");
 }
 
 } // dl

@@ -13,8 +13,6 @@
 # include <GLFW/glfw3native.h>
 #endif
 
-#include <Dalton/Platform.h>
-
 namespace dl
 {
 

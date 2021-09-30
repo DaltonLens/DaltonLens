@@ -12,7 +12,7 @@
 #include <Dalton/OpenGL.h>
 #include <Dalton/Utils.h>
 
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -244,8 +244,10 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     
     impl->title = title;
 
-    // glfwWindowHint(GLFW_DECORATED, false);
+    // Always start invisible, we'll show it later when we need to.
+    glfwWindowHint(GLFW_VISIBLE, false);
     impl->window = glfwCreateWindow(geometry.size.x, geometry.size.y, title.c_str(), NULL, parentWindow);
+    glfwWindowHint(GLFW_VISIBLE, true);
     if (impl->window == NULL)
         return false;
 
@@ -273,11 +275,6 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     }
 
     glfwMakeContextCurrent(impl->window);
-    
-    // Start hidden. setEnabled will show it as needed.
-    glfwHideWindow(impl->window);
-    
-    glfwSwapInterval(1); // Enable vsync
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -300,6 +297,12 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
                                         */);
     ImGui_ImplOpenGL3_Init(glslVersion());
     
+    
+    // Important: do this only after creating the ImGuiContext. Otherwise we might
+    // get some callbacks right away and get in trouble.
+    // Start hidden. setEnabled will show it as needed.
+    glfwSwapInterval(1); // Enable vsync
+
     return true;
 }
 

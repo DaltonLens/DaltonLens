@@ -23,7 +23,7 @@ private:
     ~DaltonLensIcon ();
 
 public:
-    std::string absolutePngPathInTemporaryFolder () const { return _absolute_png_path; }
+    std::string absoluteIconPath () const;
     const uint8_t* rgba32x32 () const { return _rgba32x32.empty() ? nullptr : _rgba32x32.data(); }
 
 private:

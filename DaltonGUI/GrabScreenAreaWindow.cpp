@@ -6,7 +6,7 @@
 
 #include "GrabScreenAreaWindow.h"
 
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #include <Dalton/Utils.h>
 #include <Dalton/ColorConversion.h>
@@ -183,7 +183,7 @@ void GrabScreenAreaWindow::runOnce ()
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SPACE))
     {
-        dl::Rect frontWindowRect = dl::getFrontWindowGeometry();
+        dl::Rect frontWindowRect = dl::getFrontWindowGeometry(impl->imguiGlfwWindow.glfwWindow());
         if (frontWindowRect.size.x >= 0)
         {
             impl->currentSelectionInScreen.firstCorner = imPos(frontWindowRect);

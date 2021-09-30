@@ -6,7 +6,7 @@
 
 #include "DaltonLensGUI_macOS.h"
 #include "DaltonLensGUI.h"
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #include <vector>
 

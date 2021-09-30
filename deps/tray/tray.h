@@ -8,14 +8,14 @@ struct tray {
 };
 
 struct tray_menu {
-  const char* text;
-  int disabled;
-  int checked;
+  const char* text = nullptr;
+  int disabled = 0;
+  int checked = 0;
 
-  void (*cb)(struct tray_menu *);
-  void *context;
+  void (*cb)(struct tray_menu *) = nullptr;
+  void *context = nullptr;
 
-  struct tray_menu *submenu;
+  struct tray_menu *submenu = nullptr;
 };
 
 static void tray_update(struct tray *tray);
@@ -244,9 +244,9 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
     break;
   case WM_COMMAND:
     if (wparam >= ID_TRAY_FIRST) {
-      MENUITEMINFO item = {
-          .cbSize = sizeof(MENUITEMINFO), .fMask = MIIM_ID | MIIM_DATA,
-      };
+      MENUITEMINFO item;
+      item.cbSize = sizeof(MENUITEMINFO);
+      item.fMask = MIIM_ID | MIIM_DATA;
       if (GetMenuItemInfo(hmenu, wparam, FALSE, &item)) {
         struct tray_menu *menu = (struct tray_menu *)item.dwItemData;
         if (menu != NULL && menu->cb != NULL) {
@@ -279,11 +279,11 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id) {
       if (m->disabled) {
         item.fState |= MFS_DISABLED;
       }
-      if (m->checked) {
+      if (m->checked > 0) {
         item.fState |= MFS_CHECKED;
       }
       item.wID = *id;
-      item.dwTypeData = m->text;
+      item.dwTypeData = const_cast<char*>(m->text);
       item.dwItemData = (ULONG_PTR)m;
 
       InsertMenuItem(hmenu, *id, TRUE, &item);

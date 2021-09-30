@@ -181,8 +181,11 @@ void GLTexture::initializeWithExistingTextureID(uint32_t textureId, int width, i
 
 void GLTexture::releaseGL()
 {
-    glDeleteTextures(1, &_textureId);
-    _textureId = 0;
+    if (_textureId != 0)
+    {
+        glDeleteTextures(1, &_textureId);
+        _textureId = 0;
+    }
 }
 
 void GLTexture::initialize()

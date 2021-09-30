@@ -12,7 +12,7 @@
 
 #include <Dalton/Utils.h>
 
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"

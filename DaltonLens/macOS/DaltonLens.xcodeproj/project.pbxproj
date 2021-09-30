@@ -10,7 +10,7 @@
 		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
 		2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */; };
 		2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */; };
-		2D19734B2532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973492532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp */; };
+		2D19734B2532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973492532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp */; };
 		2D19735B2532FE3900D1FBD4 /* ImageViewerWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */; };
 		2D19735C2532FE3900D1FBD4 /* GrabScreenAreaWindow.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */; };
 		2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */; };
@@ -145,8 +145,8 @@
 		2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
 		2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DaltonLensGUI_macOS.mm; sourceTree = "<group>"; };
 		2D1973452532DC7B00D1FBD4 /* DaltonLens.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = DaltonLens.xcconfig; sourceTree = "<group>"; };
-		2D1973492532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = CrossPlatformUtils_macOS.cpp; sourceTree = "<group>"; };
-		2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CrossPlatformUtils.h; sourceTree = "<group>"; };
+		2D1973492532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = PlatformSpecific_macOS.cpp; sourceTree = "<group>"; };
+		2D19734A2532DEF600D1FBD4 /* PlatformSpecific.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformSpecific.h; sourceTree = "<group>"; };
 		2D19734F2532F1AE00D1FBD4 /* ImguiUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImguiUtils.h; sourceTree = "<group>"; };
 		2D1973552532FE3800D1FBD4 /* GrabScreenAreaWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GrabScreenAreaWindow.h; sourceTree = "<group>"; };
 		2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerWindow.h; sourceTree = "<group>"; };
@@ -300,8 +300,8 @@
 			isa = PBXGroup;
 			children = (
 				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
-				2D1973492532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp */,
-				2D19734A2532DEF600D1FBD4 /* CrossPlatformUtils.h */,
+				2D1973492532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp */,
+				2D19734A2532DEF600D1FBD4 /* PlatformSpecific.h */,
 				2D19733A2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.h */,
 				2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */,
 				2D19735E2532FFF000D1FBD4 /* DaltonLensGUI.cpp */,
@@ -743,7 +743,7 @@
 				2D240DB41DAAC0B400AA97BC /* MASShortcutView.m in Sources */,
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
 				2D240DB11DAAC0B400AA97BC /* MASShortcutMonitor.m in Sources */,
-				2D19734B2532DEF600D1FBD4 /* CrossPlatformUtils_macOS.cpp in Sources */,
+				2D19734B2532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp in Sources */,
 				2DEC11031DC684970095C4A0 /* main.swift in Sources */,
 				2D240DB21DAAC0B400AA97BC /* MASShortcutValidator.m in Sources */,
 				2DA1F5C826F3C60700928A4E /* HighlightSimilarColor.cpp in Sources */,

@@ -11,7 +11,7 @@
 #include <memory>
 #include <functional>
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace dl
 {

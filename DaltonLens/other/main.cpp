@@ -6,10 +6,18 @@
 
 #include <DaltonGUI/DaltonLensGUI.h>
 #include <DaltonGUI/DaltonLensIcon.h>
+#include <DaltonGUI/PlatformSpecific.h>
 
 #include <Dalton/Utils.h>
+#include <Dalton/Platform.h>
 
-#define TRAY_APPINDICATOR 1
+#if PLATFORM_LINUX
+# define TRAY_APPINDICATOR 1
+#else
+# define TRAY_WINAPI 1
+# define NOMINMAX
+#endif
+
 #include <tray/tray.h>
 
 #include <thread>
@@ -22,19 +30,24 @@ class DaltonSystemTrayApp
 public:
     DaltonSystemTrayApp ()
     {
-        _iconAbsolutePath = dl::DaltonLensIcon::instance().absolutePngPathInTemporaryFolder();
+        _iconAbsolutePath = dl::DaltonLensIcon::instance().absoluteIconPath();
 
+        // text, disabled, checked, cb, context, submenu
         static tray_menu main_menu[] = {
-            {.text = "Grab Screen Region", .checked = -1, .cb = grabScreen_cb, .context = this },
-            {.text = "-"},
-            {.text = "Help", .checked = -1, .cb = help_cb, .context = this },
-            {.text = "Quit", .checked = -1, .cb = quit_cb, .context = this },
-            {.text = NULL} 
+            { "Grab Screen Region", 0, -1, grabScreen_cb, this },
+#if PLATFORM_WINDOWS
+            { "-" },
+            { "Launch at Startup", 0, _startupManager.isLaunchAtStartupEnabled() ? 1 : 0, launchAtStartup_cb, this },
+#endif
+            { "-" },
+            { "Help", 0, -1, help_cb, this },
+            { "Quit", 0, -1, quit_cb, this },
+            { NULL}
         };
 
         _tray = tray{
-            .icon = _iconAbsolutePath.c_str(),
-            .menu = main_menu
+            _iconAbsolutePath.c_str(), // .icon
+            main_menu // .menu
         };
 
         tray_init(&_tray);
@@ -60,6 +73,13 @@ private:
         _dlGui.toogleGrabScreenArea();
     }
 
+    void onLaunchAtStartup (struct tray_menu *item)
+    {
+        item->checked = !item->checked;
+        _startupManager.setLaunchAtStartupEnabled (item->checked);
+        tray_update (&_tray);
+    }
+
     void onQuit()
     {
         tray_exit ();
@@ -70,7 +90,8 @@ private:
     {
         _dlGui.helpRequested();
     }
-
+    
+    static void launchAtStartup_cb(struct tray_menu *item) { reinterpret_cast<DaltonSystemTrayApp*>(item->context)->onLaunchAtStartup(item); }
     static void grabScreen_cb(struct tray_menu *item) { reinterpret_cast<DaltonSystemTrayApp*>(item->context)->onGrabScreen(); }
     static void quit_cb(struct tray_menu *item) { reinterpret_cast<DaltonSystemTrayApp*>(item->context)->onQuit(); }
     static void help_cb(struct tray_menu *item) { reinterpret_cast<DaltonSystemTrayApp*>(item->context)->onHelp(); }
@@ -79,6 +100,7 @@ private:
     tray _tray;
     dl::DaltonLensGUI _dlGui;
     std::string _iconAbsolutePath;
+    dl::StartupManager _startupManager;
 };
 
 int main ()

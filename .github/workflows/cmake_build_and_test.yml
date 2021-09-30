@@ -24,6 +24,9 @@ jobs:
           - os: ubuntu-latest
             # include everything on Linux as we have a software OpenGL renderer
             ctest_extra_options: 
+          # exclude the OpenGL test on Windows. Would need to try with Mesa software renderer dll.
+          - os: windows-latest
+            ctest_extra_options: --exclude-regex test_Filters
           - os: macos-latest
             # exclude the software OpenGL test on macOS, GLFW can't initialize for some reason.
             ctest_extra_options: --exclude-regex test_Filters
@@ -39,12 +42,19 @@ jobs:
       with:
         lfs: true
 
+    - name: Install Ninja
+      id: ninja
+      uses: turtlesec-no/get-ninja@main
+
+    - name: Ninja version
+      run: echo "${{ steps.ninja.outputs.version }}"
+
     # Only for act
-    - name: Install sudo package
+    - name: <ACT> Install sudo package
       if: env.ACT=='true' && matrix.os == 'ubuntu-latest'
       run: apt update && apt install sudo
 
-    - name: Install and start Xdummy
+    - name: <Linux> Install and start Xdummy
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get -y update
@@ -55,22 +65,28 @@ jobs:
         cat xdummy.log
         /bin/bash -c "glxinfo | head -n 100" # workaround with bash -c because pipes don't work right now.
 
-    - name: Install Linux dependencies for DaltonLens
+    - name: <Linux> Install dependencies for DaltonLens
       if: matrix.os == 'ubuntu-latest'
       run: sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y cmake libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libxcb1-dev libappindicator3-dev libgtk-3-dev
+
+    - name: <Windows> Setup devcmd
+      if: matrix.os == 'windows-latest'
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: |
+        # FIXME: I don't understand why the external projects dependencies are not properly handled sometimes.
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target glfw-deps clip-deps
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target all
 
     - name: Test
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --verbose -C ${{env.BUILD_TYPE}} ${{matrix.ctest_extra_options}}
-

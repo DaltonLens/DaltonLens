@@ -11,7 +11,7 @@
 
 #include <DaltonGUI/GrabScreenAreaWindow.h>
 #include <DaltonGUI/ImguiUtils.h>
-#include <DaltonGUI/CrossPlatformUtils.h>
+#include <DaltonGUI/PlatformSpecific.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 #include <DaltonGUI/HighlightSimilarColor.h>
 
@@ -192,8 +192,6 @@ ImageViewerWindow::ImageViewerWindow()
 
 ImageViewerWindow::~ImageViewerWindow()
 {
-    dl_dbg("ImageViewerWindow::~ImageViewerWindow");
-    
     shutdown();
 }
 

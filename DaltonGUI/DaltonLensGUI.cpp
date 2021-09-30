@@ -9,7 +9,7 @@
 #include "ImageViewer.h"
 #include "GrabScreenAreaWindow.h"
 #include "HelpWindow.h"
-#include "CrossPlatformUtils.h"
+#include "PlatformSpecific.h"
 
 #include <Dalton/Utils.h>
 

@@ -13,14 +13,14 @@
 #include <memory>
 #include <functional>
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace dl
 {
 
 struct GrabScreenData;
 
-class ImageViewerWindowState;
+struct ImageViewerWindowState;
 
 // Manages a single ImGuiWindow
 class ImageViewerWindow

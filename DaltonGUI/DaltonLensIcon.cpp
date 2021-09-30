@@ -13,7 +13,10 @@
 
 #include <filesystem>
 #include <fstream>
-#include <unistd.h>
+
+#if PLATFORM_WINDOWS
+# include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -32,17 +35,23 @@ DaltonLensIcon& DaltonLensIcon::instance()
 
 DaltonLensIcon::DaltonLensIcon()
 {
+    /*
+        This is not great, we currently have to the icon as a png file on disk.
+        The reason is that libappindicator does not seem to accept a chunk of
+        data from memory.
+    */
+
     // We don't have filesystem on macOS without bumping the deployment target to 10.15 :-(
-#if !PLATFORM_MACOS
+#if PLATFORM_LINUX
     // Include the uid to avoid issues with multiple users.
-    fs::path icon_path = fs::temp_directory_path() / (std::string("dalton_lens_tray_icon_") + std::to_string(getuid()) + ".png");
+    fs::path icon_path = fs::temp_directory_path() / (std::string("dalton_lens_tray_icon_") + getUserId() + ".png");
     {
         std::ofstream f(icon_path, std::ofstream::binary | std::ofstream::trunc);
         f.write((const char *)__DaltonLens_Assets_xcassets_DaltonLensIcon_32x32_1x_png, __DaltonLens_Assets_xcassets_DaltonLensIcon_32x32_1x_png_len);
         dl_assert (f.good(), "Could not save the temporary icon file.");
     }
         
-    _absolute_png_path = fs::absolute(icon_path);
+    _absolute_png_path = fs::absolute(icon_path).u8string();
 
     int width = -1, height = -1, channels = -1;
     unsigned char *imageBuffer = stbi_load_from_memory(__DaltonLens_Assets_xcassets_DaltonLensIcon_32x32_1x_png,
@@ -67,8 +76,21 @@ DaltonLensIcon::DaltonLensIcon()
 
 DaltonLensIcon::~DaltonLensIcon()
 {
-#if !PLATFORM_MACOS
+#if PLATFORM_LINUX
     fs::remove(_absolute_png_path);
+#endif
+}
+
+std::string DaltonLensIcon::absoluteIconPath () const
+{
+#if PLATFORM_WINDOWS
+    CHAR exePath[MAX_PATH];
+    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+    return exePath;
+#elif PLATFORM_LINUX
+    return _absolute_png_path;
+#else
+    return "";
 #endif
 }
 
