@@ -9,6 +9,8 @@
 #include <Dalton/Utils.h>
 #include <Dalton/OpenGL.h>
 
+#include "DaltonGeneratedConfig.h"
+
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_X11 1
 #include <GLFW/glfw3native.h>
@@ -408,14 +410,8 @@ void openURLInBrowser(const char* url)
 
 void getVersionAndBuildNumber(std::string& version, std::string& build)
 {
-    // https://stackoverflow.com/questions/10015304/refer-to-build-number-or-version-number-in-code
-    // NSDictionary *infoDict = [[NSBundle mainBundle] infoDictionary];
-    // NSString *appVersion = [infoDict objectForKey:@"CFBundleShortVersionString"]; // example: 1.0.0
-    // NSString *buildNumber = [infoDict objectForKey:@"CFBundleVersion"]; // example: 42
-    // version = [appVersion UTF8String];
-    // build = [buildNumber UTF8String];
-    version = "1.0";
-    build = "linux";
+    version = PROJECT_VERSION;
+    build = PROJECT_VERSION_COMMIT;
 }
 
 // --------------------------------------------------------------------------------

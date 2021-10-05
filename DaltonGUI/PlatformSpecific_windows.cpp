@@ -11,6 +11,8 @@
 #include <Dalton/Utils.h>
 #include <Dalton/OpenGL.h>
 
+#include "DaltonGeneratedConfig.h"
+
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32 1
 #include <GLFW/glfw3native.h>
@@ -331,8 +333,8 @@ void getVersionAndBuildNumber(std::string& version, std::string& build)
     // NSString *buildNumber = [infoDict objectForKey:@"CFBundleVersion"]; // example: 42
     // version = [appVersion UTF8String];
     // build = [buildNumber UTF8String];
-    version = "1.0";
-    build = "windows";
+    version = PROJECT_VERSION;
+    build = PROJECT_VERSION_COMMIT;
 }
 
 // --------------------------------------------------------------------------------

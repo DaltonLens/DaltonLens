@@ -1,8 +1,23 @@
 cmake_minimum_required(VERSION 3.5.1)
 
 project(DaltonLens)
+set(PROJECT_VERSION_MAJOR 2)
+set(PROJECT_VERSION_MINOR 1rc1)
+set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
+
+# Get the current commit as a version variable.
+# Make sure that we'll re-run configure if the commit changes.
+# https://cmake.org/pipermail/cmake/2018-October/068389.html
+execute_process(COMMAND git rev-parse --short HEAD
+         RESULT_VARIABLE PROJECT_VERSION_COMMIT_RESULT
+         OUTPUT_VARIABLE PROJECT_VERSION_COMMIT
+         OUTPUT_STRIP_TRAILING_WHITESPACE)
+set_property(GLOBAL APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.git/index")
 
 include(ExternalProject)
+
+configure_file(${CMAKE_SOURCE_DIR}/Dalton/DaltonGeneratedConfig.h.in ${PROJECT_BINARY_DIR}/DaltonGeneratedConfig.h)
+include_directories(${PROJECT_BINARY_DIR})
 
 set(PRECOMPILED_FOLDER "${CMAKE_SOURCE_DIR}/deps/prebuilt/${CMAKE_SYSTEM_NAME}")
 

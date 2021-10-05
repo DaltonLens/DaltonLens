@@ -92,7 +92,8 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "*.in": "cpp"
     },
     "cmake.configureOnOpen": true,
     "C_Cpp.errorSquiggles": "Disabled",
