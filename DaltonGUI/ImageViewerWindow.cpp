@@ -93,7 +93,7 @@ struct ImageViewerWindow::Impl
     struct {
         Filter_Daltonize daltonize;
         Filter_FlipRedBlue flipRedBlue;
-        Filter_FlipRedBlue flipRedBlueAndInvertRed;
+        Filter_FlipRedBlueAndInvertRed flipRedBlueAndInvertRed;
         Filter_HighlightSimilarColors highlightSimilarColors;
     } filters;
     
