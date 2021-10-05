@@ -6,6 +6,5 @@ build_dir="${top_dir}/build"
 
 mkdir -p "${build_dir}"
 cd "${build_dir}"
-cmake .. -GNinja -DCMAKE_BUILD_TYPE=Release
-ninja glfw-deps clip-deps
-
+cmake .. -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -GNinja -DCMAKE_BUILD_TYPE=Release
+ninja -v glfw-deps clip-deps
