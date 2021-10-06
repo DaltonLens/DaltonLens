@@ -8,7 +8,7 @@ set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 # Get the current commit as a version variable.
 # Make sure that we'll re-run configure if the commit changes.
 # https://cmake.org/pipermail/cmake/2018-October/068389.html
-execute_process(COMMAND git rev-parse --short HEAD
+execute_process(COMMAND git -C "${CMAKE_SOURCE_DIR}" rev-parse --short HEAD
          RESULT_VARIABLE PROJECT_VERSION_COMMIT_RESULT
          OUTPUT_VARIABLE PROJECT_VERSION_COMMIT
          OUTPUT_STRIP_TRAILING_WHITESPACE)
