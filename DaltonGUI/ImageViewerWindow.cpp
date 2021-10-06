@@ -269,7 +269,7 @@ void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
     // These key events are valid also in the control window.
     auto& io = ImGui::GetIO();
 
-    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_N, GLFW_KEY_A, GLFW_KEY_SPACE})
+    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_N, GLFW_KEY_A, GLFW_KEY_SPACE})
     {
         if (ImGui::IsKeyPressed(code))
             processKeyEvent(code);
@@ -287,12 +287,14 @@ void ImageViewerWindow::processKeyEvent (int keycode)
 {
     switch (keycode)
     {
+        case GLFW_KEY_W:
         case GLFW_KEY_UP: 
         {
             impl->advanceMode(true /* backwards */); 
             break;
         }
 
+        case GLFW_KEY_S:
         case GLFW_KEY_DOWN:
         {
             impl->advanceMode(false /* forward */);

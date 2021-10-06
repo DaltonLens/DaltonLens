@@ -9,6 +9,7 @@
 #include <Dalton/OpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
+#include <Dalton/Platform.h>
 
 #include <Dalton/Utils.h>
 
@@ -37,7 +38,7 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
     geometry.size.x = 458;
-    geometry.size.y = 348 + 20 + 20;
+    geometry.size.y = 264 + 20 + 20;
     geometry.origin.x = (monitorSize.x - geometry.size.x)/2;
     geometry.origin.y = (monitorSize.y - geometry.size.y)/2;
 
@@ -104,24 +105,25 @@ void HelpWindow::runOnce ()
         // dl_dbg("Window size = %f x %f", ImGui::GetWindowSize().x, ImGui::GetWindowSize().y);
         
         ImGui::Text("GLOBAL COLOR POINTER:");
+#if PLATFORM_MACOS
         ImGui::BulletText("Ctrl+Alt+Cmd+Space to enable the color pointer.");
+#else
+        ImGui::BulletText("Ctrl+Alt+Win+Space to enable the color pointer.");
+#endif
+        ImGui::BulletText("'c' to copy the color info to the clipboard.");
         ImGui::BulletText("Escape or 'q' to exit.");
         ImGui::BulletText("Click and drag to open a region in the Image Viewer.");
         ImGui::BulletText("Space to select the window behind the cursor.");
+        ImGui::Spacing();
         ImGui::Separator();
 
         ImGui::Text("IMAGE VIEWER WINDOW:");
         ImGui::BulletText("Escape or 'q' to exit.");
-        ImGui::BulletText("Up/Down arrows to switch the mode.");
+        ImGui::BulletText("Up/Down arrows to switch the current filter.");
         ImGui::BulletText("Shift key at any moment to see the original content.");
         ImGui::BulletText("Right click to show the controls window.");
         ImGui::BulletText("Ctrl + Left/Right click to zoom in or out.");
-        ImGui::BulletText("Available modes:");
-        ImGui::Indent();
-            ImGui::BulletText("Highlight Similar Colors: click on a pixel to\nhighlight other pixels with a similar color.");
-            ImGui::BulletText("Daltonize - Protanope/Deuteranope/Tritanope: \ntransform colors to be more friendly with colorblindness.");
-            ImGui::BulletText("Flip Red & Blue (and Invert Red): switch the \ncolor channels to help see color differences.");
-        ImGui::Unindent();
+        ImGui::Spacing();
         ImGui::Separator();
         
         static std::string appVersion;
@@ -132,7 +134,9 @@ void HelpWindow::runOnce ()
         }
         
         ImGui::Text("ABOUT DALTONLENS:");
-        ImGui::BulletText("Dalton Lens %s (build %s)", appVersion.c_str(), buildNumber.c_str());
+        ImGui::BulletText("Dalton Lens %s (build ", appVersion.c_str());
+            TextURL(buildNumber.c_str(), ("https://github.com/DaltonLens/DaltonLens/commit/" +  buildNumber).c_str(), true, true);
+            ImGui::Text(").");
         ImGui::BulletText("Report issues: "); TextURL("https://github.com/DaltonLens/DaltonLens", "https://github.com/DaltonLens/DaltonLens", true, true); ImGui::Text(".");
         ImGui::BulletText("Developed by "); TextURL("Nicolas Burrus", "http://nicolas.burrus.name", true, true);  ImGui::Text(".");
     }
