@@ -142,6 +142,9 @@ void ImguiGLFWWindow::setEnabled (bool enabled)
     {
         glfwSetWindowShouldClose(impl->window, false);
         glfwShowWindow(impl->window);
+        
+        // This seems necessary on Linux to avoid random issues with the window not getting focus.
+        glfw_reliableBringToFront(impl->window);
 
         // Save the window position as the next show will put it anywhere on Linux :(
         if (impl->posToSetForNextShow.isValid())

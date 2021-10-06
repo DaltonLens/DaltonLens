@@ -405,7 +405,8 @@ void openURLInBrowser(const char* url)
 {
     // Can't call that super safe, but well, we only call it with our own fixed strings.
     std::string op = std::string("xdg-open \"") + url + "\"";
-    system(op.c_str());
+    int failed = system(op.c_str());
+    dl_assert (!failed, "Could not open the URL in browser.");
 }
 
 void getVersionAndBuildNumber(std::string& version, std::string& build)
