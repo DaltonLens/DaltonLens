@@ -10,19 +10,21 @@
 #include "HighlightSimilarColor.h"
 
 #include <Dalton/OpenGL.h>
+#include <Dalton/Platform.h>
+#include <Dalton/Image.h>
+#include <Dalton/Utils.h>
+#include <Dalton/MathUtils.h>
+#include <Dalton/ColorConversion.h>
+
 #include <DaltonGUI/ImguiUtils.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include <Dalton/Image.h>
-#include <Dalton/Utils.h>
-#include <Dalton/MathUtils.h>
-#include <Dalton/ColorConversion.h>
-
 // Note: need to include that before GLFW3 for some reason.
 #include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 
 namespace dl
 {
@@ -94,6 +96,25 @@ void HighlightRegionState::updateDeltas()
         mutableData.shaderParams.deltaH_360 = mutableData.deltaColorThreshold;
         mutableData.shaderParams.deltaS_100 = mutableData.deltaColorThreshold; // tolerates 3x more since the range is [0,100]
         mutableData.shaderParams.deltaV_255 = mutableData.deltaColorThreshold; // tolerates slighly more since the range is [0,255]
+    }
+}
+
+void HighlightRegionState::handleInputEvents ()
+{
+    auto& io = ImGui::GetIO();
+    if (io.MouseWheel != 0.f)
+    {
+#if PLATFORM_MACOS
+        const float scaleFactor = 5.f;
+#else
+        const float scaleFactor = 1.f;
+#endif
+        addSliderDelta (io.MouseWheel * scaleFactor);
+    }
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_SPACE))
+    {
+        mutableData.plotMode = !mutableData.plotMode;
     }
 }
 
@@ -169,9 +190,9 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             {
                 ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("Right click on the image\nfor a contextual menu.");
+                ImGui::BulletText("Up/Down arrows or w/s to\nchange mode.");
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("Left/Right arrows to\nchange mode.");
+                ImGui::BulletText("'c' to copy the color\n info to the clipboard.");
             }
 
             ImGui::EndChild();
@@ -181,13 +202,15 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 
         ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
 
-        int prevDeltaInt = int(data.deltaColorThreshold + 0.5f);
+        state.handleInputEvents();
+
+        int prevDeltaInt = int (data.deltaColorThreshold + 0.5f);
         int deltaInt = prevDeltaInt;
-        ImGui::SliderInt("Max Difference", &deltaInt, 1, 20);
+        ImGui::SliderInt ("Max Difference", &deltaInt, 1, 20);
         if (deltaInt != prevDeltaInt)
         {
             data.deltaColorThreshold = deltaInt;
-            state.updateDeltas();
+            state.updateDeltas ();
         }
 
         if (ImGui::Checkbox("Plot Mode", &data.plotMode))
@@ -195,7 +218,9 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             state.updateDeltas();
         }
         ImGui::SameLine();
-        helpMarker("Allow more difference in saturation and value to better handle anti-aliasing on lines and curves. Better to disable it when looking at flat colors (e.g. pie charts).");
+        helpMarker("Allow more difference in saturation and value to better handle anti-aliasing on lines and curves."
+                   "Better to disable it when looking at flat colors (e.g. pie charts).\n"
+                   "Shortcut: space");
 
         if (data.shaderParams.hasActiveColor)
         {

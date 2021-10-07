@@ -403,9 +403,7 @@ void ImageViewerWindow::runOnce ()
     }
 
     impl->mutableState.highlightRegion.updateFrameCount ();
-
-    bool popupMenuOpen = false;
-    
+   
     auto& io = ImGui::GetIO();
     
     auto modeForThisFrame = impl->mutableState.currentMode;
@@ -561,7 +559,7 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        bool showCursorOverlay = !popupMenuOpen && ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
+        bool showCursorOverlay = ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
         if (showCursorOverlay)
         {
             bool showBecauseOfHighlightMode = (modeForThisFrame == DaltonViewerMode::HighlightRegions && !impl->mutableState.highlightRegion.hasActiveColor());
@@ -620,45 +618,12 @@ void ImageViewerWindow::runOnce ()
                 impl->mutableState.highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
             }
             
-            if (io.MouseWheel != 0.f)
-            {
-                impl->mutableState.highlightRegion.addSliderDelta (io.MouseWheel * 5.f);
-            }
+            impl->mutableState.highlightRegion.handleInputEvents ();
         }
     }
         
     ImGui::End();
     ImGui::PopStyleVar();
-    
-    if (impl->mutableState.currentMode == DaltonViewerMode::HighlightRegions && !popupMenuOpen)
-    {
-        const int expectedHighlightWindowWidthWithPadding = 364;
-        if (platformWindowGeometry.origin.x > expectedHighlightWindowWidthWithPadding)
-        {
-            // Put it on the left since there is room.
-            ImGui::SetNextWindowPos(ImVec2(platformWindowGeometry.origin.x - expectedHighlightWindowWidthWithPadding,
-                                           platformWindowGeometry.origin.y), 
-                                    ImGuiCond_Appearing);
-        }
-        else if ((impl->monitorSize.x - platformWindowGeometry.origin.x - platformWindowGeometry.size.x) > expectedHighlightWindowWidthWithPadding)
-        {
-            // No room on the left, then put it on the right since there is room.
-            ImGui::SetNextWindowPos(ImVec2(platformWindowGeometry.origin.x + platformWindowGeometry.size.x + 8,
-                                           platformWindowGeometry.origin.y),
-                                    ImGuiCond_Appearing);
-        }
-        else
-        {
-            // All right, just leave the window inside the image one, which will be the default.
-            // So do nothing.
-        }
-        
-        // Note: better to collapse it than disable it because the handling of the shift key
-        // was buggy, the key release event would not get caught if the press happened on the
-        // highlight window.
-        const bool collapsed = (modeForThisFrame != DaltonViewerMode::HighlightRegions);
-        renderHighlightRegionControls (impl->mutableState.highlightRegion, collapsed);
-    }
     
     impl->imguiGlfwWindow.endFrame ();
 

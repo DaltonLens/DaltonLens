@@ -39,6 +39,7 @@ public:
     void updateDeltas();
     bool hasActiveColor() const { return mutableData.shaderParams.hasActiveColor; }
     void updateFrameCount ();
+    void handleInputEvents ();
 
 private:
     dl::vec2i _selectedPixel = dl::vec2i(0, 0);

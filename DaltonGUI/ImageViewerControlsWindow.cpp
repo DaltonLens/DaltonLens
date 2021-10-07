@@ -250,6 +250,9 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
         }
 
         activeImageWindow->checkImguiGlobalImageKeyEvents ();
+
+        // Debug: show the FPS.
+        // ImGui::Text("%.1f FPS", 1000.f / ImGui::GetIO().Framerate);
     }
     ImGui::End();
 
