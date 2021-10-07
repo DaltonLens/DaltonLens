@@ -138,23 +138,7 @@ struct ImageViewerWindow::Impl
             --newMode_asInt;
         }
         
-        // If we close that window, we might end up with a weird keyboard state
-        // since a key release event might not be caught.
-        if (mutableState.currentMode == DaltonViewerMode::HighlightRegions)
-        {
-            resetKeyboardStateAfterWindowClose();
-        }
-        
         mutableState.currentMode = (DaltonViewerMode)newMode_asInt;
-    }
-    
-    void resetKeyboardStateAfterWindowClose ()
-    {
-        auto& io = ImGui::GetIO();
-        
-        // Reset the keyboard state to make sure we won't re-enter the next time
-        // with 'q' or 'escape' already pressed from before.
-        std::fill (io.KeysDown, io.KeysDown + sizeof(io.KeysDown)/sizeof(io.KeysDown[0]), false);
     }
     
     void onImageWidgetAreaChanged ()
