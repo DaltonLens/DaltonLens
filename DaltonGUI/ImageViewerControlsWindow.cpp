@@ -100,6 +100,14 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
     glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
     bool ok = impl->imguiGlfwWindow.initialize (parentWindow, "DaltonLens Controls", geometry);
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
+
+    // This is tricky, but with GLFW windows we can't have multiple windows waiting for
+    // vsync or we'll end up with the framerate being 60 / numberOfWindows. So we'll
+    // just keep the image window with the vsync, and skip it for the controls window.
+    // Another option would be multi-threading or use a single OpenGL context,
+    // but I don't want to introduce that complexity.
+    glfwSwapInterval (0);
+
     return ok;
 }
 
@@ -252,7 +260,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
         activeImageWindow->checkImguiGlobalImageKeyEvents ();
 
         // Debug: show the FPS.
-        // ImGui::Text("%.1f FPS", 1000.f / ImGui::GetIO().Framerate);
+        ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
     }
     ImGui::End();
 

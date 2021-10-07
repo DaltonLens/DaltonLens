@@ -338,10 +338,12 @@ bool DaltonLensGUI::initialize ()
 #endif
     
     glfwWindowHint(GLFW_DECORATED, false);
+    glfwWindowHint(GLFW_VISIBLE, false);
     impl->mainContextWindow = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (impl->mainContextWindow == NULL)
         return false;
     glfwWindowHint(GLFW_DECORATED, true); // restore the default.
+    glfwWindowHint(GLFW_VISIBLE, true);
     
     glfwMakeContextCurrent(impl->mainContextWindow);
     
@@ -354,12 +356,9 @@ bool DaltonLensGUI::initialize ()
         return false;
     }
     
-    glfwSwapInterval(1); // Enable vsync
+    glfwSwapInterval(1); // no vsync on that dummy window to avoid delaying other windows.
     
-    glfwSetWindowPos(impl->mainContextWindow, 0, 0);
-    
-    // Don't show that dummy window.
-    glfwHideWindow (impl->mainContextWindow);
+    glfwSetWindowPos(impl->mainContextWindow, 0, 0);    
         
     impl->imageViewer.initialize(impl->mainContextWindow);
     impl->grabScreenWindow.initialize(impl->mainContextWindow);
