@@ -12,57 +12,76 @@ namespace dl
 const char* commonFragmentLibrary = R"(
     const float hsxEpsilon = 1e-10;
 
-    vec3 yCbCrFromSRGBA (vec4 srgba)
+    // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
+    // Converts a color from linear light gamma to sRGB gamma
+    vec4 fromLinear(vec4 linearRGB)
     {
-        // FIXME: this is ignoring gamma and treating it like linearRGB
-        float y =   0.57735027*srgba.r + 0.57735027*srgba.g + 0.57735027*srgba.b;
-        float cr =  0.70710678*srgba.r - 0.70710678*srgba.g;
-        float cb = -0.40824829*srgba.r - 0.40824829*srgba.g + 0.81649658*srgba.b;
+        bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
+        vec3 higher = vec3(1.055)*pow(linearRGB.rgb, vec3(1.0/2.4)) - vec3(0.055);
+        vec3 lower = linearRGB.rgb * vec3(12.92);
+
+        return vec4(mix(higher, lower, cutoff), linearRGB.a);
+    }
+
+    vec4 fromLinearClamped (vec4 rgba)
+    {
+        return fromLinear(clamp(rgba, 0.0, 1.0));
+    }
+
+    // Converts a color from sRGB gamma to linear light gamma
+    vec4 toLinear(vec4 sRGB)
+    {
+        bvec3 cutoff = lessThan(sRGB.rgb, vec3(0.04045));
+        vec3 higher = pow((sRGB.rgb + vec3(0.055))/vec3(1.055), vec3(2.4));
+        vec3 lower = sRGB.rgb/vec3(12.92);
+
+        return vec4(mix(higher, lower, cutoff), sRGB.a);
+    }
+
+    vec3 yCbCrFromRGBA (vec4 rgba)
+    {
+        float y =   0.57735027*rgba.r + 0.57735027*rgba.g + 0.57735027*rgba.b;
+        float cr =  0.70710678*rgba.r - 0.70710678*rgba.g;
+        float cb = -0.40824829*rgba.r - 0.40824829*rgba.g + 0.81649658*rgba.b;
         return vec3(y,cb,cr);
     }
 
-    vec4 sRGBAfromYCbCr (vec3 yCbCr, float alpha)
+    vec4 RGBAfromYCbCr (vec3 yCbCr, float alpha)
     {
-        // FIXME: this is ignoring gamma and treating it like linearRGB
-        
-        vec4 srgbaOut;
+        vec4 rgbaOut;
         
         float y = yCbCr.x;
         float cb = yCbCr.y;
         float cr = yCbCr.z;
         
-        srgbaOut.r = clamp(5.77350269e-01*y + 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
-        srgbaOut.g = clamp(5.77350269e-01*y - 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
-        srgbaOut.b = clamp(5.77350269e-01*y +            0.0*cr + 8.16496581e-01*cb, 0.0, 1.0);
-        srgbaOut.a = alpha;
-        return srgbaOut;
+        rgbaOut.r = clamp(5.77350269e-01*y + 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
+        rgbaOut.g = clamp(5.77350269e-01*y - 7.07106781e-01*cr - 4.08248290e-01*cb, 0.0, 1.0);
+        rgbaOut.b = clamp(5.77350269e-01*y +            0.0*cr + 8.16496581e-01*cb, 0.0, 1.0);
+        rgbaOut.a = alpha;
+        return rgbaOut;
     }
 
-    vec3 lmsFromSRGBA (vec4 srgba)
+    vec3 lmsFromRGBA (vec4 rgba)
     {
-        //    17.8824, 43.5161, 4.11935,
-        //    3.45565, 27.1554, 3.86714,
-        //    0.0299566, 0.184309, 1.46709
-    
+        // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.LMS_from_linearRGB
+
         vec3 lms;
-        lms[0] = 17.8824*srgba.r + 43.5161*srgba.g + 4.11935*srgba.b;
-        lms[1] = 3.45565*srgba.r + 27.1554*srgba.g + 3.86714*srgba.b;
-        lms[2] = 0.0299566*srgba.r + 0.184309*srgba.g + 1.46709*srgba.b;
+        lms[0] = 0.1789*rgba.r + 0.44  *rgba.g + 0.036 *rgba.b;
+        lms[1] = 0.0338*rgba.r + 0.2752*rgba.g + 0.0362*rgba.b;
+        lms[2] = 0.0003*rgba.r + 0.0019*rgba.g + 0.0153*rgba.b;
         return lms;
     }
 
-    vec4 sRGBAFromLms (vec3 lms, float alpha)
+    vec4 RGBAFromLms (vec3 lms, float alpha)
     {
-        //    0.0809445    -0.130504     0.116721
-        //    -0.0102485    0.0540193    -0.113615
-        //    -0.000365297  -0.00412162     0.693511
+        // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.linearRGB_from_LMS
     
-        vec4 srgbaOut;
-        srgbaOut.r = clamp(0.0809445*lms[0] - 0.130504*lms[1] + 0.116721*lms[2], 0.0, 1.0);
-        srgbaOut.g = clamp(-0.0102485*lms[0] + 0.0540193*lms[1] - 0.113615*lms[2], 0.0, 1.0);
-        srgbaOut.b = clamp(-0.000365297*lms[0] - 0.00412162*lms[1] + 0.693511*lms[2], 0.0, 1.0);
-        srgbaOut.a = alpha;
-        return srgbaOut;
+        vec4 rgbaOut;
+        rgbaOut.r =  8.0053*lms[0] - 12.882*lms[1] + 11.6806 * lms[2];
+        rgbaOut.g = -0.9782*lms[0] + 5.2694*lms[1] - 10.183  * lms[2];
+        rgbaOut.b = -0.0402*lms[0] - 0.3989*lms[1] + 66.4808 * lms[2];
+        rgbaOut.a = alpha;
+        return rgbaOut;
     }
 
     // H in [0,1]
@@ -81,11 +100,11 @@ const char* commonFragmentLibrary = R"(
     // H in [0,1]
     // C in [0,1]
     // V in [0,1]
-    vec3 HSVFromSRGB (vec3 srgb)
+    vec3 HSVFromRGB (vec3 rgb)
     {
         // FIXME: this is ignoring gamma and treating it like linearRGB
     
-        vec3 HCV = HCVFromRGB(srgb.xyz);
+        vec3 HCV = HCVFromRGB(rgb.xyz);
         float S = HCV.y / (HCV.z + hsxEpsilon);
         return vec3(HCV.x, S, HCV.z);
     }
@@ -98,47 +117,49 @@ const char* commonFragmentLibrary = R"(
         return clamp(vec3(R,G,B), 0, 1);
     }
 
-    vec4 sRGBAFromHSV(vec3 HSV, float alpha)
+    vec4 RGBAFromHSV(vec3 HSV, float alpha)
     {
         vec3 RGB = RGBFromHUE(HSV.x);
         return vec4(((RGB - 1) * HSV.y + 1) * HSV.z, alpha);
     }
 
-    vec3 applyProtanope (vec3 lms)
+    vec3 applyProtanope_Vienot (vec3 lms)
     {
-        //    p.l = /* 0*p.l + */ 2.02344*p.m - 2.52581*p.s;
+        // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
         vec3 lmsTransformed = lms;
-        lmsTransformed[0] = 2.02344*lms[1] - 2.52581*lms[2];
+        lmsTransformed[0] = 2.0205*lms[1] - 2.4337*lms[2];
         return lmsTransformed;
     }
 
-    vec3 applyDeuteranope (vec3 lms)
+    vec3 applyDeuteranope_Vienot (vec3 lms)
     {
-        //    p.m = 0.494207*p.l /* + 0*p.m */ + 1.24827*p.s;
+        // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
         vec3 lmsTransformed = lms;
-        lmsTransformed[1] = 0.494207*lms[0] + 1.24827*lms[2];
+        lmsTransformed[1] = 0.4949*lms[0] + 1.2045*lms[2];
         return lmsTransformed;
     }
 
-    vec3 applyTritanope (vec3 lms)
+    vec3 applyTritanope_Vienot (vec3 lms)
     {
-        //    p.s = -0.395913*p.l + 0.801109*p.m /* + 0*p.s */;
+        // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
+        // WARNING: Viénot is not good for tritanopia, we need
+        // to switch to Brettel.
         vec3 lmsTransformed = lms;
-        lmsTransformed[2] = -0.395913*lms[0] + 0.801109*lms[1];
+        lmsTransformed[2] = -0.0122*lms[0] + 0.0739*lms[1];
         return lmsTransformed;
     }
 
-    vec4 daltonizeV1 (vec4 srgba, vec4 srgbaSimulated)
+    vec4 daltonizeV1 (vec4 rgba, vec4 rgbaSimulated)
     {
-        vec3 error = srgba.rgb - srgbaSimulated.rgb;
+        vec3 error = rgba.rgb - rgbaSimulated.rgb;
 
-        float updatedG = srgba.g + 0.7*error.r + 1.0*error.g + 0.0*error.b;
-        float updatedB = srgba.b + 0.7*error.r + 0.0*error.g + 1.0*error.b;
+        float updatedG = rgba.g + 0.7*error.r + 1.0*error.g + 0.0*error.b;
+        float updatedB = rgba.b + 0.7*error.r + 0.0*error.g + 1.0*error.b;
 
-        vec4 srgbaOut = srgba;
-        srgbaOut.g = clamp(updatedG, 0.0, 1.0);
-        srgbaOut.b = clamp(updatedB, 0.0, 1.0);
-        return srgbaOut;
+        vec4 rgbaOut = rgba;
+        rgbaOut.g = updatedG;
+        rgbaOut.b = updatedB;
+        return rgbaOut;
     }
 )";
 
@@ -168,7 +189,7 @@ const char* fragmentShader_Normal_glsl_130 = R"(
     void main()
     {
         vec4 srgb = texture(Texture, Frag_UV.st);
-        Out_Color = vec4(srgb.r, srgb.g, srgb.b, srgb.a);
+        Out_Color = srgb;
     }
 )";
 
@@ -178,13 +199,13 @@ const char* fragmentShader_FlipRedBlue_glsl_130 = R"(
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgb = texture(Texture, Frag_UV.st);
-        vec3 yCbCr = yCbCrFromSRGBA(srgb);
+        vec4 rgba = toLinear(texture(Texture, Frag_UV.st));
+        vec3 yCbCr = yCbCrFromRGBA(rgba);
         vec3 transformedYCbCr = yCbCr;
         transformedYCbCr.x = yCbCr.x;
         transformedYCbCr.y = yCbCr.z;
         transformedYCbCr.z = yCbCr.y;
-        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
+        Out_Color = fromLinearClamped(RGBAfromYCbCr (transformedYCbCr, 1.0));
     }
 )";
 
@@ -194,13 +215,13 @@ const char* fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgb = texture(Texture, Frag_UV.st);
-        vec3 yCbCr = yCbCrFromSRGBA(srgb);
+        vec4 rgba = toLinear(texture(Texture, Frag_UV.st));
+        vec3 yCbCr = yCbCrFromRGBA(rgba);
         vec3 transformedYCbCr = yCbCr;
         transformedYCbCr.x = yCbCr.x;
         transformedYCbCr.y = -yCbCr.z; // flip Cb
         transformedYCbCr.z = yCbCr.y;
-        Out_Color = sRGBAfromYCbCr (transformedYCbCr, 1.0);
+        Out_Color = fromLinear(RGBAfromYCbCr (transformedYCbCr, 1.0));
     }
 )";
 
@@ -212,17 +233,17 @@ const char* fragmentShader_DaltonizeV1_glsl_130 = R"(
     out vec4 Out_Color;
     void main()
     {
-        vec4 srgba = texture(Texture, Frag_UV.st);
-        vec3 lms = lmsFromSRGBA(srgba);
+        vec4 rgba = toLinear(texture(Texture, Frag_UV.st));
+        vec3 lms = lmsFromRGBA(rgba);
         vec3 lmsSimulated = vec3(0,1,0);
         switch (u_kind) {
-            case 0: lmsSimulated = applyProtanope(lms); break;
-            case 1: lmsSimulated = applyDeuteranope(lms); break;
-            case 2: lmsSimulated = applyTritanope(lms); break;
+            case 0: lmsSimulated = applyProtanope_Vienot(lms); break;
+            case 1: lmsSimulated = applyDeuteranope_Vienot(lms); break;
+            case 2: lmsSimulated = applyTritanope_Vienot(lms); break;
         }
-        vec4 srgbaSimulated = sRGBAFromLms(lmsSimulated, 1.0);
-        vec4 srgbaOut = u_simulateOnly ? srgbaSimulated : daltonizeV1(srgba, srgbaSimulated);
-        Out_Color = srgbaOut;
+        vec4 rgbaSimulated = RGBAFromLms(lmsSimulated, 1.0);
+        vec4 rgbaOut = u_simulateOnly ? rgbaSimulated : daltonizeV1(rgba, rgbaSimulated);
+        Out_Color = fromLinearClamped(rgbaOut);
     }
 )";
 
@@ -247,9 +268,9 @@ const char* fragmentShader_highlightSameColor = R"(
 
     void main()
     {
-        vec4 srgba = texture(Texture, Frag_UV.st);
-        vec3 hsv = HSVFromSRGB(srgba.rgb);                
-        vec3 ref_hsv = HSVFromSRGB(u_refColor.rgb);
+        vec4 rgba = toLinear(texture(Texture, Frag_UV.st));
+        vec3 hsv = HSVFromRGB(rgba.rgb);                
+        vec3 ref_hsv = HSVFromRGB(u_refColor.rgb);
         
         bool isSame = checkHSVDelta(ref_hsv, hsv);
                         
@@ -258,8 +279,8 @@ const char* fragmentShader_highlightSameColor = R"(
         float timeWeightedIntensity = timeWeight;
         hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
 
-        vec4 transformedSRGB = sRGBAFromHSV(hsv, 1.0);
-        Out_Color = transformedSRGB;
+        vec4 transformedRGB = RGBAFromHSV(hsv, 1.0);
+        Out_Color = fromLinearClamped(transformedRGB);
     }
 )";
 

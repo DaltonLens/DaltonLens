@@ -175,21 +175,18 @@ void Filter_Daltonize::enableGLShader ()
 
 void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kind blindness)
 {
-    // From daltonize.py:
-    //        lms2lmsp = [0 2.02344 -2.52581; 0 1 0; 0 0 1] ;
-    //        lms2lmsd = [1 0 0; 0.494207 0 1.24827; 0 0 1] ;
-    //        lms2lmst = [1 0 0; 0 1 0; -0.395913 0.801109 0] ;
+    // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
     
     auto protanope = [](int c, int r, PixelLMS& p) {
-        p.l = /* 0*p.l + */ 2.02344*p.m - 2.52581*p.s;
+        p.l = /* 0*p.l + */ 2.0205*p.m - 2.4337*p.s;
     };
     
     auto deuteranope = [](int c, int r, PixelLMS& p) {
-        p.m = 0.494207*p.l /* + 0*p.m */ + 1.24827*p.s;
+        p.m = 0.4949*p.l /* + 0*p.m */ + 1.2045*p.s;
     };
     
     auto tritanope = [](int c, int r, PixelLMS& p) {
-        p.s = -0.395913*p.l + 0.801109*p.m /* + 0*p.s */;
+        p.s = -0.0122*p.l + 0.0739*p.m /* + 0*p.s */;
     };
     
     switch (blindness)
@@ -211,34 +208,45 @@ void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kin
     }
 }
 
-void Filter_Daltonize::applyCPU (const ImageSRGBA& input, ImageSRGBA& output) const
+void Filter_Daltonize::applyCPU (const ImageSRGBA& inputSRGBA, ImageSRGBA& output) const
 {
-    SRGBAToLMSConverter converter;
+    ImageLinearRGB inputRGB = convertToLinearRGB(inputSRGBA);
+
+    RGBAToLMSConverter converter;
     ImageLMS lmsImage;
-    converter.convertToLms (input, lmsImage);
+    converter.convertToLms (inputRGB, lmsImage);
     applyDaltonizeSimulation (lmsImage, _currentParams.kind);
 
-    ImageSRGBA simulatedSRGBA;
-    converter.convertToSrgba (lmsImage, simulatedSRGBA);
+    ImageLinearRGB simulatedRGB;
+    converter.convertToLinearRGB (lmsImage, simulatedRGB);
 
-    output = input;
-    output.apply ([&](int c, int r, PixelSRGBA& srgba) {
+    if (_currentParams.simulateOnly)
+    {
+        output = convertToSRGBA(simulatedRGB);
+        return;
+    }
+
+    ImageLinearRGB outputRGB = inputRGB;
+
+    outputRGB.apply ([&](int c, int r, PixelLinearRGB& rgb) {
 
         // [0, 0, 0],
         // [0.7, 1, 0],
         // [0.7, 0, 1]
 
-        const auto& simRgba = simulatedSRGBA (c, r);
+        const auto& simRgb = simulatedRGB (c, r);
 
-        float rError = srgba.r - simRgba.r;
-        float gError = srgba.g - simRgba.g;
-        float bError = srgba.b - simRgba.b;
+        float rError = rgb.r - simRgb.r;
+        float gError = rgb.g - simRgb.g;
+        float bError = rgb.b - simRgb.b;
 
-        float updatedG = srgba.g + 0.7 * rError + 1.0 * gError + 0.0 * bError;
-        float updatedB = srgba.b + 0.7 * rError + 0.0 * gError + 1.0 * bError;
-        srgba.g = saturateAndCast (updatedG);
-        srgba.b = saturateAndCast (updatedB);
+        float updatedG = rgb.g + 0.7 * rError + 1.0 * gError + 0.0 * bError;
+        float updatedB = rgb.b + 0.7 * rError + 0.0 * gError + 1.0 * bError;
+        rgb.g = updatedG;
+        rgb.b = updatedB;
     });
+
+    output = convertToSRGBA(outputRGB);
 }
 
 } // dl

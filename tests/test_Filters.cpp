@@ -80,31 +80,51 @@ UTEST(Daltonize, DaltonizeGPU)
     GLFilterProcessor processor;
     processor.initializeGL ();
 
-    auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name) {
+    auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name, int tolerance) {
         filter.setParams (params);
         processor.render (filter, texture.textureId(), texture.width(), texture.height(), &output);
         ASSERT_EQ(output.width(), im.width());
         ASSERT_EQ(output.height(), im.height());
         
+        // Uncomment to generate new ground truth. Note that the current simulation
+        // ground truth comes from DaltonLens-Python though.
+        // writePngImage ("test_Filters_GPU_output_" + name + ".png", output);
+
         ImageSRGBA gt_im;
         readPngImage (sourceImagePrefix + "_" + name + ".png", gt_im);
         ASSERT_EQ(gt_im.width(), output.width());
 
-        ASSERT_TRUE(imagesAreSimilar(gt_im, output, 1));
-        // writePngImage ("test_Filters_GPU_output_" + name + ".png", output);
+        // Allow a small margin because the GT comes from DaltonLens-Python
+        ASSERT_TRUE(imagesAreSimilar(gt_im, output, tolerance));
     };
 
     Filter_Daltonize::Params params;
     params.simulateOnly = false;
 
+    // GT is from the CPU, so some difference expected.
+    const int toleranceForDaltonize = 6;
     params.kind = Filter_Daltonize::Params::Kind::Protanope;
-    testDaltonize (params, "daltonize_protanope");
+    testDaltonize (params, "daltonize_protanope", toleranceForDaltonize);
     
     params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
-    testDaltonize (params, "daltonize_deuteranope");
+    testDaltonize (params, "daltonize_deuteranope", toleranceForDaltonize);
 
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
-    testDaltonize (params, "daltonize_tritanope");
+    testDaltonize (params, "daltonize_tritanope", toleranceForDaltonize);
+
+    // Test the simulations only.
+
+    params.simulateOnly = true;
+    // A bit less differences expected for simulations since are less steps.
+    const int toleranceForSimulations = 4;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "simulate_protanope", toleranceForSimulations);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "simulate_deuteranope", toleranceForSimulations);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "simulate_tritanope", toleranceForSimulations);
 }
 
 UTEST(Daltonize, DaltonizeCPU)
@@ -117,31 +137,49 @@ UTEST(Daltonize, DaltonizeCPU)
     Filter_Daltonize filter;
     ImageSRGBA output;
 
-    auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name) {
+    auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name, int tolerance) {
         filter.setParams (params);
         filter.applyCPU (im, output);
         ASSERT_EQ(output.width(), im.width());
         ASSERT_EQ(output.height(), im.height());
-        
+                
+        // writePngImage ("test_Filters_CPU_output_" + name + ".png", output);
+
         ImageSRGBA gt_im;
         readPngImage (sourceImagePrefix + "_" + name + ".png", gt_im);
         ASSERT_EQ(gt_im.width(), output.width());
 
-        ASSERT_TRUE(imagesAreSimilar(gt_im, output, 2));
-        // writePngImage ("test_Filters_CPU_output_" + name + ".png", output);
+        ASSERT_TRUE(imagesAreSimilar(gt_im, output, tolerance));
     };
 
     Filter_Daltonize::Params params;
     params.simulateOnly = false;
 
+    // GT is from the CPU, so no difference expected.
+    const int toleranceForDaltonize = 1;
     params.kind = Filter_Daltonize::Params::Kind::Protanope;
-    testDaltonize (params, "daltonize_protanope");
+    testDaltonize (params, "daltonize_protanope", toleranceForDaltonize);
     
     params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
-    testDaltonize (params, "daltonize_deuteranope");
+    testDaltonize (params, "daltonize_deuteranope", toleranceForDaltonize);
 
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
-    testDaltonize (params, "daltonize_tritanope");
+    testDaltonize (params, "daltonize_tritanope", toleranceForDaltonize);
+
+    // Test the simulations only.
+    
+    // GT is from the CPU code of DaltonLens-Python, so there really
+    // shouldn't be any significant diff.
+    const int toleranceForSimulation = 1;
+    params.simulateOnly = true;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "simulate_protanope", toleranceForSimulation);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "simulate_deuteranope", toleranceForSimulation);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "simulate_tritanope", toleranceForSimulation);
 }
 
 UTEST_MAIN();

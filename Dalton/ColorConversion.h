@@ -15,18 +15,21 @@
 namespace dl
 {
     
-    class SRGBAToLMSConverter
+    class RGBAToLMSConverter
     {
     public:
-        SRGBAToLMSConverter ();
+        RGBAToLMSConverter ();
         
-        void convertToLms (const ImageSRGBA& srgbaImage, ImageLMS& lmsImage);
-        void convertToSrgba (const ImageLMS& lmsImage, ImageSRGBA& srgbaImage);
+        void convertToLms (const ImageLinearRGB& rgbImage, ImageLMS& lmsImage);
+        void convertToLinearRGB (const ImageLMS& lmsImage, ImageLinearRGB& rgbImage);
         
     private:
         ColMajorMatrix3f _linearRgbToLmsMatrix;
         ColMajorMatrix3f _lmsToLinearRgbMatrix;
     };
+
+    ImageSRGBA convertToSRGBA(const ImageLinearRGB& rgb);
+    ImageLinearRGB convertToLinearRGB(const ImageSRGBA& srgb);
     
     class CbCrTransformer
     {

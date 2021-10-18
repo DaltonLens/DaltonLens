@@ -11,39 +11,34 @@
 namespace dl
 {
 
-    SRGBAToLMSConverter::SRGBAToLMSConverter ()
+    RGBAToLMSConverter::RGBAToLMSConverter ()
     {
-        // Comes from "Digital video colourmaps for checking the legibility of displays by dichromats"
-        // by Viénot, Brettel and Mollon (1999). Reused by Fidaner et al. in 2005 in their
-        // "Analysis of Color Blindness" technical report.
+        // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.LMS_from_linearRGB
+        // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.linearRGB_from_LMS
 
-        _linearRgbToLmsMatrix = ColMajorMatrix3f(17.8824,   43.5161,  4.11935,
-                                                 3.45565,   27.1554,  3.86714,
-                                                 0.0299566, 0.184309, 1.46709);
+        _linearRgbToLmsMatrix = ColMajorMatrix3f(0.17886, 0.43997, 0.03597,
+                                                 0.0338 , 0.27515, 0.03621,
+                                                 0.00031, 0.00192, 0.01528);
         
         // Eigen::Matrix3f::Map(_lmsToLinearRgbMatrix.v) = Eigen::Matrix3f::Map(_linearRgbToLmsMatrix.v).inverse();
-        _lmsToLinearRgbMatrix = ColMajorMatrix3f( 0.08094446,   -0.1305044,    0.1167211,
-                                                 -0.01024854,    0.05401933,  -0.1136147,
-                                                 -0.0003652968, -0.004121615,  0.6935114);
-        
+        _lmsToLinearRgbMatrix = ColMajorMatrix3f( 8.00533, -12.88195,  11.68065,
+                                                 -0.97821, 5.26945, -10.183,
+                                                 -0.04017, -0.39885, 66.48079);
     }
     
-    void SRGBAToLMSConverter :: convertToLms (const ImageSRGBA& srgbaImage, ImageLMS& lmsImage)
-    {
-        // FIXME: in theory we'd need to convert to linearRGB first. But I don't expect
-        // the difference to be huge.
-        
-        lmsImage.ensureAllocatedBufferForSize(srgbaImage.width(), srgbaImage.height());
+    void RGBAToLMSConverter :: convertToLms (const ImageLinearRGB& rgbImage, ImageLMS& lmsImage)
+    {        
+        lmsImage.ensureAllocatedBufferForSize(rgbImage.width(), rgbImage.height());
         
         const auto& m = _linearRgbToLmsMatrix;
         
-        for (int r = 0; r < srgbaImage.height(); ++r)
+        for (int r = 0; r < rgbImage.height(); ++r)
         {
-            const auto* srgbaRow = srgbaImage.atRowPtr(r);
+            const auto* rgbRow = rgbImage.atRowPtr(r);
             auto* lmsRow = lmsImage.atRowPtr(r);
-            for (int c = 0; c < srgbaImage.width(); ++c)
+            for (int c = 0; c < rgbImage.width(); ++c)
             {
-                const auto& srgba = srgbaRow[c];
+                const auto& srgba = rgbRow[c];
                 auto& lms = lmsRow[c];
                 lms.l = m.m00*srgba.r + m.m01*srgba.g + m.m02*srgba.b;
                 lms.m = m.m10*srgba.r + m.m11*srgba.g + m.m12*srgba.b;
@@ -52,28 +47,24 @@ namespace dl
         }
     }
     
-    void SRGBAToLMSConverter :: convertToSrgba (const ImageLMS& lmsImage, ImageSRGBA& srgbaImage)
+    void RGBAToLMSConverter :: convertToLinearRGB (const ImageLMS& lmsImage, ImageLinearRGB& rgbImage)
     {
-        // FIXME: in theory we'd need to convert from linearRGB to SRGBBut I don't expect
-        // the difference to be huge.
-        
-        srgbaImage.ensureAllocatedBufferForSize(lmsImage.width(), lmsImage.height());
+        rgbImage.ensureAllocatedBufferForSize(lmsImage.width(), lmsImage.height());
         
         const auto& m = _lmsToLinearRgbMatrix;
                 
         for (int r = 0; r < lmsImage.height(); ++r)
         {
             const auto* lmsRow = lmsImage.atRowPtr(r);
-            auto* srgbaRow = srgbaImage.atRowPtr(r);
+            auto* rgbRow = rgbImage.atRowPtr(r);
             for (int c = 0; c < lmsImage.width(); ++c)
             {
                 const auto& lms = lmsRow[c];
-                auto& srgba = srgbaRow[c];
+                auto& rgb = rgbRow[c];
                 
-                srgba.r = saturateAndCast(m.m00*lms.l + m.m01*lms.m + m.m02*lms.s);
-                srgba.g = saturateAndCast(m.m10*lms.l + m.m11*lms.m + m.m12*lms.s);
-                srgba.b = saturateAndCast(m.m20*lms.l + m.m21*lms.m + m.m22*lms.s);
-                srgba.a = 255;
+                rgb.r = m.m00*lms.l + m.m01*lms.m + m.m02*lms.s;
+                rgb.g = m.m10*lms.l + m.m11*lms.m + m.m12*lms.s;
+                rgb.b = m.m20*lms.l + m.m21*lms.m + m.m22*lms.s;
             }
         }
     }
@@ -209,10 +200,50 @@ namespace dl
 
     PixelSRGBA convertToSRGBA(const PixelLinearRGB& rgb)
     {
-        return PixelSRGBA(roundAndSaturateToUint8(linearToSrgb(rgb.r)),
-                          roundAndSaturateToUint8(linearToSrgb(rgb.g)),
-                          roundAndSaturateToUint8(linearToSrgb(rgb.b)),
+        return PixelSRGBA(roundAndSaturateToUint8(linearToSrgb(rgb.r)*255.0),
+                          roundAndSaturateToUint8(linearToSrgb(rgb.g)*255.0),
+                          roundAndSaturateToUint8(linearToSrgb(rgb.b)*255.0),
                           255);
+    }
+
+    ImageSRGBA convertToSRGBA(const ImageLinearRGB& rgb)
+    {
+        const int w = rgb.width();
+        const int h = rgb.height();
+        ImageSRGBA outImg(w, h);
+        for (int r = 0; r < h; ++r)
+        {
+            const auto* inPtr = rgb.atRowPtr(r);
+            const auto* lastInPtr = rgb.atRowPtr(r+1);
+            auto* outPtr = outImg.atRowPtr(r);
+            while (inPtr != lastInPtr)
+            {
+                *outPtr = convertToSRGBA(*inPtr);
+                ++inPtr;
+                ++outPtr;
+            }
+        }
+        return outImg;
+    }
+
+    ImageLinearRGB convertToLinearRGB(const ImageSRGBA& srgb)
+    {
+        const int w = srgb.width();
+        const int h = srgb.height();
+        ImageLinearRGB outImg(w, h);
+        for (int r = 0; r < h; ++r)
+        {
+            const auto* inPtr = srgb.atRowPtr(r);
+            const auto* lastInPtr = srgb.atRowPtr(r+1);
+            auto* outPtr = outImg.atRowPtr(r);
+            while (inPtr != lastInPtr)
+            {
+                *outPtr = convertToLinearRGB(*inPtr);
+                ++inPtr;
+                ++outPtr;
+            }
+        }
+        return outImg;
     }
 
     // Convert rgb floats ([0-255],[0-255],[0-255]) to hsv floats ([0-1],[0-1],[0-1]), from Foley & van Dam p592
