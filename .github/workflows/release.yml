@@ -1,4 +1,4 @@
-name: release
+name: Build Release Artifacts
 
 on:
   # Accept manual events.
@@ -6,6 +6,9 @@ on:
   push:
     tags:
       - '*'
+
+env:
+  BUILD_TYPE: Release
 
 jobs:
   build_release:
@@ -36,7 +39,10 @@ jobs:
 
       - name: <Linux> Install dependencies for DaltonLens
         if: matrix.os == 'ubuntu-latest'
-        run: sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y cmake libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libxcb1-dev libappindicator3-dev libgtk-3-dev
+        run: |
+          sudo apt-get -y update
+          sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y coreutils xserver-xorg-video-dummy mesa-utils
+          sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y cmake libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libxcb1-dev libappindicator3-dev libgtk-3-dev
 
       - name: <Windows> Setup devcmd
         if: matrix.os == 'windows-latest'
@@ -46,17 +52,22 @@ jobs:
         run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
       - name: Create package
-        run: cmake ${{github.workspace}}/build --config Release --target package
+        run: |
+          # FIXME: I don't understand why the external projects dependencies are not properly handled sometimes.
+          # It happens systematically on Windows with github actions.
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target glfw-deps clip-deps
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target package
 
       - name: <Linux> Create source package
         if: matrix.os == 'ubuntu-latest'
-        run: cmake ${{github.workspace}}/build --config Release --target package_source
+        run: cmake --build ${{github.workspace}}/build --config Release --target package_source
 
       - name: Archive the generate package
         uses: actions/upload-artifact@v2
         with:
-          name: Package for matrix.os
+          name: Packages for DaltonLens
           path: |
             build/*.tar.gz
+            build/*.zip
             build/*-win64.exe
             build/*.dmg
