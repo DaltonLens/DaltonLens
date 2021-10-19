@@ -122,7 +122,7 @@ public:
 
 private:
     Params _currentParams;
-    unsigned _attribLocationRefColor = 0;
+    unsigned _attribLocationRefColor_linearRGB = 0;
     unsigned _attribLocationDeltaH = 0;
     unsigned _attribLocationDeltaS = 0;
     unsigned _attribLocationDeltaV = 0;

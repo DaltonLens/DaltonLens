@@ -132,7 +132,7 @@ void Filter_HighlightSimilarColors::initializeGL ()
 {
     GLFilter::initializeGL (glslVersion(), nullptr, fragmentShader_highlightSameColor); 
     GLuint shaderHandle = glHandles().shaderHandle;
-    _attribLocationRefColor = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor");
+    _attribLocationRefColor_linearRGB = (GLuint)glGetUniformLocation(shaderHandle, "u_refColor_linearRGB");
     _attribLocationDeltaH = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaH_360");
     _attribLocationDeltaS = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaS_100");
     _attribLocationDeltaV = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaV_255");
@@ -142,7 +142,7 @@ void Filter_HighlightSimilarColors::initializeGL ()
 void Filter_HighlightSimilarColors::enableGLShader ()
 {
     GLFilter::enableGLShader ();
-    glUniform3f(_attribLocationRefColor, _currentParams.activeColorRGB01.x, _currentParams.activeColorRGB01.y, _currentParams.activeColorRGB01.z);
+    glUniform3f(_attribLocationRefColor_linearRGB, _currentParams.activeColorRGB01.x, _currentParams.activeColorRGB01.y, _currentParams.activeColorRGB01.z);
     glUniform1f(_attribLocationDeltaH, _currentParams.deltaH_360);
     glUniform1f(_attribLocationDeltaS, _currentParams.deltaS_100);
     glUniform1f(_attribLocationDeltaV, _currentParams.deltaV_255);

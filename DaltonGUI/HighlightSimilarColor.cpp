@@ -54,9 +54,10 @@ void HighlightRegionState::setSelectedPixel(float x, float y)
 
     _selectedPixel = newPixel;
     dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
-    mutableData.shaderParams.activeColorRGB01.x = srgba.r / 255.f;
-    mutableData.shaderParams.activeColorRGB01.y = srgba.g / 255.f;
-    mutableData.shaderParams.activeColorRGB01.z = srgba.b / 255.f;
+    dl::PixelLinearRGB rgb = dl::convertToLinearRGB(srgba);
+    mutableData.shaderParams.activeColorRGB01.x = rgb.r;
+    mutableData.shaderParams.activeColorRGB01.y = rgb.g;
+    mutableData.shaderParams.activeColorRGB01.z = rgb.b;
 
     mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
 
@@ -82,14 +83,19 @@ void HighlightRegionState::updateDeltas()
     // If the selected color is not saturated at all (grayscale), then we need rely on
     // value to discriminate the treat it the same way we treat the non-plot style.
     if (mutableData.plotMode && mutableData.activeColorHSV_1_1_255.y > 0.1)
-    {
+    {        
         mutableData.shaderParams.deltaH_360 = mutableData.deltaColorThreshold;
 
-        // If the selected color is already not very saturated (like on aliased an edge), then don't tolerate a huge delta.
+        // The plot-mode has a much higher tolerance on value and saturation
+        // because anti-aliased lines are blended with the background, which is
+        // typically black/white/gray and will desaturate the line color after
+        // alpha blending.
+        // If the selected color is already not very saturated (like on aliased
+        // an edge), then don't tolerate a huge delta.
         mutableData.shaderParams.deltaS_100 = mutableData.deltaColorThreshold * 5.f; // tolerates 3x more since the range is [0,100]
         mutableData.shaderParams.deltaS_100 *= mutableData.activeColorHSV_1_1_255.y;
         mutableData.shaderParams.deltaS_100 = std::max(mutableData.shaderParams.deltaS_100, 1.0f);
-        mutableData.shaderParams.deltaV_255 = mutableData.deltaColorThreshold * 12.f; // tolerates slighly more since the range is [0,255]
+        mutableData.shaderParams.deltaV_255 = mutableData.deltaColorThreshold * 12.f; // tolerates much more difference than hue.
     }
     else
     {
@@ -114,7 +120,7 @@ void HighlightRegionState::handleInputEvents ()
 
     if (ImGui::IsKeyPressed(GLFW_KEY_SPACE))
     {
-        mutableData.plotMode = !mutableData.plotMode;
+        togglePlotMode();
     }
 }
 

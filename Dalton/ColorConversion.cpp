@@ -249,11 +249,14 @@ namespace dl
     // Convert rgb floats ([0-255],[0-255],[0-255]) to hsv floats ([0-1],[0-1],[0-1]), from Foley & van Dam p592
     // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
     // Adapted from ImGui ColorConvertRGBtoHSV
-    PixelHSV convertToHSV(const PixelSRGBA& p)
+    PixelHSV convertToHSV(const PixelSRGBA& srgba)
     {
-        float r = p.r;
-        float g = p.g;
-        float b = p.b;
+        // p in range [0,1]
+        PixelLinearRGB p = convertToLinearRGB(srgba);
+
+        float r = p.r*255.f;
+        float g = p.g*255.f;
+        float b = p.b*255.f;
         
         float K = 0.f;
         if (g < b)

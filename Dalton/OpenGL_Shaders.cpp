@@ -249,7 +249,7 @@ const char* fragmentShader_DaltonizeV1_glsl_130 = R"(
 
 const char* fragmentShader_highlightSameColor = R"(
     uniform sampler2D Texture;
-    uniform vec3 u_refColor;
+    uniform vec3 u_refColor_linearRGB;
     uniform float u_deltaH_360;
     uniform float u_deltaS_100;
     uniform float u_deltaV_255;
@@ -270,7 +270,7 @@ const char* fragmentShader_highlightSameColor = R"(
     {
         vec4 rgba = toLinear(texture(Texture, Frag_UV.st));
         vec3 hsv = HSVFromRGB(rgba.rgb);                
-        vec3 ref_hsv = HSVFromRGB(u_refColor.rgb);
+        vec3 ref_hsv = HSVFromRGB(u_refColor_linearRGB.rgb);
         
         bool isSame = checkHSVDelta(ref_hsv, hsv);
                         
