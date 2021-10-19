@@ -29,13 +29,11 @@ Then you will see a menu tray icon showing that the program is running.
 
 ## Demo video & screenshots
 
-[![Demo Video Preview](https://user-images.githubusercontent.com/541507/103801408-fbac2980-504d-11eb-91f2-912ca234381f.png)](https://user-images.githubusercontent.com/541507/103819922-a54de380-506b-11eb-8644-b35392fa0254.mp4)
+[![Demo Video Preview](https://user-images.githubusercontent.com/541507/103801408-fbac2980-504d-11eb-91f2-912ca234381f.png)](https://user-images.githubusercontent.com/541507/137916903-208a7a7b-081f-4b5b-a7a7-1850f571e2ae.mov)
 
-![Apply Color Filters](https://user-images.githubusercontent.com/541507/103801564-2eeeb880-504e-11eb-9be1-246ad482b120.png)
+![Apply Color Filters](https://user-images.githubusercontent.com/541507/137916868-4649b7e9-049f-424d-8703-3ae14914a1bd.png)
 
-![Highlight Similar Color](https://user-images.githubusercontent.com/541507/103801587-39a94d80-504e-11eb-8292-0ad6fb9f2727.png)
-
-![Help Window](https://user-images.githubusercontent.com/541507/103465834-9b607380-4d3f-11eb-9edf-655f3268e4ef.png)
+![Help Window](https://user-images.githubusercontent.com/541507/137917928-b579584f-70cb-40c5-a494-26a8c7055f33.png)
 
 ## Supported platforms
 
