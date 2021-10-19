@@ -9,9 +9,11 @@ DaltonLens is a utility to help colorblind people by providing color filters and
 
 - Can show an overlay over your screen to get information about the color under the mouse pointer, including its name.
 
-- Grab a screen region and apply color filters on top of it. The current filters include the daltonize algorithm to transfer the color differences into color channels that are easy to distinguish.
+- Grab a screen region and apply color filters on top of it. The current filters include the daltonize algorithm to transfer the color differences into color channels that are easier to distinguish.
 
 - Click on a pixel and highlight similar colors in the image. This is especially useful for charts and plots, and it uses adaptive filters to better handle anti-aliased line plots.
+
+- Simulate color vision deficiencies
 
 It is designed to be lightweight and very reactive by relying mostly on GPU processing.
 
@@ -29,7 +31,9 @@ Then you will see a menu tray icon showing that the program is running.
 
 ## Demo video & screenshots
 
-[![Demo Video Preview](https://user-images.githubusercontent.com/541507/103801408-fbac2980-504d-11eb-91f2-912ca234381f.png)](https://user-images.githubusercontent.com/541507/137916903-208a7a7b-081f-4b5b-a7a7-1850f571e2ae.mov)
+[![Demo Video Preview](https://user-images.githubusercontent.com/541507/103801408-fbac2980-504d-11eb-91f2-912ca234381f.png)](https://user-images.githubusercontent.com/541507/137966206-ce9e2918-e3da-4868-b274-600af6419822.mp4)
+
+![Highlight Similar Pixels](https://user-images.githubusercontent.com/541507/137917031-7fc0ba1f-0ff4-4282-b326-5d3ec36c9b1f.png)
 
 ![Apply Color Filters](https://user-images.githubusercontent.com/541507/137916868-4649b7e9-049f-424d-8703-3ae14914a1bd.png)
 
