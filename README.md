@@ -5,23 +5,26 @@
 
 DaltonLens is a utility to help colorblind people by providing color filters and highlighting tools. It is especially useful to read color-coded charts and plots. Here are the main features:
 
-- Show a pointer over your screen to get information about the color under the mouse pointer, including its name.
+- Runs as a tray program and always instantly available via the `CMD/Win + Alt + Ctrl + Space` global shortchut.
+
+- Can show an overlay over your screen to get information about the color under the mouse pointer, including its name.
 
 - Grab a screen region and apply color filters on top of it. The current filters include the daltonize algorithm to transfer the color differences into color channels that are easy to distinguish.
 
-- Highlight similar colors in the region. This is especially useful for charts and plots, and it uses adaptive filters to better handle anti-aliased line plots.
+- Click on a pixel and highlight similar colors in the image. This is especially useful for charts and plots, and it uses adaptive filters to better handle anti-aliased line plots.
 
 It is designed to be lightweight and very reactive by relying mostly on GPU processing.
 
 ## Getting started
 
-The app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651) or you can build the source code on Linux.
+* Windows / Linux: download the Windows installer or the Linux amd64 binary from the release section
+* macOS: the app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651)
 
 Then you will see a menu tray icon showing that the program is running.
-* You can select the `Grab Screen Region` menu item there, but the recommend way is to use the global shortcut `Ctrl+Alt+Cmd+Space` to activate it and get an overlay showing color information about the pixel under the mouse pointer.
+* You can select the `Grab Screen Region` menu item there, but the recommend way is to use the global shortcut `Ctrl+Alt+Cmd/Win+Space` to activate it and get an overlay showing color information about the pixel under the mouse pointer.
 * Then `q` or `escape` to exit the pointer overlay, or click and drag over a region to select it. You can also hit `Space` to automatically select the window under the cursor.
 * Once in the image viewer window you can click on a pixel to highlight similar colors in the image.
-* Use `Right-Click` to get a contextual menu and the list of available filters.
+* Use the controls window to switch the filter / configure the options
 * The help menu item gives all the shortcuts. `Shift` is particularly useful to show the original image regardless of what mode you are currently in.
 
 ## Demo video & screenshots
@@ -36,11 +39,13 @@ Then you will see a menu tray icon showing that the program is running.
 
 ## Supported platforms
 
-Currently only macOS Mojave (10.14) and newer are supported (including Apple Silicon), but Windows support is likely to come next.
+* macOS: Mojave (10.14) and newer are supported (including Apple Silicon)
+* Windows: only tested on Windows 10, but anything more recent than Windows 8.1 should work
+* Linux: only tested on Ubuntu 20.04, but should work on any distribution that has gtk3 and libappindicator3.
 
 ## Building the source code
 
-## Building on macOS
+### Building on macOS
 
 Open DaltonLens/macOS/DaltonLens.xcodeproj in Xcode. There are precompiled binaries for the dependencies, so it should just build.
 
@@ -52,6 +57,21 @@ Just run cmake after installing the required dependencies. Mostly X11, but unfor
 
 Here the apt-get command line tested with Kubuntu 20.04:
 > sudo apt-get install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libappindicator3-dev libxcb1-dev
+
+### Building on Windows
+
+Run cmake with the Visual Studio Express or Ninja generator.
+
+### Dependencies
+
+All the dependencies are embedded in the repository to avoid version hell, so **you don't need to install anything**. Still listing the dependencies here for awareness:
+
+* [imgui](https://github.com/ocornut/imgui)
+* [GLFW](https://www.glfw.org/)
+* [gl3w](https://github.com/skaslev/gl3w)
+* [stb image](https://github.com/nothings/stb)
+* [tray](https://github.com/zserge/tray)
+* [clip](https://github.com/dacap/clip)
 
 ## Donate
 
