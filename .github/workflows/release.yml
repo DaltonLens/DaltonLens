@@ -1,0 +1,62 @@
+name: release
+
+on:
+  # Accept manual events.
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build_release:
+    name: build_release
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:        
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          # - os: macos-latest
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Install Ninja
+        id: ninja
+        uses: turtlesec-no/get-ninja@main
+
+      - name: Ninja version
+        run: echo "${{ steps.ninja.outputs.version }}"
+
+      - name: <Linux> Install dependencies for DaltonLens
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo --preserve-env=DEBIAN_FRONTEND apt-get install -y cmake libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl-dev libxcb1-dev libappindicator3-dev libgtk-3-dev
+
+      - name: <Windows> Setup devcmd
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure CMake
+        run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Create package
+        run: cmake ${{github.workspace}}/build --config Release --target package
+
+      - name: <Linux> Create source package
+        if: matrix.os == 'ubuntu-latest'
+        run: cmake ${{github.workspace}}/build --config Release --target package_source
+
+      - name: Archive the generate package
+        uses: actions/upload-artifact@v2
+        with:
+          name: Package for matrix.os
+          path: |
+            build/*.tar.gz
+            build/*-win64.exe
+            build/*.dmg
