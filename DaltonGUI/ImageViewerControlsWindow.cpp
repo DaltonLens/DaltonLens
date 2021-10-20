@@ -157,6 +157,11 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
 
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Save Image", "Ctrl + s", false))
+            {
+                activeImageWindow->saveCurrentImage ();
+            }
+
             if (ImGui::MenuItem("Close", "q", false))
             {
                 impl->observer->onDismissRequested();
@@ -172,7 +177,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Image"))
+        if (ImGui::BeginMenu("View"))
         {
             if (ImGui::MenuItem("Original size", "n", false)) activeImageWindow->processKeyEvent (GLFW_KEY_N);
             if (ImGui::MenuItem("Double size", ">", false)) activeImageWindow->processKeyEvent ('>');

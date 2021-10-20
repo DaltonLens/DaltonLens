@@ -155,6 +155,16 @@ void GLShader::disable ()
 namespace dl
 {
 
+GLRestoreStateAfterScope_Texture::GLRestoreStateAfterScope_Texture()
+{
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &_prevTexture);
+}
+
+GLRestoreStateAfterScope_Texture::~GLRestoreStateAfterScope_Texture()
+{
+    glBindTexture (GL_TEXTURE_2D, _prevTexture);
+}
+
 GLTexture::~GLTexture()
 {
     releaseGL();
@@ -190,34 +200,27 @@ void GLTexture::releaseGL()
 
 void GLTexture::initialize()
 {
-    GLint prevTexture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+    GLRestoreStateAfterScope_Texture _;
 
     glGenTextures(1, &_textureId);
     glBindTexture(GL_TEXTURE_2D, _textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glBindTexture(GL_TEXTURE_2D, prevTexture);
 }
 
 void GLTexture::ensureAllocatedForRGBA (int width, int height)
 {
-    GLint prevTexture;
-    glGetIntegerv (GL_TEXTURE_BINDING_2D, &prevTexture);
+    GLRestoreStateAfterScope_Texture _;
         
     glBindTexture(GL_TEXTURE_2D, _textureId);
     _width = width;
     _height = height;
     glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-    glBindTexture (GL_TEXTURE_2D, prevTexture);
 }
 
 void GLTexture::upload(const dl::ImageSRGBA& im)
 {
-    GLint prevTexture;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTexture);
+    GLRestoreStateAfterScope_Texture _;
 
     glBindTexture(GL_TEXTURE_2D, _textureId);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)(im.bytesPerRow() / im.bytesPerPixel()));
@@ -226,8 +229,17 @@ void GLTexture::upload(const dl::ImageSRGBA& im)
 
     _width = im.width();
     _height = im.height();
+}
 
-    glBindTexture(GL_TEXTURE_2D, prevTexture);
+void GLTexture::download (dl::ImageSRGBA& im)
+{
+    GLRestoreStateAfterScope_Texture _;
+    im.ensureAllocatedBufferForSize (_width, _height);
+
+    glBindTexture(GL_TEXTURE_2D, _textureId);
+    glPixelStorei(GL_PACK_ROW_LENGTH, (GLint)(im.bytesPerRow() / im.bytesPerPixel()));
+    glGetTexImage (GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, im.rawBytes());
+    glPixelStorei(GL_PACK_ROW_LENGTH, 0);
 }
 
 void GLTexture::setLinearInterpolationEnabled(bool enabled)
