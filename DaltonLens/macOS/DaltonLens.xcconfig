@@ -1,6 +1,6 @@
 TOP_DIR = $(PROJECT_DIR)/../..
 
-HEADER_SEARCH_PATHS = $(TOP_DIR) $(TOP_DIR)/deps $(TOP_DIR)/deps/other $(TOP_DIR)/deps/imgui $(TOP_DIR)/deps/imgui/backends $(TOP_DIR)/deps/gl3w $(TOP_DIR)/deps/prebuilt/Darwin/glfw/include
+HEADER_SEARCH_PATHS = $(TOP_DIR) $(TOP_DIR)/deps $(TOP_DIR)/deps/other $(TOP_DIR)/deps/imgui $(TOP_DIR)/deps/imgui/backends $(TOP_DIR)/deps/gl3w $(TOP_DIR)/deps/prebuilt/Darwin/glfw/include $(TOP_DIR)/deps/nativefiledialog-extended/src/include
 
 // You should build them first with CMake.
 LIBRARY_SEARCH_PATHS = $(TOP_DIR)/deps/prebuilt/Darwin/glfw/lib $(TOP_DIR)/deps/prebuilt/Darwin/clip/lib
