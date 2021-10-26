@@ -44,6 +44,7 @@ public:
 
     void processKeyEvent (int keycode);
     void checkImguiGlobalImageKeyEvents ();
+    void saveCurrentImage ();
 
 public:
     // State that one can modify directly between frames.

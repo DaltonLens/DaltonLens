@@ -58,6 +58,14 @@ private:
     GLShaderHandles _glHandles;
 };
 
+struct GLRestoreStateAfterScope_Texture
+{
+    GLRestoreStateAfterScope_Texture();
+    ~GLRestoreStateAfterScope_Texture();
+
+private:
+    int32_t _prevTexture = 0;
+};
 class GLTexture
 {
 public:
@@ -72,6 +80,7 @@ public:
 
     void ensureAllocatedForRGBA (int width, int height);
     void upload (const dl::ImageSRGBA& im);
+    void download (dl::ImageSRGBA& im);
 
     uint32_t textureId() const { return _textureId; }
 

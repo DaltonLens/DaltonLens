@@ -6,3 +6,4 @@ https://github.com/zserge/tray.git
 
 deps/gl3w taken from Imgui 1.83, before they removed it.
 
+git subtree add --prefix deps/nativefiledialog-extended git@github.com:btzy/nativefiledialog-extended.git master --squash

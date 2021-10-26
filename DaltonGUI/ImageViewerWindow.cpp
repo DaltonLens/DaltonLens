@@ -31,6 +31,8 @@
 #include <GL/gl3w.h>
 #include <DaltonGUI/GLFWUtils.h>
 
+#include <nfd.h>
+
 #include <argparse.hpp>
 
 #include <clip/clip.h>
@@ -70,6 +72,22 @@ std::string daltonViewerModeName (DaltonViewerMode mode)
     }
 }
 
+std::string daltonViewerModeFileName (DaltonViewerMode mode)
+{
+    switch (mode)
+    {
+        case DaltonViewerMode::None: return "original";
+        case DaltonViewerMode::Original: return "original";
+        case DaltonViewerMode::HighlightRegions: return "highlight_similar_colors";
+        case DaltonViewerMode::Protanope: return "daltonize_protanope";
+        case DaltonViewerMode::Deuteranope: return "daltonize_deuteranope";
+        case DaltonViewerMode::Tritanope: return "daltonize_tritanope";
+        case DaltonViewerMode::FlipRedBlue: return "flip_red_blue";
+        case DaltonViewerMode::FlipRedBlueInvertRed: return "flip_red_blue_invert_red";
+        default: return "Invalid";
+    }
+}
+
 struct ImageViewerWindow::Impl
 {
     ImguiGLFWWindow imguiGlfwWindow;
@@ -80,6 +98,11 @@ struct ImageViewerWindow::Impl
     bool enabled = false;
 
     ImageCursorOverlay cursorOverlay;
+
+    struct {
+        bool requested = false;
+        std::string outPath;
+    } saveToFile;
 
     struct {
         bool inProgress = false;
@@ -269,6 +292,8 @@ void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
 
 void ImageViewerWindow::processKeyEvent (int keycode)
 {
+    auto& io = ImGui::GetIO();
+
     switch (keycode)
     {
         case GLFW_KEY_W:
@@ -279,6 +304,18 @@ void ImageViewerWindow::processKeyEvent (int keycode)
         }
 
         case GLFW_KEY_S:
+        {
+            if (io.KeyCtrl)
+            {
+                saveCurrentImage();
+            }
+            else
+            {
+                impl->advanceMode(false /* forward */);    
+            }
+            break;
+        }
+
         case GLFW_KEY_DOWN:
         {
             impl->advanceMode(false /* forward */);
@@ -335,6 +372,30 @@ void ImageViewerWindow::processKeyEvent (int keycode)
             }
             break;
         }
+    }
+}
+
+void ImageViewerWindow::saveCurrentImage ()
+{
+    nfdchar_t *outPath = NULL;
+    std::string default_name = formatted("daltonlens_%s.png", daltonViewerModeFileName(impl->mutableState.currentMode).c_str());
+    nfdfilteritem_t filterItems[] = { { "Images", "png" } };
+    nfdresult_t result = NFD_SaveDialogU8 (&outPath, filterItems, 1, nullptr, default_name.c_str());
+
+    if ( result == NFD_OKAY )
+    {
+        dl_dbg ("Saving to %s", outPath);
+        impl->saveToFile.requested = true;
+        impl->saveToFile.outPath = outPath;
+        NFD_FreePathU8(outPath);
+    }
+    else if ( result == NFD_CANCEL ) 
+    {
+        dl_dbg ("Save image cancelled");
+    }
+    else 
+    {
+        fprintf(stderr, "Error: %s\n", NFD_GetError() );
     }
 }
 
@@ -511,6 +572,14 @@ void ImageViewerWindow::runOnce ()
                 impl->gpuTexture.height ()
             );
             imageTexture = &impl->filterProcessor.filteredTexture();
+        }
+
+        if (impl->saveToFile.requested)
+        {
+            impl->saveToFile.requested = false;
+            ImageSRGBA im;
+            imageTexture->download (im);
+            writePngImage (impl->saveToFile.outPath, im);
         }
         
         const bool imageHasNonMultipleSize = int(impl->imageWidgetRect.current.size.x) % int(impl->imageWidgetRect.normal.size.x) != 0;

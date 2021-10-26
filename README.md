@@ -17,6 +17,8 @@ DaltonLens is a utility to help colorblind people by providing color filters and
 
 It is designed to be lightweight and very reactive by relying mostly on GPU processing.
 
+It is part of the [daltonlens.org](https://daltonlens.org) project.
+
 ## Getting started
 
 * Windows / Linux: download the Windows installer or the Linux amd64 binary from the release section
@@ -74,6 +76,7 @@ All the dependencies are embedded in the repository to avoid version hell, so **
 * [stb image](https://github.com/nothings/stb)
 * [tray](https://github.com/zserge/tray)
 * [clip](https://github.com/dacap/clip)
+* [nativefiledialog-extended](https://github.com/btzy/nativefiledialog-extended)
 
 ## Donate
 

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2D0C67B42720217D0047F426 /* nfd_cocoa.m in Sources */ = {isa = PBXBuildFile; fileRef = 2D0C67B32720217D0047F426 /* nfd_cocoa.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2D0C83B22517FE4D00EB76AD /* libclip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D0C83B12517FE4D00EB76AD /* libclip.a */; };
 		2D1973422532DBFD00D1FBD4 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */; };
 		2D1973432532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2D19733D2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.mm */; };
@@ -139,6 +140,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2D0C67B32720217D0047F426 /* nfd_cocoa.m */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = nfd_cocoa.m; path = "../deps/nativefiledialog-extended/src/nfd_cocoa.m"; sourceTree = "<group>"; };
+		2D0C67B5272021900047F426 /* nfd.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = nfd.hpp; path = "../deps/nativefiledialog-extended/src/include/nfd.hpp"; sourceTree = "<group>"; };
+		2D0C67B6272021900047F426 /* nfd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = nfd.h; path = "../deps/nativefiledialog-extended/src/include/nfd.h"; sourceTree = "<group>"; };
 		2D0C83AC2517FE4300EB76AD /* libglfw3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglfw3.a; path = ../../deps/prebuilt/Darwin/glfw/lib/libglfw3.a; sourceTree = "<group>"; };
 		2D0C83B12517FE4D00EB76AD /* libclip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclip.a; path = ../../deps/prebuilt/Darwin/clip/lib/libclip.a; sourceTree = "<group>"; };
 		2D19733A2532DBFD00D1FBD4 /* DaltonLensGUI_macOS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonLensGUI_macOS.h; sourceTree = "<group>"; };
@@ -296,9 +300,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2D0C67B1272021600047F426 /* nfd-extended */ = {
+			isa = PBXGroup;
+			children = (
+				2D0C67B6272021900047F426 /* nfd.h */,
+				2D0C67B5272021900047F426 /* nfd.hpp */,
+				2D0C67B32720217D0047F426 /* nfd_cocoa.m */,
+			);
+			name = "nfd-extended";
+			sourceTree = "<group>";
+		};
 		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
 			isa = PBXGroup;
 			children = (
+				2D0C67B1272021600047F426 /* nfd-extended */,
 				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
 				2D1973492532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp */,
 				2D19734A2532DEF600D1FBD4 /* PlatformSpecific.h */,
@@ -737,6 +752,7 @@
 			files = (
 				2D941D3E25A0DA99008B6647 /* imgui.cpp in Sources */,
 				2D941DA825A0DA99008B6647 /* imgui_impl_glfw.cpp in Sources */,
+				2D0C67B42720217D0047F426 /* nfd_cocoa.m in Sources */,
 				2D941D8725A0DA99008B6647 /* imgui_impl_opengl3.cpp in Sources */,
 				2D240DAF1DAAC0B400AA97BC /* MASShortcut.m in Sources */,
 				2D1973602532FFF000D1FBD4 /* DaltonLensGUI.cpp in Sources */,

@@ -50,15 +50,19 @@ public:
             main_menu // .menu
         };
 
-        tray_init(&_tray);
-
         _dlGui.initialize ();
+
+        // Note: for some reason we need to initialize GTK AFTER dlGui, otherwise NFD won't work.
+        tray_init(&_tray);
     }
 
     void run ()
     {
         bool shouldExit = false;
         dl::RateLimit rateLimit;
+
+        int n = 0;
+
         while (!shouldExit)
         {
             shouldExit = tray_loop(false /* not blocking */) != 0;

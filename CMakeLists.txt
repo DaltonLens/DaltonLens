@@ -79,6 +79,13 @@ if (WIN32)
   target_link_libraries(clip INTERFACE Shlwapi)
 endif()
 
+# Find appindicator on Unix for DaltonLens, used by NFD with DaltonGUI 
+if (UNIX AND NOT APPLE)
+    # App indicator includes the required gtk3 headers
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
+endif()
+
 # ExternalProject_Add(glew-deps
 #   PREFIX glew
 #   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew/build/cmake"

@@ -9,20 +9,28 @@ set (deps_SOURCES
     ${IMGUI_DIR}/imgui_tables.cpp
     
     ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp    
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+
+    ${DEPS_DIR}/nativefiledialog-extended/src/include/nfd.h
+    ${DEPS_DIR}/nativefiledialog-extended/src/include/nfd.hpp
 )    
 
 if (APPLE)
-    set (daltonGUI_platform_specific_sources PlatformSpecific_macOS.cpp)
+    set (daltonGUI_platform_specific_sources 
+         PlatformSpecific_macOS.cpp
+         ${DEPS_DIR}/nativefiledialog-extended/src/nfd_cocoa.m
+    )
 elseif (UNIX)
     set (daltonGUI_platform_specific_sources 
         PlatformSpecific_linux.cpp
         ${DEPS_DIR}/xdo/xdo_mini.h
         ${DEPS_DIR}/xdo/xdo_mini.cpp
+        ${DEPS_DIR}/nativefiledialog-extended/src/nfd_gtk.cpp
     )
 elseif (WIN32)
     set (daltonGUI_platform_specific_sources 
         PlatformSpecific_windows.cpp
+        ${DEPS_DIR}/nativefiledialog-extended/src/nfd_win.cpp
     )    
 endif()
 
@@ -62,7 +70,15 @@ set (daltonGUI_SOURCES
 add_library(daltonGUI ${daltonGUI_SOURCES})
 add_dependencies(daltonGUI glfw-deps clip-deps)
 
-target_include_directories(daltonGUI PRIVATE "${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut")
+target_include_directories(daltonGUI PRIVATE 
+    "${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut"
+    ${DEPS_DIR}/nativefiledialog-extended/src/include
+)
+
+if (UNIX AND NOT APPLE)
+    target_include_directories(daltonGUI PRIVATE ${APPINDICATOR_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(daltonGUI PUBLIC -DGL_SILENCE_DEPRECATION=1)
 if (APPLE)
     target_compile_options(daltonGUI PUBLIC -x objective-c++)
