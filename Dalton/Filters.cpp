@@ -164,6 +164,7 @@ void Filter_Daltonize::initializeGL ()
     GLuint shaderHandle = glHandles().shaderHandle;
     _attribLocationKind = (GLuint)glGetUniformLocation(shaderHandle, "u_kind");
     _attribLocationSimulateOnly = (GLuint)glGetUniformLocation(shaderHandle, "u_simulateOnly");
+    _attribLocationSeverity = (GLuint)glGetUniformLocation(shaderHandle, "u_severity");    
 }
 
 void Filter_Daltonize::enableGLShader ()
@@ -171,22 +172,37 @@ void Filter_Daltonize::enableGLShader ()
     GLFilter::enableGLShader ();
     glUniform1i(_attribLocationKind, static_cast<int>(_currentParams.kind));
     glUniform1i(_attribLocationSimulateOnly, _currentParams.simulateOnly);
+    glUniform1f(_attribLocationSeverity, _currentParams.severity);
 }
 
-void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kind blindness)
+void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kind blindness, float severity)
 {
-    // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
+    // See DaltonLens-Python and libDaltonLens to understand where the hardcoded
+    // values come from.
     
-    auto protanope = [](int c, int r, PixelLMS& p) {
-        p.l = /* 0*p.l + */ 2.0205*p.m - 2.4337*p.s;
+    auto protanope = [severity](int c, int r, PixelLMS& p) {
+        // Viénot 1999.
+        p.l = (1.f-severity)*p.l + severity*(2.0205f*p.m - 2.4337f*p.s);
     };
     
-    auto deuteranope = [](int c, int r, PixelLMS& p) {
-        p.m = 0.4949*p.l /* + 0*p.m */ + 1.2045*p.s;
+    auto deuteranope = [severity](int c, int r, PixelLMS& p) {
+        // Viénot 1999.
+        p.m = (1.f-severity)*p.m + severity*(0.4949f*p.l + + 1.2045f*p.s);
     };
     
-    auto tritanope = [](int c, int r, PixelLMS& p) {
-        p.s = -0.0122*p.l + 0.0739*p.m /* + 0*p.s */;
+    auto tritanope = [severity](int c, int r, PixelLMS& p) {
+        // Brettel 1997.
+        // Check which plane.
+        if ((p.l*0.34516 - p.m*0.65480) >= 0)
+        {
+            // Plane 1 for tritanopia
+            p.s = (1.f-severity)*p.s + severity*(-0.00213*p.l + 0.05477*p.m);
+        }
+        else
+        {
+            // Plane 2 for tritanopia
+            p.s = (1.f-severity)*p.s + severity*(-0.06195*p.l + 0.16826*p.m);
+        }
     };
     
     switch (blindness)
@@ -215,7 +231,7 @@ void Filter_Daltonize::applyCPU (const ImageSRGBA& inputSRGBA, ImageSRGBA& outpu
     RGBAToLMSConverter converter;
     ImageLMS lmsImage;
     converter.convertToLms (inputRGB, lmsImage);
-    applyDaltonizeSimulation (lmsImage, _currentParams.kind);
+    applyDaltonizeSimulation (lmsImage, _currentParams.kind, _currentParams.severity);
 
     ImageLinearRGB simulatedRGB;
     converter.convertToLinearRGB (lmsImage, simulatedRGB);

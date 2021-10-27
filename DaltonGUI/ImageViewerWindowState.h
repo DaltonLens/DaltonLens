@@ -34,6 +34,7 @@ struct ImageViewerWindowState
     HighlightRegionState highlightRegion;
     DaltonViewerMode currentMode = DaltonViewerMode::None;
     bool daltonizeShouldSimulateOnly = false;
+    float daltonizeSeverity = 1.0f;
 };
 
 } // dl

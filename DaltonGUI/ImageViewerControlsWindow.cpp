@@ -262,7 +262,13 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
             ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeShouldSimulateOnly);
         }
 
+        if (viewerModeIsDaltonize(viewerState.currentMode))
+        {
+            ImGui::SliderFloat("Severity", &viewerState.daltonizeSeverity, 0.f, 1.f, "%.2f");
+        }
+
         activeImageWindow->checkImguiGlobalImageKeyEvents ();
+        activeImageWindow->checkImguiGlobalImageMouseEvents ();
 
         // Debug: show the FPS.
         if (ImGui::IsKeyPressed(GLFW_KEY_F))

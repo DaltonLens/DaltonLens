@@ -81,6 +81,7 @@ UTEST(Daltonize, DaltonizeGPU)
     processor.initializeGL ();
 
     auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name, int tolerance) {
+        fprintf (stderr, ">> Testing GPU %s\n", name.c_str());
         filter.setParams (params);
         processor.render (filter, texture.textureId(), texture.width(), texture.height(), &output);
         ASSERT_EQ(output.width(), im.width());
@@ -100,6 +101,7 @@ UTEST(Daltonize, DaltonizeGPU)
 
     Filter_Daltonize::Params params;
     params.simulateOnly = false;
+    params.severity = 1.0;
 
     // GT is from the CPU, so some difference expected.
     const int toleranceForDaltonize = 6;
@@ -112,9 +114,21 @@ UTEST(Daltonize, DaltonizeGPU)
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
     testDaltonize (params, "daltonize_tritanope", toleranceForDaltonize);
 
+    // With lower severity
+    params.severity = 0.55;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "daltonize_protanope_0.55", toleranceForDaltonize);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "daltonize_deuteranope_0.55", toleranceForDaltonize);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "daltonize_tritanope_0.55", toleranceForDaltonize);
+
     // Test the simulations only.
 
     params.simulateOnly = true;
+    params.severity = 1.0;
     // A bit less differences expected for simulations since are less steps.
     const int toleranceForSimulations = 4;
     params.kind = Filter_Daltonize::Params::Kind::Protanope;
@@ -125,6 +139,17 @@ UTEST(Daltonize, DaltonizeGPU)
 
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
     testDaltonize (params, "simulate_tritanope", toleranceForSimulations);
+
+    // With lower severity
+    params.severity = 0.55;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "simulate_protanope_0.55", toleranceForSimulations);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "simulate_deuteranope_0.55", toleranceForSimulations);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "simulate_tritanope_0.55", toleranceForSimulations);
 }
 
 UTEST(Daltonize, DaltonizeCPU)
@@ -138,6 +163,7 @@ UTEST(Daltonize, DaltonizeCPU)
     ImageSRGBA output;
 
     auto testDaltonize = [&](const Filter_Daltonize::Params& params, const std::string& name, int tolerance) {
+        fprintf (stderr, ">> Testing CPU %s\n", name.c_str());
         filter.setParams (params);
         filter.applyCPU (im, output);
         ASSERT_EQ(output.width(), im.width());
@@ -154,6 +180,7 @@ UTEST(Daltonize, DaltonizeCPU)
 
     Filter_Daltonize::Params params;
     params.simulateOnly = false;
+    params.severity = 1.0;
 
     // GT is from the CPU, so no difference expected.
     const int toleranceForDaltonize = 1;
@@ -166,12 +193,24 @@ UTEST(Daltonize, DaltonizeCPU)
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
     testDaltonize (params, "daltonize_tritanope", toleranceForDaltonize);
 
+    // Now with lower severity.
+    params.severity = 0.55;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "daltonize_protanope_0.55", toleranceForDaltonize);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "daltonize_deuteranope_0.55", toleranceForDaltonize);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "daltonize_tritanope_0.55", toleranceForDaltonize);
+
     // Test the simulations only.
     
     // GT is from the CPU code of DaltonLens-Python, so there really
     // shouldn't be any significant diff.
     const int toleranceForSimulation = 1;
     params.simulateOnly = true;
+    params.severity = 1.0;
     params.kind = Filter_Daltonize::Params::Kind::Protanope;
     testDaltonize (params, "simulate_protanope", toleranceForSimulation);
     
@@ -180,6 +219,17 @@ UTEST(Daltonize, DaltonizeCPU)
 
     params.kind = Filter_Daltonize::Params::Kind::Tritanope;
     testDaltonize (params, "simulate_tritanope", toleranceForSimulation);
+
+    // Now testing with a smaller severity.
+    params.severity = 0.55;
+    params.kind = Filter_Daltonize::Params::Kind::Protanope;
+    testDaltonize (params, "simulate_protanope_0.55", toleranceForSimulation);
+    
+    params.kind = Filter_Daltonize::Params::Kind::Deuteranope;
+    testDaltonize (params, "simulate_deuteranope_0.55", toleranceForSimulation);
+
+    params.kind = Filter_Daltonize::Params::Kind::Tritanope;
+    testDaltonize (params, "simulate_tritanope_0.55", toleranceForSimulation);
 }
 
 UTEST_MAIN();

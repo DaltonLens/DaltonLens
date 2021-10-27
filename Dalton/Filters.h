@@ -84,6 +84,7 @@ public:
         } kind = Protanope;
 
         bool simulateOnly = false;
+        float severity = 1.0f;
     };
 
 public:
@@ -98,6 +99,7 @@ private:
     Params _currentParams;
     unsigned _attribLocationKind = 0;
     unsigned _attribLocationSimulateOnly = 0;
+    unsigned _attribLocationSeverity = 0;
 };
 
 class Filter_HighlightSimilarColors : public GLFilter

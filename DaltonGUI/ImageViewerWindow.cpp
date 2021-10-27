@@ -271,6 +271,24 @@ ImageViewerWindowState& ImageViewerWindow::mutableState ()
     return impl->mutableState;
 }
 
+void ImageViewerWindow::checkImguiGlobalImageMouseEvents ()
+{
+    if (viewerModeIsDaltonize(impl->mutableState.currentMode))
+    {
+        // Handle the mouse wheel to adjust the severity.
+        auto& io = ImGui::GetIO ();
+        if (io.MouseWheel != 0.f)
+        {
+#if PLATFORM_MACOS
+            const float scaleFactor = 0.5f;
+#else
+            const float scaleFactor = 0.1f;
+#endif
+            impl->mutableState.daltonizeSeverity = dl::keepInRange (impl->mutableState.daltonizeSeverity + io.MouseWheel * scaleFactor, 0.f, 1.f);
+        }
+    }
+}
+
 void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
 {
     // These key events are valid also in the control window.
@@ -485,6 +503,7 @@ void ImageViewerWindow::runOnce ()
 
         checkImguiGlobalImageKeyEvents ();
     }
+    checkImguiGlobalImageMouseEvents ();
     
     if (impl->shouldUpdateWindowSize)
     {
@@ -554,6 +573,7 @@ void ImageViewerWindow::runOnce ()
                 Filter_Daltonize::Params params;
                 params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)modeForThisFrame - (int)DaltonViewerMode::Protanope);
                 params.simulateOnly = impl->mutableState.daltonizeShouldSimulateOnly;
+                params.severity = impl->mutableState.daltonizeSeverity;
                 impl->filters.daltonize.setParams (params);
                 break;
             }

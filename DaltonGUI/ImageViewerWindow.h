@@ -44,6 +44,7 @@ public:
 
     void processKeyEvent (int keycode);
     void checkImguiGlobalImageKeyEvents ();
+    void checkImguiGlobalImageMouseEvents ();
     void saveCurrentImage ();
 
 public:

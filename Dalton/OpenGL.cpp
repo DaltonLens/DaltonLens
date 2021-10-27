@@ -15,6 +15,7 @@
 
 #include <vector>
 #include <array>
+#include <numeric>
 
 namespace dl
 {
@@ -96,6 +97,35 @@ GLShader::~GLShader()
 
 }
 
+// https://stackoverflow.com/questions/13172158/c-split-string-by-line/13172579
+std::vector<std::string> split_string(const std::string& str, const std::string& delimiter)
+{
+    std::vector<std::string> strings;
+ 
+    std::string::size_type pos = 0;
+    std::string::size_type prev = 0;
+    while ((pos = str.find(delimiter, prev)) != std::string::npos)
+    {
+        strings.push_back(str.substr(prev, pos - prev));
+        prev = pos + 1;
+    }
+ 
+    // To get the last substring (or only, if delimiter is not found)
+    strings.push_back(str.substr(prev));
+    return strings;
+}
+
+void showSourceCodeWithLines (const GLchar *shader_code[], int numElements)
+{
+    fprintf (stderr, "Source code:\n");
+    std::string source_code = std::accumulate (shader_code, shader_code + numElements, std::string ());
+    std::vector<std::string> source_lines = split_string (source_code, "\n");
+    for (int i = 0; i < source_lines.size (); ++i)
+    {
+        fprintf (stderr, "%04d %s\n", i, source_lines[i].c_str ());
+    }
+}
+
 void GLShader::initialize(const char* glslVersionString, const char* vertexShader, const char* fragmentShader)
 {
     // Select shaders matching our GLSL versions
@@ -116,7 +146,10 @@ void GLShader::initialize(const char* glslVersionString, const char* vertexShade
     _glHandles.fragHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(_glHandles.fragHandle, 4, fragment_shader_with_version, NULL);
     glCompileShader(_glHandles.fragHandle);
-    gl_checkShader(_glHandles.fragHandle, "fragment shader");
+    if (!gl_checkShader(_glHandles.fragHandle, "fragment shader"))
+    {
+        showSourceCodeWithLines (fragment_shader_with_version, sizeof(fragment_shader_with_version)/sizeof(GLchar*));
+    }
     
     _glHandles.shaderHandle = glCreateProgram();
     glAttachShader(_glHandles.shaderHandle, _glHandles.vertHandle);
