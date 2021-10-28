@@ -21,8 +21,8 @@ It is part of the [daltonlens.org](https://daltonlens.org) project.
 
 ## Getting started
 
-* Windows / Linux: download the Windows installer or the Linux amd64 binary from the release section
-* macOS: the app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651)
+* Windows / Linux: download the Windows installer or the Linux amd64 binary [from the release section](https://github.com/DaltonLens/DaltonLens/releases).
+* macOS: the app is available in the [mac app store](https://apps.apple.com/us/app/dalton-lens/id1222737651).
 
 Then you will see a menu tray icon showing that the program is running.
 * You can select the `Grab Screen Region` menu item there, but the recommend way is to use the global shortcut `Ctrl+Alt+Cmd/Win+Space` to activate it and get an overlay showing color information about the pixel under the mouse pointer.
