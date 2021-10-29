@@ -398,10 +398,11 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
 
             const auto hsv = dl::convertToHSV(sRgb);
             
-            // White won't be visible on unsaturated (gray) and high intensity
-            if (hsv.z > 200 && hsv.y < 0.3f)
+            // White won't be visible on bright colors. This is still not ideal
+            // for blue though, where white is more visible than black.
+            if (hsv.z > 127)
             {
-                color = ImVec4(0.3, 0.3, 0.3, 1.0);
+                color = ImVec4(0.0, 0.0, 0.0, 1.0);
             }
 
             ImGui::PushStyleColor(ImGuiCol_Text, color);
