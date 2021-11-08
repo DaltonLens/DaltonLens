@@ -39,6 +39,11 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     // 20 vertical pixels per new line.
     geometry.size.x = 458;
     geometry.size.y = 264 + 20 + 20;
+
+    const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
+    geometry.size.x *= dpiScale.x;
+    geometry.size.y *= dpiScale.y;
+
     geometry.origin.x = (monitorSize.x - geometry.size.x)/2;
     geometry.origin.y = (monitorSize.y - geometry.size.y)/2;
 

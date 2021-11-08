@@ -1,10 +1,12 @@
 
 if (WIN32)
-    set (DaltonLens_RESOURCES DaltonLens.rc)
+    set (DaltonLens_RESOURCES DaltonLens.rc DaltonLens_windows.manifest)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
 
 add_executable(DaltonLens WIN32 main.cpp ${DaltonLens_RESOURCES})
+
+# add_executable(binary_to_compressed "${DEPS_DIR}/imgui/misc/fonts/binary_to_compressed_c.cpp")
 
 if (UNIX)
     # App indicator includes the required gtk3 headers

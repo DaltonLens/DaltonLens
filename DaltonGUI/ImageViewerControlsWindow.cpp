@@ -43,7 +43,8 @@ struct ImageViewerControlsWindow::Impl
 
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
-    ImVec2 windowSize = ImVec2(364, 348 + 20 + 20);
+    ImVec2 windowSizeAtDefaultDpi = ImVec2(364, 382 + 20 + 20);
+    ImVec2 windowSizeAtCurrentDpi = ImVec2(-1,-1);
 };
 
 ImageViewerControlsWindow::ImageViewerControlsWindow()
@@ -91,9 +92,15 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
 
+    const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
+
+    impl->windowSizeAtCurrentDpi = impl->windowSizeAtDefaultDpi;
+    impl->windowSizeAtCurrentDpi.x *= dpiScale.x;
+    impl->windowSizeAtCurrentDpi.y *= dpiScale.y;
+
     dl::Rect geometry;
-    geometry.size.x = impl->windowSize.x;
-    geometry.size.y = impl->windowSize.y;
+    geometry.size.x = impl->windowSizeAtCurrentDpi.x;
+    geometry.size.y = impl->windowSizeAtCurrentDpi.y;
     geometry.origin.x = (impl->monitorSize.x - geometry.size.x)/2;
     geometry.origin.y = (impl->monitorSize.y - geometry.size.y)/2;
 
@@ -114,7 +121,7 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
 void ImageViewerControlsWindow::repositionAfterNextRendering (const dl::Rect& viewerWindowGeometry, bool showRequested)
 {
     // FIXME: padding probably depends on the window manager
-    const int expectedHighlightWindowWidthWithPadding = impl->windowSize.x + 12;
+    const int expectedHighlightWindowWidthWithPadding = impl->windowSizeAtCurrentDpi.x + 12;
     if (viewerWindowGeometry.origin.x > expectedHighlightWindowWidthWithPadding)
     {
         impl->updateAfterContentSwitch.needRepositioning = true;
@@ -207,11 +214,9 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
                               | ImGuiWindowFlags_NoDocking
                               | ImGuiWindowFlags_NoNav);
 
-    const float dpiScale = ImGui::GetWindowDpiScale();
-    
     // Always show the ImGui window filling the GLFW window.
     ImGui::SetNextWindowPos(ImVec2(0, menuBarHeight), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth / dpiScale, frameInfo.frameBufferHeight / dpiScale), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(frameInfo.windowContentWidth, frameInfo.windowContentHeight), ImGuiCond_Always);
     if (ImGui::Begin("DaltonLens Controls", nullptr, flags))
     {
         auto& viewerState = activeImageWindow->mutableState();
@@ -228,7 +233,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
         
         int currentItem = int(viewerState.currentMode) + 1;
 
-        ImGui::PushItemWidth(300);
+        ImGui::PushItemWidth(300 * frameInfo.contentDpiScale);
         if (ImGui::Combo("Filter", &currentItem, items, sizeof(items)/sizeof(char*)))
         {
             viewerState.currentMode = DaltonViewerMode(currentItem - 1);

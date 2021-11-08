@@ -61,6 +61,16 @@ namespace dl
         return x*x;
     }
 
+    inline bool floatEquals(float a, float b, float eps = 1e-8)
+    {
+        return std::abs(a-b) < eps;
+    }
+
+    inline bool doubleEquals(double a, double b, double eps = 1e-10)
+    {
+        return std::abs(a-b) < eps;
+    }
+
     static constexpr double Rad2Deg = 57.29577951308232;
     static constexpr double Deg2Rad = 0.017453292519943295;
 

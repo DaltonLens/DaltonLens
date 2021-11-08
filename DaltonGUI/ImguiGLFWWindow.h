@@ -6,10 +6,14 @@
 
 #pragma once
 
+#include <Dalton/MathUtils.h>
+
 #include <memory>
 #include <functional>
 
 struct GLFWwindow;
+
+struct ImGuiIO;
 
 namespace dl
 {
@@ -24,14 +28,21 @@ class ImguiGLFWWindow
 public:
     struct FrameInfo
     {
+        int windowContentWidth = -1;
+        int windowContentHeight = -1;
         int frameBufferWidth = -1;
         int frameBufferHeight = -1;
+        float contentDpiScale = 1.f;
     };
 
 public:
     ImguiGLFWWindow();
     ~ImguiGLFWWindow();
     
+public:
+    static dl::Point primaryMonitorContentDpiScale ();
+    static void PushMonoSpaceFont(ImGuiIO& io);
+
 public:
     bool initialize (GLFWwindow* parentWindow,
                      const std::string& title,
@@ -44,7 +55,7 @@ public:
     bool isEnabled () const;
     
     void setWindowPos (int x, int y);
-    void setWindowSize (int width, int height);
+    void setWindowSize (int width, int height);    
     
 public:
     bool closeRequested () const;

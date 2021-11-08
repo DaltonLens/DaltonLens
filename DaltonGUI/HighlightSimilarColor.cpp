@@ -17,6 +17,7 @@
 #include <Dalton/ColorConversion.h>
 
 #include <DaltonGUI/ImguiUtils.h>
+#include <DaltonGUI/ImguiGLFWWindow.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -126,6 +127,10 @@ void HighlightRegionState::handleInputEvents ()
 
 void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 {
+    auto& io = ImGui::GetIO();
+    const float monoFontSize = io.Fonts->Fonts[1]->FontSize;
+    const float padding = monoFontSize / 2.f;
+
     // ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
     //                             // ImGuiWindowFlags_NoResize
     //                             // ImGuiWindowFlags_NoMove
@@ -146,7 +151,7 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
                                          (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
                                          (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
 
-        const auto filledRectSize = ImVec2(128, 128);
+        const auto filledRectSize = ImVec2(9*monoFontSize, 9*monoFontSize);
         ImVec2 topLeft = ImGui::GetCursorPos();
         ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
         ImVec2 bottomRight = topLeft + filledRectSize;
@@ -163,15 +168,17 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             drawList->AddLine(ImVec2(imageTopLeft.x, imageBottomRight.y), ImVec2(imageBottomRight.x, imageTopLeft.y), IM_COL32_WHITE);
         }
 
-        ImGui::SetCursorPosX(bottomRight.x + 8);
+        ImGui::SetCursorPosX(bottomRight.x + padding);
         ImGui::SetCursorPosY(topLeft.y);
 
         // Show the side info about the current color
         {
-            ImGui::BeginChild("ColorInfo", ImVec2(196, filledRectSize.y));
+            // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
+            ImGui::BeginChild("ColorInfo", ImVec2(monoFontSize*14, filledRectSize.y));
 
             if (data.shaderParams.hasActiveColor)
             {
+                ImguiGLFWWindow::PushMonoSpaceFont(io);
                 auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
 
                 ImGui::Text("%s / %s",
@@ -191,20 +198,22 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 
                 PixelXYZ xyz = convertToXYZ(sRgb);
                 ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
+                ImGui::PopFont();
             }
             else
             {
                 ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("Up/Down arrows or w/s to\nchange mode.");
+                ImGui::BulletText("Up/Down or w/s to change\nthe filter.");
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("'c' to copy the color\n info to the clipboard.");
+                ImGui::BulletText("'c' to copy the color\ninfo to the clipboard.");
             }
 
             ImGui::EndChild();
+            // ImGui::PopStyleColor();
         }
 
-        ImGui::SetCursorPosY(bottomRight.y + 8);
+        ImGui::SetCursorPosY(bottomRight.y + padding);
 
         ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
 
@@ -228,6 +237,7 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
                    "Better to disable it when looking at flat colors (e.g. pie charts).\n"
                    "Shortcut: space");
 
+        ImguiGLFWWindow::PushMonoSpaceFont(io);
         if (data.shaderParams.hasActiveColor)
         {
             ImGui::Text("Hue  in [%.0fº -> %.0fº]",
@@ -246,6 +256,7 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             ImGui::TextDisabled("Sat. in [N/A]");
             ImGui::TextDisabled("Val. in [N/A]");
         }
+        ImGui::PopFont();
     }
     // ImGui::End();
 }

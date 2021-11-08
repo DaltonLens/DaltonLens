@@ -108,6 +108,8 @@ struct ImageViewerWindow::Impl
         bool inProgress = false;
         bool needToResize = false;
         int numAlreadyRenderedFrames = 0;
+        // This can be higher than 1 on retina displays.
+        float screenToImageScale = 1.f;
         dl::Rect targetWindowGeometry;
 
         void setCompleted () { *this = {}; }
@@ -427,7 +429,7 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
-    
+
     impl->im.ensureAllocatedBufferForSize(grabbedData.srgbaImage->width(), grabbedData.srgbaImage->height());
     impl->im.copyDataFrom(*grabbedData.srgbaImage);
     impl->imagePath = "DaltonLens";
@@ -452,6 +454,7 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::
     impl->updateAfterContentSwitch.targetWindowGeometry.origin.y = impl->imageWidgetRect.normal.origin.y - impl->windowBorderSize;
     impl->updateAfterContentSwitch.targetWindowGeometry.size.x = impl->imageWidgetRect.normal.size.x + 2 * impl->windowBorderSize;
     impl->updateAfterContentSwitch.targetWindowGeometry.size.y = impl->imageWidgetRect.normal.size.y + 2 * impl->windowBorderSize;
+    impl->updateAfterContentSwitch.screenToImageScale = grabbedData.screenToImageScale;
 
     updatedWindowGeometry = impl->updateAfterContentSwitch.targetWindowGeometry;
 
@@ -476,9 +479,8 @@ void ImageViewerWindow::runOnce ()
     // factor.
     if (!impl->shouldUpdateWindowSize)
     {
-        const float dpiScale = ImGui::GetWindowDpiScale();
-        impl->imageWidgetRect.current.size.x = frameInfo.frameBufferWidth / dpiScale;
-        impl->imageWidgetRect.current.size.y = frameInfo.frameBufferHeight / dpiScale;
+        impl->imageWidgetRect.current.size.x = frameInfo.windowContentWidth;
+        impl->imageWidgetRect.current.size.y = frameInfo.windowContentHeight;
     }
 
     impl->mutableState.highlightRegion.updateFrameCount ();
@@ -514,7 +516,7 @@ void ImageViewerWindow::runOnce ()
     dl::Rect platformWindowGeometry = impl->imguiGlfwWindow.geometry();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth, frameInfo.frameBufferHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(frameInfo.windowContentWidth, frameInfo.windowContentHeight), ImGuiCond_Always);
 
     ImGuiWindowFlags flags = (ImGuiWindowFlags_NoTitleBar
                             | ImGuiWindowFlags_NoResize

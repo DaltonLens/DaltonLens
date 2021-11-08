@@ -8,9 +8,12 @@
 
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/DaltonLensIcon.h>
+#include <DaltonGUI/ProggyVector_font.hpp>
+#include <DaltonGUI/Arimo_font.hpp>
 
 #include <Dalton/OpenGL.h>
 #include <Dalton/Utils.h>
+#include <Dalton/Platform.h>
 
 #include "PlatformSpecific.h"
 
@@ -39,6 +42,8 @@ struct ImguiGLFWWindow::Impl
     dl::Point posToSetForNextShow;
     
     std::string title;
+
+    float contentDpiScale = 1.f;
 };
 
 class ImGuiScopedContext
@@ -208,6 +213,20 @@ dl::Rect ImguiGLFWWindow::geometry() const
     return geom;
 }
 
+dl::Point ImguiGLFWWindow::primaryMonitorContentDpiScale ()
+{
+    float dpiScale_x = 1.f, dpiScale_y = 1.f;
+
+    // On macOS, content scaling will be done automatically. Instead the
+    // framebuffers will get resized.
+#if !PLATFORM_MACOS
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    glfwGetMonitorContentScale(monitor, &dpiScale_x, &dpiScale_y);
+#endif
+
+    return dl::Point(dpiScale_x, dpiScale_y);
+}
+
 void ImguiGLFWWindow::shutdown()
 {
     if (impl->window)
@@ -238,6 +257,11 @@ static void windowPosCallback(GLFWwindow* w, int x, int y)
     dl_dbg ("Got a window pos callback (%p) %d %d", w, x, y);
 }
 
+void ImguiGLFWWindow::PushMonoSpaceFont (ImGuiIO& io)
+{
+    ImGui::PushFont(io.Fonts->Fonts[1]); 
+}
+
 bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
                                   const std::string& title,
                                   const dl::Rect& geometry,
@@ -246,6 +270,7 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     glfwSetErrorCallback (glfwErrorFunction);
     
     impl->title = title;
+    impl->contentDpiScale = primaryMonitorContentDpiScale().x;
 
     // Always start invisible, we'll show it later when we need to.
     glfwWindowHint(GLFW_VISIBLE, false);
@@ -284,13 +309,52 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
     impl->imGuiContext = ImGui::CreateContext();
     ImGuiContextTracker::instance()->addContext(impl->imGuiContext);
     ImGui::SetCurrentContext(impl->imGuiContext);
-    
-    // FIXME: temporarily keeping the viewport setting.
+
+    ImGuiIO &io = ImGui::GetIO();
+
     if (enableImguiViewports)
     {
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
         // Enable Multi-Viewport / Platform Windows. Will be used by the highlight similar color companion window.
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    }
+
+    // Load the fonts with the proper dpi scale.
+    {
+        // Note: will still be 1 on macOS retina displays, they only change the framebuffer size.
+        const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
+
+        // The first default font is not a monospace anymore, a bit nicer to
+        // read and it can scale properly with higher DPI.
+
+        // Taken from Tracy https://github.com/davidwed/tracy
+        static const ImWchar ranges[] = {
+            0x0020,
+            0x00FF, // Basic Latin + Latin Supplement
+            0x03BC,
+            0x03BC, // micro
+            0,
+        };
+        io.Fonts->AddFontFromMemoryCompressedTTF(dl::Arimo_compressed_data, dl::Arimo_compressed_size, 15.0f * dpiScale.x, nullptr, ranges);
+
+        // The second font is the monospace one.
+
+        // Generated from https://github.com/bluescan/proggyfonts
+        io.Fonts->AddFontFromMemoryCompressedTTF(dl::ProggyVector_compressed_data, dl::ProggyVector_compressed_size, 16.0f * dpiScale.x);
+
+        // To scale the original font (poor quality)
+        // ImFontConfig cfg;
+        // cfg.SizePixels = roundf(13 * dpiScale.x);
+        // cfg.GlyphOffset.y = dpiScale.x;
+        // ImFont* font = ImGui::GetIO().Fonts->AddFontDefault(&cfg);
+        
+        // io.Fonts->AddFontFromFileTTF ("C:\\Windows\\Fonts\\segoeui.ttf", roundf(16.0f * dpiScale.x), nullptr, ranges);
+        // io.Fonts->AddFontFromFileTTF ("C:\\Windows\\Fonts\\consola.ttf", 16.0f * dpiScale.x, nullptr, ranges);
+        
+        if (!floatEquals(dpiScale.x, 1.f))
+        {
+            ImGui::GetStyle().ScaleAllSizes(dpiScale.x);
+        }
     }
 
     // Setup Platform/Renderer bindings
@@ -356,7 +420,9 @@ ImguiGLFWWindow::FrameInfo ImguiGLFWWindow::beginFrame ()
     enableContexts ();
 
     glfwGetFramebufferSize(impl->window, &(impl->currentFrameInfo.frameBufferWidth), &(impl->currentFrameInfo.frameBufferHeight));
-    
+    glfwGetWindowSize(impl->window, &(impl->currentFrameInfo.windowContentWidth), &(impl->currentFrameInfo.windowContentHeight));
+    impl->currentFrameInfo.contentDpiScale = impl->contentDpiScale;
+
     glfwPollEvents();
     
     ImGui_ImplOpenGL3_NewFrame();

@@ -76,14 +76,14 @@ void GrabScreenAreaWindow::Impl::finishGrabbing ()
         // Initially grabbedData has the entire screen. We're cropping it here.
         
         // Will be higher than 1 on retina displays.
-        const double screenToImageScale = this->grabbedData.srgbaImage->width() / this->grabbedData.capturedScreenRect.size.x;
+        this->grabbedData.screenToImageScale = this->grabbedData.srgbaImage->width() / this->grabbedData.capturedScreenRect.size.x;
         
         // Cropped screen area.
         dl::Rect croppedScreenRect = this->currentSelectionInScreen.asDL();
         
         dl::Rect croppedImageRect = croppedScreenRect;
         croppedImageRect.origin -= this->grabbedData.capturedScreenRect.origin;
-        croppedImageRect *= screenToImageScale;
+        croppedImageRect *= this->grabbedData.screenToImageScale;
         
         this->grabbedData.capturedScreenRect = croppedScreenRect;
 
@@ -331,6 +331,9 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
 {
     auto& io = ImGui::GetIO();
     
+    const float monoFontSize = io.Fonts->Fonts[1]->FontSize;
+    const float padding = monoFontSize / 2.f;
+
     ImVec2 imageSize (image.width(), image.height());
     
     ImVec2 mousePosInImage (0,0);
@@ -348,13 +351,13 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
     if (!image.contains(mousePosInImage.x, mousePosInImage.y))
         return;
     
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8,8));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(padding,padding));
     {
         ImGui::BeginTooltip();
         
         const auto sRgb = image((int)mousePosInImage.x, (int)mousePosInImage.y);
         
-        const int squareSize = 128;
+        const int squareSize = 9*monoFontSize;
 
         // Show the zoomed image.
         const ImVec2 zoomItemSize (squareSize,squareSize);
@@ -387,13 +390,15 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
             ImVec2 bottomRight = topLeft + ImVec2(squareSize,squareSize);
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
-            ImGui::SetCursorPosX(topLeft.x + 8);
-            ImGui::SetCursorPosY(topLeft.y + 20);
+            ImGui::SetCursorPosX(topLeft.x + padding);
+            ImGui::SetCursorPosY(topLeft.y + padding*2);
             bottomOfSquares = bottomRight.y;
         }
         
         // Show the help
         {
+            ImguiGLFWWindow::PushMonoSpaceFont(io);
+
             ImVec4 color (1, 1, 1, 1);
 
             const auto hsv = dl::convertToHSV(sRgb);
@@ -405,11 +410,12 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
                 color = ImVec4(0.0, 0.0, 0.0, 1.0);
             }
 
+            // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
             ImGui::PushStyleColor(ImGuiCol_Text, color);
 
             auto intRnd = [](float f) { return (int)std::roundf(f); };
 
-            ImGui::BeginChild("ColorInfo", ImVec2(128 - 8, zoomItemSize.y));
+            ImGui::BeginChild("ColorInfo", ImVec2(squareSize - padding, zoomItemSize.y));
             ImGui::Text("sRGB %3d %3d %3d", sRgb.r, sRgb.g, sRgb.b);
 
             PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
@@ -425,16 +431,19 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
                         
             ImGui::EndChild();
             ImGui::PopStyleColor();
+            // ImGui::PopStyleColor();
+
+            ImGui::PopFont();
         }
         
         auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
         
-        ImGui::SetCursorPosY (bottomOfSquares + 8);
+        ImGui::SetCursorPosY (bottomOfSquares + padding);
 
         {
             ImVec2 topLeft = ImGui::GetCursorPos();
             ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            ImVec2 bottomRight = topLeft + ImVec2(padding*2,padding*2);
             
             // Raw draw is in screen space.
             auto* drawList = ImGui::GetWindowDrawList();
@@ -442,11 +451,13 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
                                     bottomRight + screenFromWindow,
                                     IM_COL32(closestColors[0].entry->r, closestColors[0].entry->g, closestColors[0].entry->b, 255));
             
-            ImGui::SetCursorPosX(bottomRight.x + 8);
+            ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        auto addColorNameAndRGB = [](const ColorEntry& entry, const int targetNameSize)
+        auto addColorNameAndRGB = [&io](const ColorEntry& entry, const int targetNameSize)
         {
+            ImguiGLFWWindow::PushMonoSpaceFont(io);
+
             auto colorName = formatted("%s / %s", entry.className, entry.colorName);
             if (colorName.size() > targetNameSize)
             {
@@ -462,23 +473,25 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
                         entry.r,
                         entry.g,
                         entry.b);
+
+            ImGui::PopFont();
         };
 
-        addColorNameAndRGB (*closestColors[0].entry, 20);
+        addColorNameAndRGB (*closestColors[0].entry, 21);
         
         {
             ImVec2 topLeft = ImGui::GetCursorPos();
             ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-            ImVec2 bottomRight = topLeft + ImVec2(16,16);
+            ImVec2 bottomRight = topLeft + ImVec2(padding*2, padding*2);
             
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow,
                                     bottomRight + screenFromWindow,
                                     IM_COL32(closestColors[1].entry->r, closestColors[1].entry->g, closestColors[1].entry->b, 255));
-            ImGui::SetCursorPosX(bottomRight.x + 8);
+            ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        addColorNameAndRGB (*closestColors[1].entry, 20);
+        addColorNameAndRGB (*closestColors[1].entry, 21);
 
         if (!isnan(_timeOfLastCopyToClipboard))
         {

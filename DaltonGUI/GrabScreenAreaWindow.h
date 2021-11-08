@@ -26,6 +26,7 @@ struct GrabScreenData
     // Note: the capturedScreenRect does not have the same size as
     // the image on retina displays.
     dl::Rect capturedScreenRect;    
+    float screenToImageScale = 1.f;
     std::shared_ptr<dl::ImageSRGBA> srgbaImage;
     std::shared_ptr<GLTexture> texture;
 };

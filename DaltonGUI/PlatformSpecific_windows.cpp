@@ -19,6 +19,7 @@
 
 #include <thread>
 #include <mutex>
+#include <atomic>
 
 namespace dl
 {
@@ -224,6 +225,7 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
 
     gpuTexture.initialize ();
     gpuTexture.upload(cpuImage);
+
     return true;
 }
 
