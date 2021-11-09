@@ -38,7 +38,7 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
     geometry.size.x = 458;
-    geometry.size.y = 264 + 20 + 20;
+    geometry.size.y = 292 + 20 + 20;
 
     const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
     geometry.size.x *= dpiScale.x;

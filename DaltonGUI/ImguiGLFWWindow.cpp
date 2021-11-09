@@ -227,6 +227,19 @@ dl::Point ImguiGLFWWindow::primaryMonitorContentDpiScale ()
     return dl::Point(dpiScale_x, dpiScale_y);
 }
 
+dl::Point ImguiGLFWWindow::primaryMonitorRetinaFrameBufferScale ()
+{
+    float dpiScale_x = 1.f, dpiScale_y = 1.f;
+
+    // This framebuffer scaling only happens on macOS.
+#if PLATFORM_MACOS
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    glfwGetMonitorContentScale(monitor, &dpiScale_x, &dpiScale_y);
+#endif
+
+    return dl::Point(dpiScale_x, dpiScale_y);
+}
+
 void ImguiGLFWWindow::shutdown()
 {
     if (impl->window)
@@ -260,6 +273,11 @@ static void windowPosCallback(GLFWwindow* w, int x, int y)
 void ImguiGLFWWindow::PushMonoSpaceFont (ImGuiIO& io)
 {
     ImGui::PushFont(io.Fonts->Fonts[1]); 
+}
+
+float ImguiGLFWWindow::monoFontSize (ImGuiIO& io)
+{
+    return io.Fonts->Fonts[1]->FontSize * io.Fonts->Fonts[1]->Scale;
 }
 
 bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
@@ -335,12 +353,23 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
             0x03BC, // micro
             0,
         };
-        io.Fonts->AddFontFromMemoryCompressedTTF(dl::Arimo_compressed_data, dl::Arimo_compressed_size, 15.0f * dpiScale.x, nullptr, ranges);
+        
+        // On Windows and Linux the scale factor is handled by the dpi, but on macOS
+        // it's handled via a bigger frameBuffer.
+        const dl::Point retinaScaleFactor = primaryMonitorRetinaFrameBufferScale();
+
+        {
+            auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(dl::Arimo_compressed_data, dl::Arimo_compressed_size, 15.0f * retinaScaleFactor.x * dpiScale.x, nullptr, ranges);
+            font->Scale /= retinaScaleFactor.x;
+        }
 
         // The second font is the monospace one.
 
         // Generated from https://github.com/bluescan/proggyfonts
-        io.Fonts->AddFontFromMemoryCompressedTTF(dl::ProggyVector_compressed_data, dl::ProggyVector_compressed_size, 16.0f * dpiScale.x);
+        {
+            auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(dl::ProggyVector_compressed_data, dl::ProggyVector_compressed_size, 16.0f * retinaScaleFactor.x * dpiScale.x);
+            font->Scale /= retinaScaleFactor.x;
+        }
 
         // To scale the original font (poor quality)
         // ImFontConfig cfg;

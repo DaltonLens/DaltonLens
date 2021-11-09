@@ -128,7 +128,7 @@ void HighlightRegionState::handleInputEvents ()
 void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 {
     auto& io = ImGui::GetIO();
-    const float monoFontSize = io.Fonts->Fonts[1]->FontSize;
+    const float monoFontSize = ImguiGLFWWindow::monoFontSize(io);
     const float padding = monoFontSize / 2.f;
 
     // ImGuiWindowFlags flags = (/*ImGuiWindowFlags_NoTitleBar*/
@@ -233,9 +233,11 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             state.updateDeltas();
         }
         ImGui::SameLine();
-        helpMarker("Allow more difference in saturation and value to better handle anti-aliasing on lines and curves."
-                   "Better to disable it when looking at flat colors (e.g. pie charts).\n"
-                   "Shortcut: space");
+        helpMarker("Allow more difference in saturation and value "
+                   "to better handle anti-aliasing on lines and curves. "
+                   "Better to disable it when looking at flat colors, "
+                   "for example on pie charts.\n\n"
+                   "Shortcut: space", monoFontSize*20);
 
         ImguiGLFWWindow::PushMonoSpaceFont(io);
         if (data.shaderParams.hasActiveColor)

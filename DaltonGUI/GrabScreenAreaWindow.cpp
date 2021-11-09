@@ -344,7 +344,7 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
 {
     auto& io = ImGui::GetIO();
     
-    const float monoFontSize = io.Fonts->Fonts[1]->FontSize;
+    const float monoFontSize = ImguiGLFWWindow::monoFontSize(io);
     const float padding = monoFontSize / 2.f;
 
     ImVec2 imageSize (image.width(), image.height());

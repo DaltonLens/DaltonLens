@@ -19,13 +19,13 @@ inline ImVec2 imSize (dl::Rect& r) { return imVec2(r.size); }
 
 // Helper to display a little (?) mark which shows a tooltip when hovered.
 // In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
-inline void helpMarker(const char* desc)
+inline void helpMarker(const char* desc, float wrapWidth)
 {
     ImGui::TextDisabled("(?)");
     if (ImGui::IsItemHovered())
     {
         ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 25.0f);
+        ImGui::PushTextWrapPos(wrapWidth);
         ImGui::TextUnformatted(desc);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
