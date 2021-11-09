@@ -170,6 +170,12 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 
 void GrabScreenAreaWindow::runOnce ()
 {
+    // Don't try to access the texture data, etc. if it's finished.
+    // It could be finished because we're done, or because the capture failed
+    // (e.g. screen recording permissions missing).
+    if (impl->grabbingFinished)
+        return;
+    
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
 
     auto& io = ImGui::GetIO();
@@ -303,7 +309,14 @@ bool GrabScreenAreaWindow::startGrabbing ()
     impl->grabbedData.texture = std::make_shared<GLTexture>();
     impl->grabbedData.capturedScreenRect = screenRect;
     
-    return (impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture));
+    bool ok = impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture);
+    if (!ok)
+    {
+        dl_dbg ("Could not record the screen!");
+        // Make it invalid.
+        impl->grabbedData = {};
+    }
+    return ok;
 }
 
 bool GrabScreenAreaWindow::isGrabbing() const

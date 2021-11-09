@@ -198,9 +198,95 @@ ScreenGrabber::~ScreenGrabber ()
 {
 }
     
+// From https://stackoverflow.com/a/58786245/1737680
+BOOL canRecordScreen ()
+{
+    static BOOL canRecordScreen = NO;
+    
+    // Permission was granted, let's assume that if was not disabled in
+    // the lifetime of the app since a permission change would restart it
+    // anyway.
+    if (canRecordScreen)
+        return canRecordScreen;
+    
+    if (@available(macOS 10.15, *))
+    {
+        canRecordScreen = NO;
+        NSRunningApplication *runningApplication = NSRunningApplication.currentApplication;
+        NSNumber *ourProcessIdentifier = [NSNumber numberWithInteger:runningApplication.processIdentifier];
+
+        CFArrayRef windowList = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
+        NSUInteger numberOfWindows = CFArrayGetCount(windowList);
+        for (int index = 0; index < numberOfWindows; index++) {
+            // get information for each window
+            NSDictionary *windowInfo = (NSDictionary *)CFArrayGetValueAtIndex(windowList, index);
+            NSString *windowName = windowInfo[(id)kCGWindowName];
+            NSNumber *processIdentifier = windowInfo[(id)kCGWindowOwnerPID];
+
+            // don't check windows owned by this process
+            if (! [processIdentifier isEqual:ourProcessIdentifier]) {
+                // get process information for each window
+                pid_t pid = processIdentifier.intValue;
+                NSRunningApplication *windowRunningApplication = [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
+                if (! windowRunningApplication) {
+                    // ignore processes we don't have access to, such as WindowServer, which manages the windows named "Menubar" and "Backstop Menubar"
+                }
+                else {
+                    NSString *windowExecutableName = windowRunningApplication.executableURL.lastPathComponent;
+                    if (windowName) {
+                        if ([windowExecutableName isEqual:@"Dock"]) {
+                            // ignore the Dock, which provides the desktop picture
+                        }
+                        else {
+                            canRecordScreen = YES;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        CFRelease(windowList);
+    }
+    else
+    {
+        // Before Catalina it was always fine.
+        canRecordScreen = YES;
+    }
+    
+    return canRecordScreen;
+}
+
 bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& cpuImage, GLTexture& gpuTexture)
 {
     CGRect cgRect = CGRectMake(screenRect.origin.x, screenRect.origin.y, screenRect.size.x, screenRect.size.y);
+
+    if (!canRecordScreen())
+    {
+        NSTextView *accessory = [[NSTextView alloc] initWithFrame:NSMakeRect(0,0,200,15)];
+        NSString* msg = @"DaltonLens needs to capture your screen to apply color filters.\n\n"
+                        "To give it permission you need to enable the DaltonLens app in "
+                        "System Preferences / Security & Privacy / Screen Recording.\n\n"
+                        "If this is the first time that you see this dialog, a macOS"
+                        " prompt will propose to take you there directly once you click on OK.";
+        NSFont *font = [NSFont systemFontOfSize:[NSFont systemFontSize]];
+        NSDictionary *textAttributes = [NSDictionary dictionaryWithObject:font forKey:NSFontAttributeName];
+        [accessory insertText:[[NSAttributedString alloc] initWithString:msg attributes:textAttributes]];
+        [accessory setEditable:NO];
+        [accessory setDrawsBackground:NO];
+        accessory.alignment = NSTextAlignmentJustified;
+        
+        NSAlert* alert = [NSAlert new];
+        [alert setMessageText: @"Screen recording permission required."];
+        [alert setAlertStyle:NSAlertStyleCritical];
+        alert.accessoryView = accessory;
+        [alert runModal];
+        
+        // Make sure we'll trigger a prompt.
+        CGImage* cgImage = CGWindowListCreateImage(cgRect, kCGWindowListOptionOnScreenOnly, kCGNullWindowID, kCGWindowImageDefault);
+        CGImageRelease (cgImage);
+    
+        return false;
+    }
     
     CGImage* cgImage = CGWindowListCreateImage(cgRect, kCGWindowListOptionOnScreenOnly, kCGNullWindowID, kCGWindowImageDefault);
     if (cgImage == nullptr)

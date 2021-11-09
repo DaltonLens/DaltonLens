@@ -274,6 +274,7 @@ struct DaltonLensGUI::Impl
                     }
                     else
                     {
+                        grabScreenWindow.dismiss();
                         currentState = State::Disabled;
                     }
                     break;
