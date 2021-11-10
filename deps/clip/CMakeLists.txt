@@ -87,3 +87,9 @@ if(CLIP_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
+
+# Added by DaltonLens.
+install(TARGETS clip
+        RUNTIME DESTINATION "bin"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")

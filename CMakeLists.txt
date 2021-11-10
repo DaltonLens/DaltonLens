@@ -67,9 +67,12 @@ ExternalProject_Add(clip-deps
         -DCLIP_EXAMPLES=OFF
         -DCLIP_TESTS=OFF
         -DCLIP_X11_WITH_PNG=OFF
-  INSTALL_COMMAND 
-        cmake -E make_directory "${PRECOMPILED_FOLDER}/clip/lib/"
-        COMMAND cmake -E copy "<BINARY_DIR>/${CLIP_LIBRARY_FILENAME}" "${PRECOMPILED_FOLDER}/clip/lib/"
+  # Now handled in deps/clip/CMakeLists.txt, otherwise this leads
+  # to issues with Visual Studio 2019 as it cannot find an INSTALL
+  # target in the external project.
+  # INSTALL_COMMAND 
+  #      cmake -E make_directory "${PRECOMPILED_FOLDER}/clip/lib/"
+  #      COMMAND cmake -E copy "<BINARY_DIR>/${CLIP_LIBRARY_FILENAME}" "${PRECOMPILED_FOLDER}/clip/lib/"
 )
 
 add_library(clip STATIC IMPORTED)
@@ -143,3 +146,9 @@ endif()
 
 enable_testing()
 add_subdirectory(tests)
+
+# This does not work, it shows that the project needs migration and then it refuses to migrate it.
+# So right now we have to insert the project manually in the Visual Studio 2019 solution.
+#if (WIN32)
+#  include_external_msproject(WindowsStore "${CMAKE_SOURCE_DIR}/WindowsStore/WindowsStore.wapproj")
+#endif()
