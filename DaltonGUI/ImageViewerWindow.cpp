@@ -10,6 +10,7 @@
 #include "ImageViewerWindowState.h"
 
 #include <DaltonGUI/GrabScreenAreaWindow.h>
+#include <DaltonGUI/ImageCursorOverlay.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/PlatformSpecific.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
@@ -98,7 +99,8 @@ struct ImageViewerWindow::Impl
 
     bool enabled = false;
 
-    ImageCursorOverlay cursorOverlay;
+    ImageCursorOverlay inlineCursorOverlay;
+    CursorOverlayInfo cursorOverlayInfo;
 
     struct {
         bool requested = false;
@@ -148,12 +150,12 @@ struct ImageViewerWindow::Impl
     
     void enterMode (DaltonViewerMode newMode)
     {
-        this->mutableState.currentMode = newMode;
+        this->mutableState.activeMode = newMode;
     }
     
     void advanceMode (bool backwards)
     {
-        int newMode_asInt = (int)this->mutableState.currentMode;
+        int newMode_asInt = (int)this->mutableState.activeMode;
         newMode_asInt += backwards ? -1 : 1;
         if (newMode_asInt < 0)
         {
@@ -164,7 +166,7 @@ struct ImageViewerWindow::Impl
             --newMode_asInt;
         }
         
-        mutableState.currentMode = (DaltonViewerMode)newMode_asInt;
+        mutableState.activeMode = (DaltonViewerMode)newMode_asInt;
     }
     
     void onImageWidgetAreaChanged ()
@@ -173,9 +175,9 @@ struct ImageViewerWindow::Impl
                                       imageWidgetRect.current.size.y + windowBorderSize * 2);
     }
 
-    GLFilter* filterForMode (DaltonViewerMode modeForThisFrame)
+    GLFilter* filterForMode (DaltonViewerMode modeForCurrentFrame)
     {
-        switch (modeForThisFrame)
+        switch (modeForCurrentFrame)
         {
             case DaltonViewerMode::Original:    return nullptr;
             case DaltonViewerMode::Protanope:   return &filters.daltonize;
@@ -223,7 +225,7 @@ void ImageViewerWindow::setEnabled (bool enabled)
     }
     else
     {
-        impl->mutableState.currentMode = DaltonViewerMode::None;
+        impl->mutableState.activeMode = DaltonViewerMode::None;
         impl->imguiGlfwWindow.setEnabled(false);
     }
 }
@@ -276,7 +278,7 @@ ImageViewerWindowState& ImageViewerWindow::mutableState ()
 
 void ImageViewerWindow::checkImguiGlobalImageMouseEvents ()
 {
-    if (viewerModeIsDaltonize(impl->mutableState.currentMode))
+    if (viewerModeIsDaltonize(impl->mutableState.activeMode))
     {
         // Handle the mouse wheel to adjust the severity.
         auto& io = ImGui::GetIO ();
@@ -387,7 +389,7 @@ void ImageViewerWindow::processKeyEvent (int keycode)
 
         case GLFW_KEY_SPACE:
         {
-            if (viewerModeIsDaltonize(impl->mutableState.currentMode))
+            if (viewerModeIsDaltonize(impl->mutableState.activeMode))
             {
                 impl->mutableState.daltonizeShouldSimulateOnly = !impl->mutableState.daltonizeShouldSimulateOnly;
             }
@@ -399,7 +401,7 @@ void ImageViewerWindow::processKeyEvent (int keycode)
 void ImageViewerWindow::saveCurrentImage ()
 {
     nfdchar_t *outPath = NULL;
-    std::string default_name = formatted("daltonlens_%s.png", daltonViewerModeFileName(impl->mutableState.currentMode).c_str());
+    std::string default_name = formatted("daltonlens_%s.png", daltonViewerModeFileName(impl->mutableState.activeMode).c_str());
     nfdfilteritem_t filterItems[] = { { "Images", "png" } };
     nfdresult_t result = NFD_SaveDialogU8 (&outPath, filterItems, 1, nullptr, default_name.c_str());
 
@@ -425,6 +427,11 @@ dl::Rect ImageViewerWindow::geometry () const
     return impl->imguiGlfwWindow.geometry();
 }
 
+const CursorOverlayInfo& ImageViewerWindow::cursorOverlayInfo() const
+{
+    return impl->cursorOverlayInfo;
+}
+
 void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::Rect& updatedWindowGeometry)
 {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -444,7 +451,7 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::
     impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
     
     impl->mutableState.highlightRegion.setImage(&impl->im);
-    impl->mutableState.currentMode = DaltonViewerMode::HighlightRegions;
+    impl->mutableState.activeMode = DaltonViewerMode::HighlightRegions;
     
     // Don't show it now, but tell it to show the window after
     // updating the content, otherwise we can get annoying flicker.
@@ -458,7 +465,6 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::
     impl->updateAfterContentSwitch.screenToImageScale = grabbedData.screenToImageScale;
 
     updatedWindowGeometry = impl->updateAfterContentSwitch.targetWindowGeometry;
-
 }
 
 void ImageViewerWindow::runOnce ()
@@ -476,6 +482,9 @@ void ImageViewerWindow::runOnce ()
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
     const auto& controlsWindowState = impl->controller->controlsWindow()->inputState();
 
+    // Might get filled later on.
+    impl->cursorOverlayInfo = {};
+    
     // If we do not have a pending resize request, then adjust the content size to the
     // actual window size. The framebuffer might be bigger depending on the retina scale
     // factor.
@@ -495,7 +504,7 @@ void ImageViewerWindow::runOnce ()
     {
         if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || impl->imguiGlfwWindow.closeRequested())
         {
-            impl->mutableState.currentMode = DaltonViewerMode::None;
+            impl->mutableState.activeMode = DaltonViewerMode::None;
             impl->mutableState.highlightRegion.clearSelection();
             impl->imguiGlfwWindow.cancelCloseRequest ();
         }
@@ -504,12 +513,12 @@ void ImageViewerWindow::runOnce ()
     }
     checkImguiGlobalImageMouseEvents ();
     
-    auto modeForThisFrame = impl->mutableState.currentMode;
+    impl->mutableState.modeForCurrentFrame = impl->mutableState.activeMode;
     if (impl->mutableState.inputState.shiftIsPressed
         || controlsWindowState.shiftIsPressed)
     {
-        modeForThisFrame = DaltonViewerMode::Original;
-    }    
+        impl->mutableState.modeForCurrentFrame = DaltonViewerMode::Original;
+    }
 
     if (impl->shouldUpdateWindowSize)
     {
@@ -536,14 +545,14 @@ void ImageViewerWindow::runOnce ()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
     
-    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(modeForThisFrame);        
+    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(impl->mutableState.modeForCurrentFrame);        
     glfwSetWindowTitle(impl->imguiGlfwWindow.glfwWindow(), mainWindowName.c_str());
 
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
     {
         if (!isOpen)
         {
-            impl->mutableState.currentMode = DaltonViewerMode::None;
+            impl->mutableState.activeMode = DaltonViewerMode::None;
         }
                       
         const ImVec2 imageWidgetTopLeft = ImGui::GetCursorScreenPos();
@@ -564,7 +573,7 @@ void ImageViewerWindow::runOnce ()
         uv1 += deltaToAdd;
     
         // Set the params of the active filter.
-        switch (modeForThisFrame)
+        switch (impl->mutableState.modeForCurrentFrame)
         {
             case DaltonViewerMode::HighlightRegions: 
             {
@@ -577,7 +586,7 @@ void ImageViewerWindow::runOnce ()
             case DaltonViewerMode::Tritanope:
             {
                 Filter_Daltonize::Params params;
-                params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)modeForThisFrame - (int)DaltonViewerMode::Protanope);
+                params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)impl->mutableState.modeForCurrentFrame - (int)DaltonViewerMode::Protanope);
                 params.simulateOnly = impl->mutableState.daltonizeShouldSimulateOnly;
                 params.severity = impl->mutableState.daltonizeSeverity;
                 impl->filters.daltonize.setParams (params);
@@ -587,7 +596,7 @@ void ImageViewerWindow::runOnce ()
             default: break;
         }
 
-        GLFilter* activeFilter = impl->filterForMode(modeForThisFrame);
+        GLFilter* activeFilter = impl->filterForMode(impl->mutableState.modeForCurrentFrame);
         GLTexture* imageTexture = &impl->gpuTexture;
         if (activeFilter)
         {
@@ -654,25 +663,31 @@ void ImageViewerWindow::runOnce ()
             mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
         }
         
-        bool showCursorOverlay = ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
-        if (showCursorOverlay)
+        bool showCursorOverlay = false;
+        const bool pointerOverTheImage = ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
+        if (pointerOverTheImage)
         {
-            bool showBecauseOfHighlightMode = (modeForThisFrame == DaltonViewerMode::HighlightRegions && !impl->mutableState.highlightRegion.hasActiveColor());
-            bool showBecauseOfShift = io.KeyShift;
-            showCursorOverlay &= (showBecauseOfHighlightMode || showBecauseOfShift);
+            // Unfortunately we can't easily show it in every mode because the image
+            // is only in the GPU. We'd need to implement a cache + CPU retrieval.
+            bool showBecauseOfHighlightMode = (impl->mutableState.modeForCurrentFrame == DaltonViewerMode::HighlightRegions && !impl->mutableState.highlightRegion.hasActiveColor());
+            bool showBecauseOfOriginal = (impl->mutableState.modeForCurrentFrame == DaltonViewerMode::Original);
+            showCursorOverlay = (showBecauseOfHighlightMode || showBecauseOfOriginal);
         }
         
         if (showCursorOverlay)
         {
-            impl->cursorOverlay.showTooltip(impl->im,
-                                            impl->gpuTexture,
-                                            false, /* show help */
-                                            imageWidgetTopLeft,
-                                            imageWidgetSize,
-                                            uv0,
-                                            uv1,
-                                            ImVec2(15, 15));
-        }    
+            impl->cursorOverlayInfo.image = &impl->im;
+            impl->cursorOverlayInfo.imageTexture = &impl->gpuTexture;
+            impl->cursorOverlayInfo.showHelp = false;
+            impl->cursorOverlayInfo.imageWidgetSize = imageWidgetSize;
+            impl->cursorOverlayInfo.imageWidgetTopLeft = imageWidgetTopLeft;
+            impl->cursorOverlayInfo.uvTopLeft = uv0;
+            impl->cursorOverlayInfo.uvBottomRight = uv1;
+            impl->cursorOverlayInfo.roiWindowSize = ImVec2(15, 15);
+            impl->cursorOverlayInfo.mousePos = io.MousePos;
+            // Option: show it next to the mouse.
+            // impl->inlineCursorOverlay.showTooltip(impl->cursorOverlayInfo);
+        }
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && io.KeyCtrl)
         {
@@ -686,7 +701,7 @@ void ImageViewerWindow::runOnce ()
         
         if (ImGui::IsItemClicked(ImGuiMouseButton_Middle))
         {
-            if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
+            if (impl->mutableState.modeForCurrentFrame == DaltonViewerMode::HighlightRegions)
             {
                 impl->mutableState.highlightRegion.togglePlotMode();
             }
@@ -706,12 +721,12 @@ void ImageViewerWindow::runOnce ()
             }
         }
 
-        if (modeForThisFrame == DaltonViewerMode::HighlightRegions)
+        if (impl->mutableState.modeForCurrentFrame == DaltonViewerMode::HighlightRegions)
         {
             // Accept Alt in case the user is still zooming in.
             if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !io.KeyCtrl && !io.KeySuper && !io.KeyShift)
             {
-                impl->mutableState.highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y);
+                impl->mutableState.highlightRegion.setSelectedPixel(mousePosInImage.x, mousePosInImage.y, impl->cursorOverlayInfo);
             }
             
             impl->mutableState.highlightRegion.handleInputEvents ();
@@ -722,7 +737,7 @@ void ImageViewerWindow::runOnce ()
     ImGui::PopStyleVar();
     
     impl->imguiGlfwWindow.endFrame ();
-
+    
     if (impl->updateAfterContentSwitch.inProgress)
     {
         ++impl->updateAfterContentSwitch.numAlreadyRenderedFrames;
@@ -739,7 +754,7 @@ void ImageViewerWindow::runOnce ()
     // User pressed q, escape or closed the window. We need to do an empty rendering to
     // make sure the platform windows will get hidden and won't stay as ghosts and create
     // flicker when we enable this again.
-    if (impl->mutableState.currentMode == DaltonViewerMode::None)
+    if (impl->mutableState.activeMode == DaltonViewerMode::None)
     {
         if (impl->controller) impl->controller->onDismissRequested ();
     }

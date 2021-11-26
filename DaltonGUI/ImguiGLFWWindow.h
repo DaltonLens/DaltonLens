@@ -42,8 +42,8 @@ public:
 public:
     static dl::Point primaryMonitorContentDpiScale ();
     static dl::Point primaryMonitorRetinaFrameBufferScale ();
-    static void PushMonoSpaceFont(ImGuiIO& io);
-    static float monoFontSize (ImGuiIO& io);
+    static void PushMonoSpaceFont(const ImGuiIO& io);
+    static float monoFontSize (const ImGuiIO& io);
 
 public:
     bool initialize (GLFWwindow* parentWindow,

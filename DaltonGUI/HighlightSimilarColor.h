@@ -9,6 +9,8 @@
 #include <Dalton/Image.h>
 #include <Dalton/Filters.h>
 
+#include <DaltonGUI/ImageCursorOverlay.h>
+
 #include "imgui.h"
 
 namespace dl
@@ -27,13 +29,15 @@ public:
         float deltaColorThreshold = 10.f;
 
         bool plotMode = true;
+
+        CursorOverlayInfo cursorOverlayInfo;
     };
     MutableData mutableData;
 
 public:
     void setImage(dl::ImageSRGBA *im) { _im = im; }
     void clearSelection();
-    void setSelectedPixel(float x, float y);
+    void setSelectedPixel(float x, float y, const CursorOverlayInfo& cursorOverlayInfo);
     void addSliderDelta(float delta);
     void togglePlotMode();
     void updateDeltas();

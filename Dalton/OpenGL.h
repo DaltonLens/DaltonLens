@@ -80,6 +80,7 @@ public:
 
     void ensureAllocatedForRGBA (int width, int height);
     void upload (const dl::ImageSRGBA& im);
+    void uploadRgba(const uint8_t* rgbaBuffer, int width, int height, int bytesPerRow = -1);
     void download (dl::ImageSRGBA& im);
 
     uint32_t textureId() const { return _textureId; }

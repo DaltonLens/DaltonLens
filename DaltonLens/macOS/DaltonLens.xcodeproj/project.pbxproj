@@ -73,6 +73,9 @@
 		2DB8371C1FE7191A005BD10D /* libDalton.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7F490C1F00381C00919399 /* libDalton.dylib */; };
 		2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBB8D61D3BEAA60035D461 /* AppDelegate.swift */; };
 		2DCBB8DB1D3BEAA60035D461 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */; };
+		2DE84C7F27516252000C52E1 /* ImageCursorOverlay.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DE84C7E27516252000C52E1 /* ImageCursorOverlay.cpp */; };
+		2DE84C82275579F0000C52E1 /* DaltonLensPrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DE84C80275579F0000C52E1 /* DaltonLensPrefs.cpp */; };
+		2DE84C84275659F6000C52E1 /* stb_impl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2DE84C83275659F6000C52E1 /* stb_impl.cpp */; };
 		2DEC11031DC684970095C4A0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEC11021DC684970095C4A0 /* main.swift */; };
 /* End PBXBuildFile section */
 
@@ -247,6 +250,11 @@
 		2DCBB8D61D3BEAA60035D461 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = AppDelegate.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		2DCBB8DA1D3BEAA60035D461 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2DCBB8DF1D3BEAA60035D461 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2DE84C7C27516252000C52E1 /* ImageCursorOverlay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageCursorOverlay.h; sourceTree = "<group>"; };
+		2DE84C7E27516252000C52E1 /* ImageCursorOverlay.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageCursorOverlay.cpp; sourceTree = "<group>"; };
+		2DE84C80275579F0000C52E1 /* DaltonLensPrefs.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DaltonLensPrefs.cpp; sourceTree = "<group>"; };
+		2DE84C81275579F0000C52E1 /* DaltonLensPrefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DaltonLensPrefs.h; sourceTree = "<group>"; };
+		2DE84C83275659F6000C52E1 /* stb_impl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = stb_impl.cpp; path = ../deps/stb/stb_impl.cpp; sourceTree = "<group>"; };
 		2DEC11021DC684970095C4A0 /* main.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		2DF3E86E1D57972400C9380A /* Utils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Utils.cpp; sourceTree = "<group>"; };
 		2DF3E86F1D57972400C9380A /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
@@ -313,6 +321,7 @@
 		2D1973392532DBFD00D1FBD4 /* DaltonGUI */ = {
 			isa = PBXGroup;
 			children = (
+				2DE84C83275659F6000C52E1 /* stb_impl.cpp */,
 				2D0C67B1272021600047F426 /* nfd-extended */,
 				2D19733B2532DBFD00D1FBD4 /* CMakeLists.txt */,
 				2D1973492532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp */,
@@ -324,6 +333,8 @@
 				2DA1F5CE26FCB6ED00928A4E /* DaltonLensIcon_xxd.cpp */,
 				2DA1F5CD26FCB6ED00928A4E /* DaltonLensIcon.cpp */,
 				2DA1F5CF26FCB6ED00928A4E /* DaltonLensIcon.h */,
+				2DE84C80275579F0000C52E1 /* DaltonLensPrefs.cpp */,
+				2DE84C81275579F0000C52E1 /* DaltonLensPrefs.h */,
 				2DA1F5CB26FBB2B300928A4E /* GLFWUtils.cpp */,
 				2DA1F5BD26F2837D00928A4E /* GLFWUtils.h */,
 				2D1973582532FE3800D1FBD4 /* GrabScreenAreaWindow.cpp */,
@@ -332,6 +343,8 @@
 				2D9871332545D07E0085C260 /* HelpWindow.h */,
 				2DA1F5C626F3C60700928A4E /* HighlightSimilarColor.cpp */,
 				2DA1F5C426F3C60700928A4E /* HighlightSimilarColor.h */,
+				2DE84C7E27516252000C52E1 /* ImageCursorOverlay.cpp */,
+				2DE84C7C27516252000C52E1 /* ImageCursorOverlay.h */,
 				2DA1F5B726F27F9300928A4E /* ImageViewer.cpp */,
 				2DA1F5B926F27F9300928A4E /* ImageViewer.h */,
 				2DA1F5BB26F2837C00928A4E /* ImageViewerControlsWindow.cpp */,
@@ -760,6 +773,7 @@
 				2D240DAC1DAAC0B400AA97BC /* MASDictionaryTransformer.m in Sources */,
 				2D240DB11DAAC0B400AA97BC /* MASShortcutMonitor.m in Sources */,
 				2D19734B2532DEF600D1FBD4 /* PlatformSpecific_macOS.cpp in Sources */,
+				2DE84C82275579F0000C52E1 /* DaltonLensPrefs.cpp in Sources */,
 				2DEC11031DC684970095C4A0 /* main.swift in Sources */,
 				2D240DB21DAAC0B400AA97BC /* MASShortcutValidator.m in Sources */,
 				2DA1F5C826F3C60700928A4E /* HighlightSimilarColor.cpp in Sources */,
@@ -771,6 +785,8 @@
 				2D941DB525A0DA99008B6647 /* imgui_draw.cpp in Sources */,
 				2DA1F5BE26F2837D00928A4E /* ImageViewerControlsWindow.cpp in Sources */,
 				2DCBB8D71D3BEAA60035D461 /* AppDelegate.swift in Sources */,
+				2DE84C84275659F6000C52E1 /* stb_impl.cpp in Sources */,
+				2DE84C7F27516252000C52E1 /* ImageCursorOverlay.cpp in Sources */,
 				2D941D3625A0DA99008B6647 /* imgui_widgets.cpp in Sources */,
 				2D9871342545D07E0085C260 /* HelpWindow.cpp in Sources */,
 				2DA1F5D126FCB6EE00928A4E /* DaltonLensIcon_xxd.cpp in Sources */,
@@ -857,7 +873,6 @@
 				EXECUTABLE_PREFIX = lib;
 				LD_DYLIB_INSTALL_NAME = "@executable_path/../Frameworks/$(EXECUTABLE_PATH)";
 				MACH_O_TYPE = mh_dylib;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -876,7 +891,6 @@
 				EXECUTABLE_PREFIX = lib;
 				LD_DYLIB_INSTALL_NAME = "@executable_path/../Frameworks/$(EXECUTABLE_PATH)";
 				MACH_O_TYPE = mh_dylib;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -984,7 +998,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -1041,7 +1055,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
@@ -1068,7 +1082,6 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1099,7 +1112,6 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MARKETING_VERSION = 2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";

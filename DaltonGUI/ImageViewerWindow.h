@@ -21,6 +21,7 @@ namespace dl
 struct GrabScreenData;
 
 struct ImageViewerWindowState;
+struct CursorOverlayInfo;
 
 // Manages a single ImGuiWindow
 class ImageViewerWindow
@@ -33,6 +34,8 @@ public:
     bool initialize (GLFWwindow* parentWindow, ImageViewerController* controller);
     
     void showGrabbedData (const GrabScreenData& grabbedData, dl::Rect& updatedWindowGeometry);
+    
+    const CursorOverlayInfo& cursorOverlayInfo() const;
     
     void shutdown ();
     void runOnce ();

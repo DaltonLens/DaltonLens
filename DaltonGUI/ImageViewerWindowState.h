@@ -32,7 +32,12 @@ bool viewerModeIsDaltonize (DaltonViewerMode mode);
 struct ImageViewerWindowState
 {
     HighlightRegionState highlightRegion;
-    DaltonViewerMode currentMode = DaltonViewerMode::None;
+    DaltonViewerMode activeMode = DaltonViewerMode::None;
+    
+    // modeForCurrentFrame can be different from activeMode
+    // if the user presses the SHIFT key.
+    DaltonViewerMode modeForCurrentFrame = DaltonViewerMode::None;
+    
     bool daltonizeShouldSimulateOnly = false;
     float daltonizeSeverity = 1.0f;
 

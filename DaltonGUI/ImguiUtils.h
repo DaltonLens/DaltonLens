@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Dalton/MathUtils.h>
+#include <IconsFontAwesome5.h>
 
 #include <imgui.h>
 
@@ -21,8 +22,8 @@ inline ImVec2 imSize (dl::Rect& r) { return imVec2(r.size); }
 // In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
 inline void helpMarker(const char* desc, float wrapWidth)
 {
-    ImGui::TextDisabled("(?)");
-    if (ImGui::IsItemHovered())
+    ImGui::Text(ICON_FA_QUESTION_CIRCLE);
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_RectOnly))
     {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(wrapWidth);
@@ -30,6 +31,21 @@ inline void helpMarker(const char* desc, float wrapWidth)
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }
+}
+
+inline ImGuiWindowFlags windowFlagsWithoutAnything()
+{
+    return (ImGuiWindowFlags_NoTitleBar
+            | ImGuiWindowFlags_NoResize
+            | ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoScrollbar
+            | ImGuiWindowFlags_NoScrollWithMouse
+            | ImGuiWindowFlags_NoCollapse
+            // | ImGuiWindowFlags_NoBackground
+            | ImGuiWindowFlags_NoSavedSettings
+            | ImGuiWindowFlags_HorizontalScrollbar
+            | ImGuiWindowFlags_NoDocking
+            | ImGuiWindowFlags_NoNav);
 }
 
 }

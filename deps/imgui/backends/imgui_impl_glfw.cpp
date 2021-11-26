@@ -404,6 +404,7 @@ static void ImGui_ImplGlfw_UpdateMousePosAndButtons()
 #else
         const bool focused = glfwGetWindowAttrib(window, GLFW_FOCUSED) != 0;
 #endif
+        // Note: why can't get tooltip info when not focused? That's annoying!
         GLFWwindow* mouse_window = (bd->MouseWindow == window || focused) ? window : NULL;
 
         // Update mouse buttons

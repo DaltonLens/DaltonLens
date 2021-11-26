@@ -40,9 +40,10 @@ void HighlightRegionState::clearSelection()
     mutableData.shaderParams.hasActiveColor = false;
     mutableData.shaderParams.activeColorRGB01 = vec4d(0, 0, 0, 1);
     _selectedPixel = dl::vec2i(-1, -1);
+    mutableData.cursorOverlayInfo = {};
 }
 
-void HighlightRegionState::setSelectedPixel(float x, float y)
+void HighlightRegionState::setSelectedPixel(float x, float y, const CursorOverlayInfo& cursorOverlayInfo)
 {
     const auto newPixel = dl::vec2i((int)x, (int)y);
 
@@ -63,6 +64,7 @@ void HighlightRegionState::setSelectedPixel(float x, float y)
     mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
 
     mutableData.shaderParams.hasActiveColor = true;
+    mutableData.cursorOverlayInfo = cursorOverlayInfo;
     updateDeltas();
 }
 
@@ -147,10 +149,11 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 
     // if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
     {
-        const auto sRgb = dl::PixelSRGBA((int)(255.f * data.shaderParams.activeColorRGB01.x + 0.5f),
-                                         (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
-                                         (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
+        const auto linearRgb = dl::PixelSRGBA((int)(255.f * data.shaderParams.activeColorRGB01.x + 0.5f),
+                                              (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
+                                              (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
 
+#if 0
         const auto filledRectSize = ImVec2(9*monoFontSize, 9*monoFontSize);
         ImVec2 topLeft = ImGui::GetCursorPos();
         ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
@@ -214,8 +217,9 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
         }
 
         ImGui::SetCursorPosY(bottomRight.y + padding);
-
-        ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
+#endif
+        
+        // ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
 
         state.handleInputEvents();
 
@@ -236,29 +240,49 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
         helpMarker("Allow more difference in saturation and value "
                    "to better handle anti-aliasing on lines and curves. "
                    "Better to disable it when looking at flat colors, "
-                   "for example on pie charts.\n\n"
-                   "Shortcut: space", monoFontSize*20);
+                   "for example on pie charts.", monoFontSize*20);
 
-        ImguiGLFWWindow::PushMonoSpaceFont(io);
+        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        
         if (data.shaderParams.hasActiveColor)
         {
-            ImGui::Text("Hue  in [%.0fº -> %.0fº]",
-                        (data.activeColorHSV_1_1_255.x * 360.f) - data.shaderParams.deltaH_360,
-                        (data.activeColorHSV_1_1_255.x * 360.f) + data.shaderParams.deltaH_360);
-            ImGui::Text("Sat. in [%.0f%% -> %.0f%%]",
-                        (data.activeColorHSV_1_1_255.y * 100.f) - data.shaderParams.deltaS_100,
-                        (data.activeColorHSV_1_1_255.y * 100.f) + data.shaderParams.deltaS_100);
-            ImGui::Text("Val. in [%.0f -> %.0f]",
-                        (data.activeColorHSV_1_1_255.z) - data.shaderParams.deltaV_255,
-                        (data.activeColorHSV_1_1_255.z) + data.shaderParams.deltaV_255);
+//            ImGui::Text("Hue  in [%.0fº -> %.0fº]",
+//                        (data.activeColorHSV_1_1_255.x * 360.f) - data.shaderParams.deltaH_360,
+//                        (data.activeColorHSV_1_1_255.x * 360.f) + data.shaderParams.deltaH_360);
+//            ImGui::Text("Sat. in [%.0f%% -> %.0f%%]",
+//                        (data.activeColorHSV_1_1_255.y * 100.f) - data.shaderParams.deltaS_100,
+//                        (data.activeColorHSV_1_1_255.y * 100.f) + data.shaderParams.deltaS_100);
+//            ImGui::Text("Val. in [%.0f -> %.0f]",
+//                        (data.activeColorHSV_1_1_255.z) - data.shaderParams.deltaV_255,
+//                        (data.activeColorHSV_1_1_255.z) + data.shaderParams.deltaV_255);
+            
+            ImGui::Text("Selected HSV Range:");
+            ImguiGLFWWindow::PushMonoSpaceFont(io);
+
+            float hueMin = (data.activeColorHSV_1_1_255.x * 360.f) - data.shaderParams.deltaH_360;
+            if (hueMin < 0) hueMin = 360.f - hueMin;
+            float hueMax = fmod((data.activeColorHSV_1_1_255.x * 360.f) + data.shaderParams.deltaH_360, 360.f);
+
+            float satMin = std::max(0.f, (data.activeColorHSV_1_1_255.y * 100.f) - data.shaderParams.deltaS_100);
+            float satMax = std::min (100.f, (data.activeColorHSV_1_1_255.y * 100.f) + data.shaderParams.deltaS_100);
+
+            float valueMin = std::max(0.f, (data.activeColorHSV_1_1_255.z) - data.shaderParams.deltaV_255);
+            float valueMax = std::min(255.f, (data.activeColorHSV_1_1_255.z) + data.shaderParams.deltaV_255);
+
+            ImGui::Text("H=[%.0f %.0f]º S=[%.0f %.0f]%% V=[%.0f %.0f]",
+                        hueMin, hueMax,
+                        satMin, satMax,
+                        valueMin, valueMax);
+            ImGui::PopFont();
         }
         else
         {
-            ImGui::TextDisabled("Hue  in [N/A]");
-            ImGui::TextDisabled("Sat. in [N/A]");
-            ImGui::TextDisabled("Val. in [N/A]");
+            ImGui::Text("No selected color. Click on the image to pick one.");
+            ImguiGLFWWindow::PushMonoSpaceFont(io);
+            ImGui::TextDisabled("H=[N/A]º S=[N/A]%% V=[N/A]");
+            ImGui::PopFont();
         }
-        ImGui::PopFont();
+        
     }
     // ImGui::End();
 }

@@ -11,6 +11,7 @@
 #include <DaltonGUI/ImageViewerWindow.h>
 #include <DaltonGUI/ImageViewerWindowState.h>
 #include <DaltonGUI/GLFWUtils.h>
+#include <DaltonGUI/ImageCursorOverlay.h>
 
 #include <Dalton/Utils.h>
 
@@ -45,8 +46,10 @@ struct ImageViewerControlsWindow::Impl
 
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
-    ImVec2 windowSizeAtDefaultDpi = ImVec2(364, 382 + 20 + 20);
+    ImVec2 windowSizeAtDefaultDpi = ImVec2(320, 382 + 20 + 20);
     ImVec2 windowSizeAtCurrentDpi = ImVec2(-1,-1);
+    
+    ImageCursorOverlay cursorOverlay;
 };
 
 ImageViewerControlsWindow::ImageViewerControlsWindow()
@@ -134,6 +137,7 @@ void ImageViewerControlsWindow::repositionAfterNextRendering (const dl::Rect& vi
 {
     // FIXME: padding probably depends on the window manager
     const int expectedHighlightWindowWidthWithPadding = impl->windowSizeAtCurrentDpi.x + 12;
+    // Try to put it on the left first.
     if (viewerWindowGeometry.origin.x > expectedHighlightWindowWidthWithPadding)
     {
         impl->updateAfterContentSwitch.needRepositioning = true;
@@ -159,6 +163,7 @@ void ImageViewerControlsWindow::runOnce ()
 {
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
     const auto& io = ImGui::GetIO();
+    const float monoFontSize = ImguiGLFWWindow::monoFontSize(io);
     auto* activeImageWindow = impl->controller->activeViewerWindow();
 
     if (impl->imguiGlfwWindow.closeRequested())
@@ -235,60 +240,125 @@ void ImageViewerControlsWindow::runOnce ()
     {
         auto& viewerState = activeImageWindow->mutableState();
 
-        static const char* items[] = {
-            "Original Image",
-            "Highlight Similar Colors",
-            "Daltonize - Protanope",
-            "Daltonize - Deuteranope",
-            "Daltonize - Tritanope",
-            "Flip Red-Blue",
-            "Flip Red-Blue and Invert-Red",
+        struct FilterEntry {
+            const char* itemName;
+            const char* description;
+            const char* help;
+        };
+
+        static const FilterEntry filters[] = {
+            { "Original Image",
+              "Unchanged image content. Useful to inspect the pixel values. You can always temporarily show this by holding the SHIFT key.",
+              nullptr,
+            },
+
+            { "Highlight Similar Colors",
+              "Highlight all the pixels with a similar color in the image.",
+              "The similarity is computed by comparing the HSV values. Hue is weighted more heavily "
+              "as anti-aliasing can change the saturation and value significantly.\n\n"
+              "Shortcuts\n"
+              "  space: toggle the plot mode\n"
+              "  mouse wheel: adjust the threshold\n"
+              "  hold shift: hold to show the original image"
+            },
+
+            { "Daltonize - Protanope",
+              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Protanopes.",
+              "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005).\n\n"
+                "However the simulation part has been adjusted for modern monitors."
+            },
+
+            { "Daltonize - Deuteranope",
+              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Deuteranopes.",
+              "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005). \n\n"
+                "However the simulation part has been adjusted for modern monitors."
+            },
+
+            { "Daltonize - Tritanope",
+              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Tritanopes.",
+              "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005). \n\n"
+                "However the simulation part has been adjusted for modern monitors and uses the algorithm of "
+                "Brettel et al. \"Computerized simulation of color appearance for dichromats\" (1997), which is "
+                "much more accurate for tritanopia."
+            },
+
+            { "Flip Red-Blue",
+              "Potentially improve the color contrast by flipping the Red and Blue channels.",
+              "The transform is applied in the YCbCr color space and flips the cb and cr components."
+            },
+
+            { "Flip Red-Blue and Invert-Red",
+              "Potentially improve the color contrast by flipping the Red and Blue channels and inverting the Red channel.",
+              "The transform is applied in the YCbCr color space and flips the cb and cr components, after negating cb."
+            },
         };
         
-        int currentItem = int(viewerState.currentMode) + 1;
+        int itemForThisFrame = int(viewerState.modeForCurrentFrame) + 1;
 
-        ImGui::PushItemWidth(300 * frameInfo.contentDpiScale);
-        if (ImGui::Combo("Filter", &currentItem, items, sizeof(items)/sizeof(char*)))
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - 2*monoFontSize);
+        if (ImGui::BeginCombo("", filters[itemForThisFrame].itemName, ImGuiComboFlags_None))
         {
-            viewerState.currentMode = DaltonViewerMode(currentItem - 1);
+            for (int i = 0; i < IM_ARRAYSIZE(filters); ++i)
+            {
+                const auto& item = filters[i];
+                const bool is_selected = (itemForThisFrame == i);
+                if (ImGui::Selectable(item.itemName, is_selected))
+                {
+                    itemForThisFrame = i;
+                    viewerState.activeMode = DaltonViewerMode(itemForThisFrame - 1);
+                }
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
         }
+
         ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (filters[itemForThisFrame].help)
+        {
+            helpMarker (filters[itemForThisFrame].help, monoFontSize * 19);
+        }
+        
+        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();        
+
+        ImGui::TextWrapped("%s", filters[itemForThisFrame].description);
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        
+        const auto* cursorOverlayInfo = &activeImageWindow->cursorOverlayInfo();
 
-        static const char* descriptions [] = {
-            "Unchanged image content. Useful to inspect the pixel values. You can always temporarily show this by holding the SHIFT key.",
-            "Highlight all the pixels that have a color similar to the selected one.",
-            "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Protanopes.",
-            "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Deuteranopes.",
-            "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Tritanopes.",
-            "Potentially improve the color contrast by flipping the Red and Blue channels.",
-            "Potentially improve the color contrast by flipping the Red and Blue channels and inverting the Red channel.",
-        };
-
-        ImGui::Text ("DESCRIPTION");
-        ImGui::Bullet(); ImGui::TextWrapped("%s", descriptions[currentItem]);
-
-        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
-
-        if (viewerState.currentMode == DaltonViewerMode::HighlightRegions)
+        if (viewerState.modeForCurrentFrame == DaltonViewerMode::HighlightRegions)
         {
             renderHighlightRegionControls(viewerState.highlightRegion, false);
+            if (viewerState.highlightRegion.hasActiveColor())
+            {
+                cursorOverlayInfo = &viewerState.highlightRegion.mutableData.cursorOverlayInfo;
+            }
         }
 
-        if (viewerModeIsDaltonize(viewerState.currentMode))
+        if (viewerModeIsDaltonize(viewerState.modeForCurrentFrame))
         {
             ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeShouldSimulateOnly);
-        }
-
-        if (viewerModeIsDaltonize(viewerState.currentMode))
-        {
             ImGui::SliderFloat("Severity", &viewerState.daltonizeSeverity, 0.f, 1.f, "%.2f");
         }
-
+        
+        if (cursorOverlayInfo->valid())
+        {
+            ImGui::SetCursorPosY (ImGui::GetWindowHeight() - monoFontSize*14.5);
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
+            ImGui::BeginChild("CursorOverlay", ImVec2(monoFontSize*20, monoFontSize*13), false /* no border */, windowFlagsWithoutAnything());
+            impl->cursorOverlay.showTooltip(*cursorOverlayInfo, false /* not as tooltip */);
+            ImGui::EndChild();
+            // ImGui::PopStyleColor();
+        }
+        
         activeImageWindow->checkImguiGlobalImageKeyEvents ();
         activeImageWindow->checkImguiGlobalImageMouseEvents ();
-
+        
         // Debug: show the FPS.
         if (ImGui::IsKeyPressed(GLFW_KEY_F))
         {

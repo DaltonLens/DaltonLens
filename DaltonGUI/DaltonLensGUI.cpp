@@ -6,10 +6,11 @@
 
 #include "DaltonLensGUI.h"
 
-#include "ImageViewer.h"
-#include "GrabScreenAreaWindow.h"
-#include "HelpWindow.h"
-#include "PlatformSpecific.h"
+#include <DaltonGUI/ImageViewer.h>
+#include <DaltonGUI/GrabScreenAreaWindow.h>
+#include <DaltonGUI/HelpWindow.h>
+#include <DaltonGUI/PlatformSpecific.h>
+#include <DaltonGUI/DaltonLensPrefs.h>
 
 #include <Dalton/Utils.h>
 
@@ -200,8 +201,16 @@ struct DaltonLensGUI::Impl
                     }
                     else
                     {
-                        currentState = State::Disabled;
-                        nextState = State::Disabled;
+                        if (imageViewer.isEnabled())
+                        {
+                            currentState = State::ImageViewer;
+                            nextState = State::ImageViewer;
+                        }
+                        else
+                        {
+                            currentState = State::Disabled;
+                            nextState = State::Disabled;
+                        }
                     }
                 }
                 else if (nextState != State::GrabScreen)
@@ -219,10 +228,8 @@ struct DaltonLensGUI::Impl
                     // Make sure to dismiss it before the runOnce, otherwise
                     // we'll end up in a weird intermediate state as runOnce
                     // handles the gracefull dismiss.
-                    if (nextState != State::ImageViewer)
+                    if (nextState == State::Disabled)
                     {
-                        // This state happens when the grab shortcut is pressed
-                        // while we still had a visible ImageWindow.
                         imageViewer.setEnabled(false);
                         imageViewer.runOnce();
                     }
@@ -340,7 +347,7 @@ bool DaltonLensGUI::initialize ()
     
     glfwWindowHint(GLFW_DECORATED, false);
     glfwWindowHint(GLFW_VISIBLE, false);
-    impl->mainContextWindow = glfwCreateWindow(1, 1, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    impl->mainContextWindow = glfwCreateWindow(1, 1, "DaltonLens Hidden Parent Content", NULL, NULL);
     if (impl->mainContextWindow == NULL)
         return false;
     glfwWindowHint(GLFW_DECORATED, true); // restore the default.
@@ -375,6 +382,11 @@ bool DaltonLensGUI::initialize ()
         // it at the end of runOnce.
         impl->gotToggleGrabScreenEvent = true;
     });
+
+    if (DaltonLensPrefs::showHelpOnStartup())
+    {
+        impl->helpWindow.setEnabled (true);
+    }
     return true;
 }
 

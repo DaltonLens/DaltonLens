@@ -31,22 +31,6 @@ struct GrabScreenData
     std::shared_ptr<GLTexture> texture;
 };
 
-class ImageCursorOverlay
-{
-public:
-    void showTooltip(const dl::ImageSRGBA &image,
-                     GLTexture &imageTexture,
-                     bool showHelp,
-                     ImVec2 imageWidgetTopLeft,
-                     ImVec2 imageWidgetSize,
-                     const ImVec2 &uvTopLeft = ImVec2(0, 0),
-                     const ImVec2 &uvBottomRight = ImVec2(1, 1),
-                     const ImVec2 &roiWindowSize = ImVec2(15, 15));
-
-private:
-    double _timeOfLastCopyToClipboard = NAN;
-};
-
 // Manages a single ImGui window.
 class GrabScreenAreaWindow
 {

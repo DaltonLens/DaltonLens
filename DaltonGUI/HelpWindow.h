@@ -19,17 +19,20 @@ namespace dl
 class HelpWindow
 {
 public:
+    HelpWindow();
+    ~HelpWindow();
+
     bool initialize (GLFWwindow* parentWindow);
     void runOnce ();
 
 public:
-    void shutdown () { _imguiGlfwWindow.shutdown (); }
-    void setEnabled (bool enabled) { _imguiGlfwWindow.setEnabled (enabled); }
-    bool isEnabled () const { return _imguiGlfwWindow.isEnabled(); }
+    void shutdown ();
+    void setEnabled (bool enabled);
+    bool isEnabled () const;
     
 private:
-    // Debatable, but decided to use composition for more flexibility and explicit code.
-    ImguiGLFWWindow _imguiGlfwWindow;
+    struct Impl;
+    std::unique_ptr<Impl> impl;
 };
 
 } // dl

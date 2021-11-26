@@ -264,6 +264,22 @@ void GLTexture::upload(const dl::ImageSRGBA& im)
     _height = im.height();
 }
 
+void GLTexture::uploadRgba(const uint8_t* rgbaBuffer, int width, int height, int bytesPerRow)
+{
+    GLRestoreStateAfterScope_Texture _;
+
+    if (bytesPerRow <= 0)
+        bytesPerRow = width*4;
+
+    glBindTexture(GL_TEXTURE_2D, _textureId);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, (GLint)(bytesPerRow / 4));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgbaBuffer);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
+    _width = width;
+    _height = height;
+}
+
 void GLTexture::download (dl::ImageSRGBA& im)
 {
     GLRestoreStateAfterScope_Texture _;

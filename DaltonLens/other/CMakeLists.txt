@@ -6,7 +6,7 @@ endif()
 
 add_executable(DaltonLens WIN32 main.cpp ${DaltonLens_RESOURCES})
 
-# add_executable(binary_to_compressed "${DEPS_DIR}/imgui/misc/fonts/binary_to_compressed_c.cpp")
+add_executable(binary_to_compressed "${DEPS_DIR}/imgui/misc/fonts/binary_to_compressed_c.cpp")
 
 if (UNIX)
     # App indicator includes the required gtk3 headers

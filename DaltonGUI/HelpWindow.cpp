@@ -9,9 +9,20 @@
 #include <Dalton/OpenGL.h>
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
+#include <DaltonGUI/DaltonLensPrefs.h>
+
+// These were generated this way:
+// xxd -i resources/DaltonLens_Help_1x.png > DaltonGUI/DaltonLensHelp_1x_resource.inc
+// xxd -i resources/DaltonLens_Help_2x.png > DaltonGUI/DaltonLensHelp_2x_resource.inc
+#include <DaltonGUI/DaltonLensHelp_1x_resource.inc>
+#include <DaltonGUI/DaltonLensHelp_2x_resource.inc>
+
 #include <Dalton/Platform.h>
+#include <Dalton/OpenGL.h>
 
 #include <Dalton/Utils.h>
+
+#include <stb/stb_image.h>
 
 #include "PlatformSpecific.h"
 
@@ -28,6 +39,20 @@
 namespace dl
 {
 
+struct HelpWindow::Impl
+{
+    // Debatable, but decided to use composition for more flexibility and explicit code.
+    ImguiGLFWWindow imguiGlfwWindow;
+
+    GLTexture helpTexture;
+};
+
+HelpWindow::HelpWindow()
+: impl (new Impl())
+{}
+
+HelpWindow::~HelpWindow() = default;
+
 bool HelpWindow::initialize (GLFWwindow* parentWindow)
 {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -37,8 +62,8 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     dl::Rect geometry;
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
-    geometry.size.x = 458;
-    geometry.size.y = 292 + 20 + 20;
+    geometry.size.x = 1150/2;
+    geometry.size.y = 900/2 + 60;
 
     const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
     geometry.size.x *= dpiScale.x;
@@ -47,7 +72,54 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     geometry.origin.x = (monitorSize.x - geometry.size.x)/2;
     geometry.origin.y = (monitorSize.y - geometry.size.y)/2;
 
-    return _imguiGlfwWindow.initialize (parentWindow, "DaltonLens Help", geometry);
+    bool ok = impl->imguiGlfwWindow.initialize (parentWindow, "DaltonLens Help", geometry);
+    if (!ok)
+    {
+        return false;
+    }
+
+    // No resize for the help.
+    glfwSetWindowAttrib(impl->imguiGlfwWindow.glfwWindow(), GLFW_RESIZABLE, false);
+    
+    int width = -1, height = -1, channels = -1;
+    unsigned char *imageBuffer = nullptr;
+    
+    dl::Point retinaScale = ImguiGLFWWindow::primaryMonitorRetinaFrameBufferScale();
+    if (retinaScale.x > 1.5f || dpiScale.x > 1.5f)
+    {
+        imageBuffer = stbi_load_from_memory((const uint8_t*)resources_DaltonLens_Help_2x_png,
+                                            sizeof(resources_DaltonLens_Help_2x_png)/sizeof(char),
+                                            &width, &height, &channels, 4);
+    }
+    else
+    {
+        imageBuffer = stbi_load_from_memory((const uint8_t*)resources_DaltonLens_Help_1x_png,
+                                            sizeof(resources_DaltonLens_Help_1x_png)/sizeof(char),
+                                            &width, &height, &channels, 4);
+    }
+    dl_assert (channels == 4, "RGBA expected!");
+    
+    impl->helpTexture.initialize ();
+    impl->helpTexture.setLinearInterpolationEnabled (true);
+    impl->helpTexture.uploadRgba(imageBuffer, width, height);
+    stbi_image_free (imageBuffer);
+
+    return true;
+}
+
+void HelpWindow::shutdown () 
+{ 
+    impl->imguiGlfwWindow.shutdown (); 
+}
+
+void HelpWindow::setEnabled (bool enabled)
+{
+    impl->imguiGlfwWindow.setEnabled (enabled);
+}
+
+bool HelpWindow::isEnabled () const
+{
+    return impl->imguiGlfwWindow.isEnabled ();
 }
 
 static void AddUnderLine( ImColor col_ )
@@ -83,9 +155,11 @@ static void TextURL( const char* name_, const char* URL_, bool SameLineBefore_, 
 
 void HelpWindow::runOnce ()
 {
-    const auto frameInfo = _imguiGlfwWindow.beginFrame ();    
+    const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();    
+    const auto& io = ImGui::GetIO();
+    const float monoFontSize = ImguiGLFWWindow::monoFontSize(io);
 
-    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || _imguiGlfwWindow.closeRequested())
+    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || impl->imguiGlfwWindow.closeRequested())
     {
         setEnabled(false);
     }
@@ -102,35 +176,28 @@ void HelpWindow::runOnce ()
                               | ImGuiWindowFlags_NoDocking
                               | ImGuiWindowFlags_NoNav);
     
+    float imageWidgetWidth = frameInfo.windowContentWidth;
+    float aspectRatio = float (impl->helpTexture.width ()) / impl->helpTexture.height ();
+    float imageWidgetHeight = imageWidgetWidth / aspectRatio;
+
     // Always show the ImGui window filling the GLFW window.
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(frameInfo.frameBufferWidth, frameInfo.frameBufferHeight), ImGuiCond_Always);
-    if (ImGui::Begin("DaltonLens Help", nullptr, flags))
+    ImGui::SetNextWindowSize(ImVec2(imageWidgetWidth, imageWidgetHeight), ImGuiCond_Always);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    if (ImGui::Begin("DaltonLens Help Graphics", nullptr, flags))
     {
         // dl_dbg("Window size = %f x %f", ImGui::GetWindowSize().x, ImGui::GetWindowSize().y);
         
-        ImGui::Text("GLOBAL COLOR POINTER:");
-#if PLATFORM_MACOS
-        ImGui::BulletText("Ctrl+Alt+Cmd+Space to enable the color pointer.");
-#else
-        ImGui::BulletText("Ctrl+Alt+Win+Space to enable the color pointer.");
-#endif
-        ImGui::BulletText("'c' to copy the color info to the clipboard.");
-        ImGui::BulletText("Escape or 'q' to exit.");
-        ImGui::BulletText("Click and drag to open a region in the Image Viewer.");
-        ImGui::BulletText("Space to select the window behind the cursor.");
-        ImGui::Spacing();
-        ImGui::Separator();
+        ImGui::Image(reinterpret_cast<ImTextureID>(impl->helpTexture.textureId()), ImVec2(imageWidgetWidth,imageWidgetHeight));
+        ImGui::End();
+    }
+    ImGui::PopStyleVar();    
 
-        ImGui::Text("IMAGE VIEWER WINDOW:");
-        ImGui::BulletText("Escape or 'q' to exit.");
-        ImGui::BulletText("Up/Down arrows to switch the current filter.");
-        ImGui::BulletText("Shift key at any moment to see the original content.");
-        ImGui::BulletText("Right click to show the controls window.");
-        ImGui::BulletText("Ctrl + Left/Right click to zoom in or out.");
-        ImGui::Spacing();
-        ImGui::Separator();
-        
+    ImGui::SetNextWindowPos(ImVec2(0, imageWidgetHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(frameInfo.windowContentWidth, frameInfo.windowContentHeight - imageWidgetHeight), ImGuiCond_Always);
+    if (ImGui::Begin("DaltonLens Help Context", nullptr, flags))
+    {
         static std::string appVersion;
         static std::string buildNumber;
         if (appVersion.empty())
@@ -138,16 +205,23 @@ void HelpWindow::runOnce ()
             getVersionAndBuildNumber(appVersion, buildNumber);
         }
         
-        ImGui::Text("ABOUT DALTONLENS:");
-        ImGui::BulletText("Dalton Lens %s (build ", appVersion.c_str());
+        bool showOnStartup = DaltonLensPrefs::showHelpOnStartup();
+        if (ImGui::Checkbox("Always show on startup", &showOnStartup))
+        {
+            DaltonLensPrefs::setShowHelpOnStartupEnabled(showOnStartup);
+        }
+
+        ImGui::SameLine(monoFontSize * 22, 0);
+        ImGui::BeginChild("About");        
+        ImGui::Text("Dalton Lens %s (build ", appVersion.c_str());
             TextURL(buildNumber.c_str(), ("https://github.com/DaltonLens/DaltonLens/commit/" +  buildNumber).c_str(), true, true);
-            ImGui::Text(").");
-        ImGui::BulletText("Report issues: "); TextURL("https://github.com/DaltonLens/DaltonLens", "https://github.com/DaltonLens/DaltonLens", true, true); ImGui::Text(".");
-        ImGui::BulletText("Developed by "); TextURL("Nicolas Burrus", "http://nicolas.burrus.name", true, true);  ImGui::Text(".");
+            ImGui::Text(")");
+        TextURL("Report issues", "https://github.com/DaltonLens/DaltonLens", false, true);
+        ImGui::EndChild();
     }
     ImGui::End();
     
-    _imguiGlfwWindow.endFrame ();
+    impl->imguiGlfwWindow.endFrame ();
 }
 
 } // dl

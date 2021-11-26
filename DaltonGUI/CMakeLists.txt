@@ -13,7 +13,10 @@ set (deps_SOURCES
 
     ${DEPS_DIR}/nativefiledialog-extended/src/include/nfd.h
     ${DEPS_DIR}/nativefiledialog-extended/src/include/nfd.hpp
-)    
+
+    ${DEPS_DIR}/cppuserprefs/CppUserPrefs.h
+    ${DEPS_DIR}/cppuserprefs/tortellini.hh
+)
 
 if (APPLE)
     set (daltonGUI_platform_specific_sources 
@@ -46,9 +49,13 @@ set (daltonGUI_SOURCES
     DaltonLensGUI.h
     DaltonLensIcon.h
     DaltonLensIcon.cpp
+    DaltonLensPrefs.cpp
+    DaltonLensPrefs.h
     # DaltonLensGUI_macOS.h
     GrabScreenAreaWindow.cpp
     GrabScreenAreaWindow.h
+    ImageCursorOverlay.h
+    ImageCursorOverlay.cpp
     GLFWUtils.h
     GLFWUtils.cpp
     HighlightSimilarColor.h
@@ -73,6 +80,11 @@ add_dependencies(daltonGUI glfw-deps clip-deps)
 target_include_directories(daltonGUI PRIVATE 
     "${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut"
     ${DEPS_DIR}/nativefiledialog-extended/src/include
+    ${DEPS_DIR}/cppuserprefs
+)
+
+target_include_directories(daltonGUI PUBLIC
+    ${DEPS_DIR}/fonts
 )
 
 if (UNIX AND NOT APPLE)
