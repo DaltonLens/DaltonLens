@@ -441,6 +441,8 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
             
             PixelXYZ xyz = convertToXYZ(sRgb);
             ImGui::Text(" XYZ %3d %3d %3d", intRnd(xyz.x), intRnd(xyz.y), intRnd(xyz.z));
+
+            ImGui::Text ("HTML #%02x%02x%02x", sRgb.r, sRgb.g, sRgb.b);
                         
             ImGui::EndChild();
             ImGui::PopStyleColor();
