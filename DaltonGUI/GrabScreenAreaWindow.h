@@ -36,6 +36,7 @@ class ImageCursorOverlay
 public:
     void showTooltip(const dl::ImageSRGBA &image,
                      GLTexture &imageTexture,
+                     bool showHelp,
                      ImVec2 imageWidgetTopLeft,
                      ImVec2 imageWidgetSize,
                      const ImVec2 &uvTopLeft = ImVec2(0, 0),

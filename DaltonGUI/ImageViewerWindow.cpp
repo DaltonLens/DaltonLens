@@ -666,6 +666,7 @@ void ImageViewerWindow::runOnce ()
         {
             impl->cursorOverlay.showTooltip(impl->im,
                                             impl->gpuTexture,
+                                            false, /* show help */
                                             imageWidgetTopLeft,
                                             imageWidgetSize,
                                             uv0,

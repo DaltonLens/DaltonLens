@@ -256,6 +256,7 @@ void GrabScreenAreaWindow::runOnce ()
 
         impl->cursorOverlay.showTooltip(*impl->grabbedData.srgbaImage,
                                         *impl->grabbedData.texture,
+                                        true, /* show help */
                                         imageWidgetTopLeft,
                                         imageWidgetSize);
 
@@ -336,6 +337,7 @@ namespace dl
 
 void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
                                      GLTexture &imageTexture,
+                                     bool showHelp,
                                      ImVec2 imageWidgetTopLeft,
                                      ImVec2 imageWidgetSize,
                                      const ImVec2 &uvTopLeft,
@@ -508,6 +510,11 @@ void ImageCursorOverlay::showTooltip(const dl::ImageSRGBA &image,
 
         addColorNameAndRGB (*closestColors[1].entry, 21);
 
+        if (showHelp)
+        {
+            ImGui::Text ("drag to select a region | 'q': exit | 'c': copy");
+        }
+        
         if (!isnan(_timeOfLastCopyToClipboard))
         {
             if (currentDateInSeconds() - _timeOfLastCopyToClipboard < 1.0)
