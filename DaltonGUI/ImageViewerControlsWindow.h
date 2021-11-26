@@ -7,7 +7,7 @@
 #pragma once
 
 #include <DaltonGUI/ImguiGLFWWindow.h>
-#include <DaltonGUI/ImageViewerObserver.h>
+#include <DaltonGUI/ImageViewerController.h>
 
 #include <memory>
 #include <functional>
@@ -17,15 +17,23 @@ namespace dl
 
 class ImageViewerWindow;
 
+struct ControlsWindowInputState
+{
+    bool shiftIsPressed = false;
+};
+
 class ImageViewerControlsWindow
 {    
 public:
     ImageViewerControlsWindow();
     ~ImageViewerControlsWindow();
 
-    bool initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer);
-    void runOnce (ImageViewerWindow* activeImageWindow);
+public:
+    const ControlsWindowInputState& inputState () const;
 
+public:
+    bool initialize (GLFWwindow* parentWindow, ImageViewerController* controller);
+    void runOnce ();
     void repositionAfterNextRendering (const dl::Rect& viewerWindowGeometry, bool showRequested);
 
 public:

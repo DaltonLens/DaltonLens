@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <DaltonGUI/ImageViewerObserver.h>
+#include <DaltonGUI/ImageViewerController.h>
 
 #include <memory>
 #include <functional>
@@ -19,7 +19,7 @@ namespace dl
 struct GrabScreenData;
 
 // Manages a single ImGuiWindow
-class ImageViewer : public ImageViewerObserver
+class ImageViewer : public ImageViewerController
 {
 public:
     ImageViewer();
@@ -45,10 +45,12 @@ public:
     void notifyHelpWindowRequestHandled ();
 
 public:
-    // Observer methods.
+    // Controller methods.
     virtual void onDismissRequested () override;
     virtual void onHelpRequested () override;
     virtual void onControlsRequested () override;
+    virtual ImageViewerWindow* activeViewerWindow() override;
+    virtual ImageViewerControlsWindow* controlsWindow() override;
     
 private:
     struct Impl;

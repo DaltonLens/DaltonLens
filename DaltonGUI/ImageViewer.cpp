@@ -104,10 +104,10 @@ void ImageViewer::shutdown()
 
 bool ImageViewer::initialize (GLFWwindow* parentWindow)
 {
-    if (!impl->imageWindow.initialize (parentWindow, this /* observer */))
+    if (!impl->imageWindow.initialize (parentWindow, this /* controller */))
         return false;
     
-    if (!impl->controlsWindow.initialize (parentWindow, this /* observer */))
+    if (!impl->controlsWindow.initialize (parentWindow, this /* controller */))
         return false;
 
     return true;
@@ -267,7 +267,7 @@ void ImageViewer::runOnce ()
     if (impl->enabled)
     {
         impl->imageWindow.runOnce();
-        impl->controlsWindow.runOnce(&impl->imageWindow);
+        impl->controlsWindow.runOnce();
     }
 
     if (impl->dismissRequested)
@@ -275,6 +275,16 @@ void ImageViewer::runOnce ()
         setEnabled (false);
         impl->dismissRequested = false;
     }
+}
+
+ImageViewerWindow* ImageViewer::activeViewerWindow ()
+{
+    return &impl->imageWindow;
+}
+
+ImageViewerControlsWindow* ImageViewer::controlsWindow ()
+{
+    return &impl->controlsWindow;
 }
 
 } // dl

@@ -35,6 +35,14 @@ struct ImageViewerWindowState
     DaltonViewerMode currentMode = DaltonViewerMode::None;
     bool daltonizeShouldSimulateOnly = false;
     float daltonizeSeverity = 1.0f;
+
+    struct InputState
+    {
+        bool shiftIsPressed = false;
+    };
+
+    InputState controlsInputState;
+    InputState inputState;
 };
 
 } // dl

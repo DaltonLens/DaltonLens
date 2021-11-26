@@ -14,6 +14,7 @@
 #include <DaltonGUI/PlatformSpecific.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 #include <DaltonGUI/HighlightSimilarColor.h>
+#include <DaltonGUI/ImageViewerControlsWindow.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -91,7 +92,7 @@ std::string daltonViewerModeFileName (DaltonViewerMode mode)
 struct ImageViewerWindow::Impl
 {
     ImguiGLFWWindow imguiGlfwWindow;
-    ImageViewerObserver* observer = nullptr;
+    ImageViewerController* controller = nullptr;
     
     ImageViewerWindowState mutableState;
 
@@ -232,9 +233,9 @@ void ImageViewerWindow::shutdown()
     impl->imguiGlfwWindow.shutdown ();
 }
 
-bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer)
+bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerController* controller)
 {
-    impl->observer = observer;
+    impl->controller = controller;
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -472,7 +473,8 @@ void ImageViewerWindow::runOnce ()
         impl->updateAfterContentSwitch.needToResize = false;
     }
 
-    const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();    
+    const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
+    const auto& controlsWindowState = impl->controller->controlsWindow()->inputState();
 
     // If we do not have a pending resize request, then adjust the content size to the
     // actual window size. The framebuffer might be bigger depending on the retina scale
@@ -485,15 +487,10 @@ void ImageViewerWindow::runOnce ()
 
     impl->mutableState.highlightRegion.updateFrameCount ();
    
-    auto& io = ImGui::GetIO();
+    auto& io = ImGui::GetIO();    
     
-    auto modeForThisFrame = impl->mutableState.currentMode;
-    
-    if (io.KeyShift)
-    {
-        modeForThisFrame = DaltonViewerMode::Original;
-    }
-    
+    impl->mutableState.inputState.shiftIsPressed = io.KeyShift;
+
     if (!io.WantCaptureKeyboard)
     {
         if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || impl->imguiGlfwWindow.closeRequested())
@@ -507,6 +504,13 @@ void ImageViewerWindow::runOnce ()
     }
     checkImguiGlobalImageMouseEvents ();
     
+    auto modeForThisFrame = impl->mutableState.currentMode;
+    if (impl->mutableState.inputState.shiftIsPressed
+        || controlsWindowState.shiftIsPressed)
+    {
+        modeForThisFrame = DaltonViewerMode::Original;
+    }    
+
     if (impl->shouldUpdateWindowSize)
     {
         impl->onImageWidgetAreaChanged();
@@ -697,7 +701,7 @@ void ImageViewerWindow::runOnce ()
             else
             {
                 // xv-like controls focus.
-                if (impl->observer) impl->observer->onControlsRequested();
+                if (impl->controller) impl->controller->onControlsRequested();
             }
         }
 
@@ -736,7 +740,7 @@ void ImageViewerWindow::runOnce ()
     // flicker when we enable this again.
     if (impl->mutableState.currentMode == DaltonViewerMode::None)
     {
-        if (impl->observer) impl->observer->onDismissRequested ();
+        if (impl->controller) impl->controller->onDismissRequested ();
     }
 }
 

@@ -24,8 +24,10 @@ namespace dl
 
 struct ImageViewerControlsWindow::Impl
 {
-    ImageViewerObserver* observer = nullptr;
+    ImageViewerController* controller = nullptr;
     
+    ControlsWindowInputState inputState;
+
     // Debatable, but since we don't need polymorphims I've decided to use composition
     // for more flexibility, encapsulation (don't need to expose all the methods)
     // and explicit code.
@@ -53,6 +55,11 @@ ImageViewerControlsWindow::ImageViewerControlsWindow()
 
 ImageViewerControlsWindow::~ImageViewerControlsWindow() = default;
 
+const ControlsWindowInputState& ImageViewerControlsWindow::inputState () const
+{
+    return impl->inputState;
+}
+
 void ImageViewerControlsWindow::shutdown() { impl->imguiGlfwWindow.shutdown(); }
 
 void ImageViewerControlsWindow::setEnabled(bool enabled)
@@ -69,6 +76,11 @@ void ImageViewerControlsWindow::setEnabled(bool enabled)
         }
         impl->updateAfterContentSwitch.setCompleted ();
     }
+    else
+    {
+        // Make sure to reset the input state when the window gets dismissed.
+        impl->inputState = {};
+    }
 }
 
 bool ImageViewerControlsWindow::isEnabled() const { return impl->imguiGlfwWindow.isEnabled(); }
@@ -83,10 +95,10 @@ void ImageViewerControlsWindow::bringToFront ()
     glfw_reliableBringToFront (impl->imguiGlfwWindow.glfwWindow());
 }
 
-bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer)
+bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewerController* controller)
 {
-    dl_assert (observer, "Cannot be null, we don't check it everywhere.");
-    impl->observer = observer;
+    dl_assert (controller, "Cannot be null, we don't check it everywhere.");
+    impl->controller = controller;
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -143,9 +155,11 @@ void ImageViewerControlsWindow::repositionAfterNextRendering (const dl::Rect& vi
     impl->updateAfterContentSwitch.showAfterNextRendering = showRequested;
 }
 
-void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
+void ImageViewerControlsWindow::runOnce ()
 {
     const auto frameInfo = impl->imguiGlfwWindow.beginFrame ();
+    const auto& io = ImGui::GetIO();
+    auto* activeImageWindow = impl->controller->activeViewerWindow();
 
     if (impl->imguiGlfwWindow.closeRequested())
     {
@@ -154,7 +168,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
 
     if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
     {
-        impl->observer->onDismissRequested();
+        impl->controller->onDismissRequested();
     }
 
     int menuBarHeight = 0;
@@ -171,7 +185,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
 
             if (ImGui::MenuItem("Close", "q", false))
             {
-                impl->observer->onDismissRequested();
+                impl->controller->onDismissRequested();
             }
 
             ImGui::EndMenu();
@@ -196,7 +210,7 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
         if (ImGui::BeginMenu("Help"))
         {
             if (ImGui::MenuItem("Help", NULL, false))
-                impl->observer->onHelpRequested();
+                impl->controller->onHelpRequested();
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -278,8 +292,10 @@ void ImageViewerControlsWindow::runOnce (ImageViewerWindow* activeImageWindow)
         // Debug: show the FPS.
         if (ImGui::IsKeyPressed(GLFW_KEY_F))
         {
-            ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+            ImGui::Text("%.1f FPS", io.Framerate);
         }
+
+        impl->inputState.shiftIsPressed = io.KeyShift;
     }
     ImGui::End();
 

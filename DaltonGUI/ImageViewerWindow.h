@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <DaltonGUI/ImageViewerObserver.h>
+#include <DaltonGUI/ImageViewerController.h>
 
 #include <Dalton/MathUtils.h>
 
@@ -30,7 +30,7 @@ public:
     ~ImageViewerWindow();
     
 public:   
-    bool initialize (GLFWwindow* parentWindow, ImageViewerObserver* observer);
+    bool initialize (GLFWwindow* parentWindow, ImageViewerController* controller);
     
     void showGrabbedData (const GrabScreenData& grabbedData, dl::Rect& updatedWindowGeometry);
     

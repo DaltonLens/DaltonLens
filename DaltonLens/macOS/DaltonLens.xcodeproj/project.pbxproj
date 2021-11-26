@@ -231,7 +231,7 @@
 		2DA1F5C426F3C60700928A4E /* HighlightSimilarColor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HighlightSimilarColor.h; sourceTree = "<group>"; };
 		2DA1F5C526F3C60700928A4E /* ImguiGLFWWindow.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ImguiGLFWWindow.cpp; sourceTree = "<group>"; };
 		2DA1F5C626F3C60700928A4E /* HighlightSimilarColor.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = HighlightSimilarColor.cpp; sourceTree = "<group>"; };
-		2DA1F5C926F50F9F00928A4E /* ImageViewerObserver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerObserver.h; sourceTree = "<group>"; };
+		2DA1F5C926F50F9F00928A4E /* ImageViewerController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerController.h; sourceTree = "<group>"; };
 		2DA1F5CA26F50F9F00928A4E /* ImageViewerWindowState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageViewerWindowState.h; sourceTree = "<group>"; };
 		2DA1F5CB26FBB2B300928A4E /* GLFWUtils.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GLFWUtils.cpp; sourceTree = "<group>"; };
 		2DA1F5CD26FCB6ED00928A4E /* DaltonLensIcon.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = DaltonLensIcon.cpp; sourceTree = "<group>"; };
@@ -336,7 +336,7 @@
 				2DA1F5B926F27F9300928A4E /* ImageViewer.h */,
 				2DA1F5BB26F2837C00928A4E /* ImageViewerControlsWindow.cpp */,
 				2DA1F5BC26F2837C00928A4E /* ImageViewerControlsWindow.h */,
-				2DA1F5C926F50F9F00928A4E /* ImageViewerObserver.h */,
+				2DA1F5C926F50F9F00928A4E /* ImageViewerController.h */,
 				2D1973572532FE3800D1FBD4 /* ImageViewerWindow.cpp */,
 				2D1973562532FE3800D1FBD4 /* ImageViewerWindow.h */,
 				2DA1F5CA26F50F9F00928A4E /* ImageViewerWindowState.h */,

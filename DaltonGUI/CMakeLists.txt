@@ -59,7 +59,7 @@ set (daltonGUI_SOURCES
     HelpWindow.h
     ImageViewerControlsWindow.cpp
     ImageViewerControlsWindow.h
-    ImageViewerObserver.h
+    ImageViewerController.h
     ImageViewerWindow.cpp
     ImageViewerWindow.h
     ImageViewer.cpp
