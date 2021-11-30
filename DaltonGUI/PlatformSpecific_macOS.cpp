@@ -331,8 +331,14 @@ dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle)
     dl::Point mousePos = getMouseCursor();
     mousePos.y = NSScreen.mainScreen.frame.size.height - mousePos.y;
     
-    NSLog(@"Window list = %@", windowList);
-    NSLog(@"mousePos = %f %f", mousePos.x, mousePos.y);
+    const auto monitorBounds = dl::Rect::from_x_y_w_h(0,
+                                                      0,
+                                                      NSScreen.mainScreen.frame.size.width,
+                                                      NSScreen.mainScreen.frame.size.height);
+    
+    //    NSLog(@"mousePos: %f %f", mousePos.x, mousePos.y);
+    //    NSLog(@"Window list = %@", windowList);
+    //    NSLog(@"mousePos = %f %f", mousePos.x, mousePos.y);
     
     //Iterate through the CFArrayRef and fill the vector
     for (int i = 0; i < windowCount ; ++i)
@@ -355,7 +361,10 @@ dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle)
             
             if (windowRect.contains(mousePos))
             {
-                output = windowRect;
+                // The intersection makes sure that we won't get negative coordinates
+                // if the window is partially hidden. This would make the area look
+                // invalid.
+                output = windowRect.intersect (monitorBounds);
                 break;
             }
             else if (output.size.x < 0)
@@ -367,6 +376,8 @@ dl::Rect getFrontWindowGeometry(GLFWwindow* grabWindowHandle)
         }
     }
     
+    //    NSLog(@"output origin: %f %f", output.origin.x, output.origin.y);
+    //    NSLog(@"output size: %f %f", output.size.x, output.size.y);
     return output;
 }
 
