@@ -355,6 +355,8 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
             0x00FF, // Basic Latin + Latin Supplement
             0x03BC,
             0x03BC, // micro
+            0x0394, // delta
+            0x0394,
             0,
         };
         

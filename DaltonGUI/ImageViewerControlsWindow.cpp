@@ -12,6 +12,7 @@
 #include <DaltonGUI/ImageViewerWindowState.h>
 #include <DaltonGUI/GLFWUtils.h>
 #include <DaltonGUI/ImageCursorOverlay.h>
+#include <DaltonGUI/PlatformSpecific.h>
 
 #include <Dalton/Utils.h>
 
@@ -46,7 +47,7 @@ struct ImageViewerControlsWindow::Impl
 
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
-    ImVec2 windowSizeAtDefaultDpi = ImVec2(320, 382 + 20 + 20);
+    ImVec2 windowSizeAtDefaultDpi = ImVec2(348, 382 + 20 + 20);
     ImVec2 windowSizeAtCurrentDpi = ImVec2(-1,-1);
     
     ImageCursorOverlay cursorOverlay;
@@ -121,8 +122,16 @@ bool ImageViewerControlsWindow::initialize (GLFWwindow* parentWindow, ImageViewe
 
     glfwWindowHint(GLFW_RESIZABLE, false); // fixed size.
     bool ok = impl->imguiGlfwWindow.initialize (parentWindow, "DaltonLens Controls", geometry);
+    if (!ok)
+    {
+        return false;
+    }
+    
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
 
+    // This leads to issues with the window going to the back after a workspace switch.
+    // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());
+    
     // This is tricky, but with GLFW windows we can't have multiple windows waiting for
     // vsync or we'll end up with the framerate being 60 / numberOfWindows. So we'll
     // just keep the image window with the vsync, and skip it for the controls window.
@@ -347,10 +356,10 @@ void ImageViewerControlsWindow::runOnce ()
         
         if (cursorOverlayInfo->valid())
         {
-            ImGui::SetCursorPosY (ImGui::GetWindowHeight() - monoFontSize*14.5);
+            ImGui::SetCursorPosY (ImGui::GetWindowHeight() - monoFontSize*15.5);
             ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
             // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
-            ImGui::BeginChild("CursorOverlay", ImVec2(monoFontSize*20, monoFontSize*13), false /* no border */, windowFlagsWithoutAnything());
+            ImGui::BeginChild("CursorOverlay", ImVec2(monoFontSize*21, monoFontSize*14), false /* no border */, windowFlagsWithoutAnything());
             impl->cursorOverlay.showTooltip(*cursorOverlayInfo, false /* not as tooltip */);
             ImGui::EndChild();
             // ImGui::PopStyleColor();

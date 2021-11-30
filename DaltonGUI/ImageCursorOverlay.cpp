@@ -65,7 +65,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
         
         const auto sRgb = image((int)mousePosInImage.x, (int)mousePosInImage.y);
         
-        const int squareSize = 9*monoFontSize;
+        const int squareSize = 10*monoFontSize;
 
         // Show the zoomed image.
         const ImVec2 zoomItemSize (squareSize,squareSize);
@@ -98,8 +98,8 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImVec2 bottomRight = topLeft + ImVec2(squareSize,squareSize);
             auto* drawList = ImGui::GetWindowDrawList();
             drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
-            ImGui::SetCursorPosX(topLeft.x + padding);
-            ImGui::SetCursorPosY(topLeft.y + padding*2);
+            ImGui::SetCursorPosX(topLeft.x + padding + monoFontSize*0.5f);
+            ImGui::SetCursorPosY(topLeft.y + padding*3);
             bottomOfSquares = bottomRight.y;
         }
         
@@ -123,7 +123,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
 
             auto intRnd = [](float f) { return (int)std::roundf(f); };
 
-            ImGui::BeginChild("ColorInfo", ImVec2(squareSize - padding, zoomItemSize.y));
+            ImGui::BeginChild("ColorInfo", ImVec2(squareSize - padding - monoFontSize*0.5f, zoomItemSize.y));
             ImGui::Text("sRGB %3d %3d %3d", sRgb.r, sRgb.g, sRgb.b);
 
             PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
@@ -164,10 +164,8 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        auto addColorNameAndRGB = [&io](const ColorEntry& entry, const int targetNameSize)
+        auto addColorNameAndRGB = [&io,&monoFontSize](const ColorEntry& entry, const int targetNameSize, float distance)
         {
-            ImguiGLFWWindow::PushMonoSpaceFont(io);
-
             auto colorName = formatted("%s / %s", entry.className, entry.colorName);
             if (colorName.size() > targetNameSize)
             {
@@ -178,16 +176,20 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
                 colorName += std::string(targetNameSize - colorName.size(), ' ');
             }
             
-            ImGui::Text("%s [%3d %3d %3d]",
-                        colorName.c_str(),
+            ImGui::Text("%s", colorName.c_str());
+            ImGui::SameLine(monoFontSize*11.f);
+            ImGui::Text("ΔE=%d", int(distance+0.5f));
+            
+            ImguiGLFWWindow::PushMonoSpaceFont(io);
+            ImGui::SameLine(monoFontSize*14.f);
+            ImGui::Text("[%3d %3d %3d]",
                         entry.r,
                         entry.g,
                         entry.b);
-
             ImGui::PopFont();
         };
 
-        addColorNameAndRGB (*closestColors[0].entry, 21);
+        addColorNameAndRGB (*closestColors[0].entry, 21, closestColors[0].distance);
         
         {
             ImVec2 topLeft = ImGui::GetCursorPos();
@@ -201,7 +203,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        addColorNameAndRGB (*closestColors[1].entry, 21);
+        addColorNameAndRGB (*closestColors[1].entry, 21, closestColors[1].distance);
 
         if (d.showHelp)
         {

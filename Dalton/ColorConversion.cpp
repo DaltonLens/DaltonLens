@@ -657,6 +657,7 @@ std::array<ColorMatchingResult,2> closestColorEntries (const PixelSRGBA& srgba, 
     closestColors[1].distance = std::numeric_limits<double>::max();
     
     const int numColors = sizeof(colorEntries) / sizeof(ColorEntry);
+    PixelLab targetLab = convertToLab(srgba);
     for (int i = 0; i < numColors; ++i)
     {
         const auto& colorEntry = colorEntries[i];
@@ -664,7 +665,8 @@ std::array<ColorMatchingResult,2> closestColorEntries (const PixelSRGBA& srgba, 
         switch (distance)
         {
             case ColorDistance::RGB_L1: dist = colorDistance_RGBL1(srgba, PixelSRGBA(colorEntry.r, colorEntry.g, colorEntry.b, 255)); break;
-            case ColorDistance::CIE2000: dist = colorDistance_CIE2000(srgba, PixelSRGBA(colorEntry.r, colorEntry.g, colorEntry.b, 255)); break;
+            case ColorDistance::CIE2000: dist = colorDistance_CIE2000(targetLab,
+                                                                      convertToLab(PixelSRGBA(colorEntry.r, colorEntry.g, colorEntry.b, 255))); break;
         }
         
         if (dist < closestColors[0].distance)
