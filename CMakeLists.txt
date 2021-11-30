@@ -149,6 +149,13 @@ add_subdirectory(tests)
 
 # This does not work, it shows that the project needs migration and then it refuses to migrate it.
 # So right now we have to insert the project manually in the Visual Studio 2019 solution.
-#if (WIN32)
-#  include_external_msproject(WindowsStore "${CMAKE_SOURCE_DIR}/WindowsStore/WindowsStore.wapproj")
-#endif()
+if (WIN32)
+  # Fixed UUID so the WindowsStore project can always find the reference.
+  # Not sure if necessary, but won't hurt.
+  SET(DaltonLens_GUID_CMAKE "8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942" CACHE INTERNAL "Project Fixed GUID")
+  include_external_msproject(
+    WindowsStore "../WindowsStore/WindowsStore.wapproj" 
+    # Needed for wapproj
+    TYPE "C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5"
+  )
+endif()
