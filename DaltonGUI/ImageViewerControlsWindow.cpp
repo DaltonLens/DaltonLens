@@ -293,7 +293,7 @@ void ImageViewerControlsWindow::runOnce ()
             },
         };
         
-        int itemForThisFrame = int(viewerState.modeForCurrentFrame) + 1;
+        int itemForThisFrame = std::max(int(viewerState.modeForCurrentFrame) + 1, 0);
 
         ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - 2*monoFontSize);
         if (ImGui::BeginCombo("", filters[itemForThisFrame].itemName, ImGuiComboFlags_None))
