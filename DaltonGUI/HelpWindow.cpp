@@ -10,6 +10,7 @@
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
 #include <DaltonGUI/DaltonLensPrefs.h>
+#include <DaltonGUI/PlatformSpecific.h>
 
 // These were generated this way:
 // xxd -i resources/DaltonLens_Help_1x.png > DaltonGUI/DaltonLensHelp_1x_resource.inc
@@ -77,6 +78,9 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     {
         return false;
     }
+    
+    // This leads to issues with the window going to the back after a workspace switch.
+    // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());
 
     // No resize for the help.
     glfwSetWindowAttrib(impl->imguiGlfwWindow.glfwWindow(), GLFW_RESIZABLE, false);

@@ -12,4 +12,5 @@
 - (void)shutdown;
 - (void)grabScreenArea;
 - (void)helpRequested;
+- (void)notifySpaceChanged;
 @end

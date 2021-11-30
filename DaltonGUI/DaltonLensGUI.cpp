@@ -188,7 +188,8 @@ struct DaltonLensGUI::Impl
                 
             case State::GrabScreen:
             {
-                appFocusRequested = false;
+                // Maintain the app focus if we still have image viewer windows.
+                appFocusRequested = imageViewer.isEnabled();
                 grabScreenWindow.runOnce();
                 if (grabScreenWindow.grabbingFinished())
                 {
@@ -399,6 +400,18 @@ void DaltonLensGUI::runOnce ()
     {
         impl->gotToggleGrabScreenEvent = false;
         toogleGrabScreenArea ();
+    }
+}
+
+void DaltonLensGUI::notifySpaceChanged()
+{
+    switch (impl->currentState)
+    {
+        case Impl::State::GrabScreen:
+        {
+            impl->grabScreenWindow.forceFocusAfterSpaceChange();
+            break;
+        }
     }
 }
 

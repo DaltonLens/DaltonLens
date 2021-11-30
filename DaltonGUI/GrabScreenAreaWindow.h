@@ -44,6 +44,7 @@ public:
     void runOnce ();
     bool startGrabbing ();
     void dismiss ();
+    void forceFocusAfterSpaceChange();
     
     bool isGrabbing() const;
     bool grabbingFinished() const;

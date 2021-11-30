@@ -202,6 +202,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         launchDaltonLensGUI()
+        
+        // Quick Solution: Place this in the AppDelegate in applicationDidFinishLaunching
+        // https://stackoverflow.com/questions/5060345/keeping-window-on-top-when-switching-spaces
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(notifySpaceChanged),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
+    }
+    
+    // and this in the same class
+    @objc func notifySpaceChanged() {
+        self.daltonGUI.notifySpaceChanged()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {

@@ -161,6 +161,8 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
     {
         return false;
     }
+    
+    setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());
 
     // Restore the default settings.
     glfwWindowHint(GLFW_DECORATED, true);
@@ -186,6 +188,7 @@ void GrabScreenAreaWindow::runOnce ()
     // Disable the pointer if we lose focus since the window would stay on top
     // and confuse everyone.
     int isFocused = glfwGetWindowAttrib (impl->imguiGlfwWindow.glfwWindow(), GLFW_FOCUSED);
+    // dl_dbg ("isFocused = %d", isFocused);
     bool lostFocus = false;
     if (impl->wasFocused && !isFocused)
     {        
@@ -298,10 +301,7 @@ void GrabScreenAreaWindow::runOnce ()
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         impl->imguiGlfwWindow.setEnabled (true);
-        // Not really needed anymore since we just capture the current desktop once.
-        // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow()); 
         impl->justGotEnabled = false;
-        impl->wasFocused = false;
     }
 }
 
@@ -313,6 +313,7 @@ bool GrabScreenAreaWindow::startGrabbing ()
     
     impl->currentState = Impl::State::Initial;
     impl->justGotEnabled = true;
+    impl->wasFocused = false;
     impl->grabbingFinished = false;
     
     impl->currentSelectionInScreen = {};
@@ -345,6 +346,13 @@ bool GrabScreenAreaWindow::isGrabbing() const
 void GrabScreenAreaWindow::dismiss ()
 {
     impl->finishGrabbing();
+}
+
+void GrabScreenAreaWindow::forceFocusAfterSpaceChange()
+{
+    // This is very important as a workspace switch will otherwise
+    // put the window to the back.
+    glfwFocusWindow(impl->imguiGlfwWindow.glfwWindow());
 }
 
 } // dl

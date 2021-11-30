@@ -401,7 +401,9 @@ void setWindowFlagsToAlwaysShowOnActiveDesktop(GLFWwindow* window)
 {
     NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(window);
     dl_assert (nsWindow, "Not working?");
-    nsWindow.collectionBehavior = nsWindow.collectionBehavior | NSWindowCollectionBehaviorMoveToActiveSpace;
+    nsWindow.collectionBehavior = (nsWindow.collectionBehavior
+                                   // | NSWindowCollectionBehaviorCanJoinAllSpaces
+                                   | NSWindowCollectionBehaviorMoveToActiveSpace);
 }
 
 void openURLInBrowser(const char* url)

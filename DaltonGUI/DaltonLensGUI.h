@@ -30,6 +30,8 @@ public:
     void toogleGrabScreenArea ();
     
     void shutdown ();
+    
+    void notifySpaceChanged();
 
 private:
     enum CurrentMode

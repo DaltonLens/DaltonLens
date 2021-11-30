@@ -258,6 +258,9 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerControl
 
     glfwWindowHint(GLFW_RESIZABLE, true); // restore the default.
     
+    // This leads to issues with the window going to the back after a workspace switch.
+    // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow());
+    
     impl->filterProcessor.initializeGL();
     impl->filters.daltonize.initializeGL();
     impl->filters.flipRedBlue.initializeGL();
@@ -745,6 +748,8 @@ void ImageViewerWindow::runOnce ()
         if (impl->updateAfterContentSwitch.numAlreadyRenderedFrames >= 2)
         {
             setEnabled(true);
+            // Make sure that even if the viewer was already enabled, then we'll focus it.
+            glfwFocusWindow(impl->imguiGlfwWindow.glfwWindow());
             impl->imguiGlfwWindow.setWindowPos(impl->updateAfterContentSwitch.targetWindowGeometry.origin.x,
                                                impl->updateAfterContentSwitch.targetWindowGeometry.origin.y);
             impl->updateAfterContentSwitch.setCompleted(); // not really needed, just to be explicit.

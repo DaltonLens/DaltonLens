@@ -54,4 +54,9 @@
     _dlGui.helpRequested();
 }
 
+-(void)notifySpaceChanged
+{
+    _dlGui.notifySpaceChanged();
+}
+
 @end
