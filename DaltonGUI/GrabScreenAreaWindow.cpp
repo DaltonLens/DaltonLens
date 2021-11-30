@@ -53,6 +53,7 @@ struct GrabScreenAreaWindow::Impl
     ImguiGLFWWindow imguiGlfwWindow;
 
     bool justGotEnabled = false;
+    bool wasFocused = false;
     
     bool grabbingFinished = true;
     GrabScreenData grabbedData;
@@ -182,7 +183,17 @@ void GrabScreenAreaWindow::runOnce ()
 
     auto& io = ImGui::GetIO();
     
-    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE))
+    // Disable the pointer if we lose focus since the window would stay on top
+    // and confuse everyone.
+    int isFocused = glfwGetWindowAttrib (impl->imguiGlfwWindow.glfwWindow(), GLFW_FOCUSED);
+    bool lostFocus = false;
+    if (impl->wasFocused && !isFocused)
+    {        
+        lostFocus = true;
+    }
+    impl->wasFocused = isFocused;
+
+    if (ImGui::IsKeyPressed(GLFW_KEY_Q) || ImGui::IsKeyPressed(GLFW_KEY_ESCAPE) || lostFocus)
     {
         impl->finishGrabbing ();
         impl->imguiGlfwWindow.endFrame();
@@ -290,6 +301,7 @@ void GrabScreenAreaWindow::runOnce ()
         // Not really needed anymore since we just capture the current desktop once.
         // setWindowFlagsToAlwaysShowOnActiveDesktop(impl->imguiGlfwWindow.glfwWindow()); 
         impl->justGotEnabled = false;
+        impl->wasFocused = false;
     }
 }
 
