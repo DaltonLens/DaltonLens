@@ -12,13 +12,16 @@
 #include <DaltonGUI/DaltonLensPrefs.h>
 #include <DaltonGUI/PlatformSpecific.h>
 
-// These were generated this way:
-// xxd -i resources/DaltonLens_Help_1x.png > DaltonGUI/DaltonLensHelp_1x_resource.inc
-// xxd -i resources/DaltonLens_Help_2x.png > DaltonGUI/DaltonLensHelp_2x_resource.inc
-#include <DaltonGUI/DaltonLensHelp_1x_resource.inc>
-#include <DaltonGUI/DaltonLensHelp_2x_resource.inc>
-
 #include <Dalton/Platform.h>
+
+#if PLATFORM_MACOS
+# include <DaltonGUI/DaltonLensHelp_macOS_1x_resource.inc>
+# include <DaltonGUI/DaltonLensHelp_macOS_2x_resource.inc>
+#else
+# include <DaltonGUI/DaltonLensHelp_1x_resource.inc>
+# include <DaltonGUI/DaltonLensHelp_2x_resource.inc>
+#endif
+
 #include <Dalton/OpenGL.h>
 
 #include <Dalton/Utils.h>
@@ -64,7 +67,7 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     // Tweaked manually by letting ImGui auto-resize the window.
     // 20 vertical pixels per new line.
     geometry.size.x = 1150/2;
-    geometry.size.y = 900/2 + 60;
+    geometry.size.y = 900/2 + 42;
 
     const dl::Point dpiScale = ImguiGLFWWindow::primaryMonitorContentDpiScale();
     geometry.size.x *= dpiScale.x;
@@ -89,7 +92,23 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
     unsigned char *imageBuffer = nullptr;
     
     dl::Point retinaScale = ImguiGLFWWindow::primaryMonitorRetinaFrameBufferScale();
-    if (retinaScale.x > 1.5f || dpiScale.x > 1.5f)
+    const bool needHighRes = (retinaScale.x > 1.5f || dpiScale.x > 1.5f);
+
+#if PLATFORM_MACOS
+    if (needHighRes)
+    {
+        imageBuffer = stbi_load_from_memory((const uint8_t*)resources_DaltonLens_Help_macOS_2x_png,
+                                            sizeof(resources_DaltonLens_Help_macOS_2x_png)/sizeof(char),
+                                            &width, &height, &channels, 4);
+    }
+    else
+    {
+        imageBuffer = stbi_load_from_memory((const uint8_t*)resources_DaltonLens_Help_macOS_1x_png,
+                                            sizeof(resources_DaltonLens_Help_macOS_1x_png)/sizeof(char),
+                                            &width, &height, &channels, 4);
+    }
+#else
+    if (needHighRes)
     {
         imageBuffer = stbi_load_from_memory((const uint8_t*)resources_DaltonLens_Help_2x_png,
                                             sizeof(resources_DaltonLens_Help_2x_png)/sizeof(char),
@@ -101,6 +120,8 @@ bool HelpWindow::initialize (GLFWwindow* parentWindow)
                                             sizeof(resources_DaltonLens_Help_1x_png)/sizeof(char),
                                             &width, &height, &channels, 4);
     }
+#endif
+    
     dl_assert (channels == 4, "RGBA expected!");
     
     impl->helpTexture.initialize ();

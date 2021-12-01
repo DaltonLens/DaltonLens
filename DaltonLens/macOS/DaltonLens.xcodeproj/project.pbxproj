@@ -1072,7 +1072,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2.3.1;
+				CURRENT_PROJECT_VERSION = 2.4.1;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
@@ -1082,7 +1082,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4rc1;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1102,7 +1102,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2.3.1;
+				CURRENT_PROJECT_VERSION = 2.4.1;
 				DEVELOPMENT_TEAM = 68TMSR28JT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
@@ -1112,7 +1112,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4rc1;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

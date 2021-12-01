@@ -127,3 +127,19 @@ elseif (UNIX)
         ${APPINDICATOR_LIBRARIES}
     )
 endif()
+
+set(INKSCAPE_WIN32 "C:\\Program Files\\Inkscape\\bin\\inkscape.exe")
+set(XXD_WIN32 "${CMAKE_SOURCE_DIR}/resources/xxd.exe")
+if (WIN32 AND EXISTS ${INKSCAPE_WIN32})
+    add_custom_target(HelpResources 
+        "${INKSCAPE_WIN32}" "resources/DaltonLens_Help.svg" --export-width=575 --export-filename="resources/DaltonLens_Help_1x.png"
+        COMMAND "${INKSCAPE_WIN32}" "resources/DaltonLens_Help.svg" --export-width=1150 --export-filename="resources/DaltonLens_Help_2x.png"
+        COMMAND "${INKSCAPE_WIN32}" "resources/DaltonLens_Help_macOS.svg" --export-width=1150 --export-filename="resources/DaltonLens_Help_macOS_1x.png"
+        COMMAND "${INKSCAPE_WIN32}" "resources/DaltonLens_Help_macOS.svg" --export-width=1150 --export-filename="resources/DaltonLens_Help_macOS_2x.png"
+        COMMAND "${XXD_WIN32}" -i "resources/DaltonLens_Help_1x.png" "DaltonGUI/DaltonLensHelp_1x_resource.inc"
+        COMMAND "${XXD_WIN32}" -i "resources/DaltonLens_Help_2x.png" "DaltonGUI/DaltonLensHelp_2x_resource.inc"
+        COMMAND "${XXD_WIN32}" -i "resources/DaltonLens_Help_macOS_1x.png" "DaltonGUI/DaltonLensHelp_macOS_1x_resource.inc"
+        COMMAND "${XXD_WIN32}" -i "resources/DaltonLens_Help_macOS_2x.png" "DaltonGUI/DaltonLensHelp_macOS_2x_resource.inc"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    )
+endif()
