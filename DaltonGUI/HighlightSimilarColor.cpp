@@ -38,7 +38,7 @@ void HighlightRegionState::updateFrameCount ()
 void HighlightRegionState::clearSelection()
 {
     mutableData.shaderParams.hasActiveColor = false;
-    mutableData.shaderParams.activeColorRGB01 = vec4d(0, 0, 0, 1);
+    mutableData.shaderParams.activeColorSRGB01 = vec4d(0, 0, 0, 1);
     _selectedPixel = dl::vec2i(-1, -1);
     mutableData.cursorOverlayInfo = {};
 }
@@ -56,10 +56,9 @@ void HighlightRegionState::setSelectedPixel(float x, float y, const CursorOverla
 
     _selectedPixel = newPixel;
     dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
-    dl::PixelLinearRGB rgb = dl::convertToLinearRGB(srgba);
-    mutableData.shaderParams.activeColorRGB01.x = rgb.r;
-    mutableData.shaderParams.activeColorRGB01.y = rgb.g;
-    mutableData.shaderParams.activeColorRGB01.z = rgb.b;
+    mutableData.shaderParams.activeColorSRGB01.x = srgba.r / 255.f;
+    mutableData.shaderParams.activeColorSRGB01.y = srgba.g / 255.f;
+    mutableData.shaderParams.activeColorSRGB01.z = srgba.b / 255.f;
 
     mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
 
@@ -149,9 +148,10 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
 
     // if (ImGui::Begin("DaltonLens - Selected color to Highlight", nullptr, flags))
     {
-        const auto linearRgb = dl::PixelSRGBA((int)(255.f * data.shaderParams.activeColorRGB01.x + 0.5f),
-                                              (int)(255.f * data.shaderParams.activeColorRGB01.y + 0.5f),
-                                              (int)(255.f * data.shaderParams.activeColorRGB01.z + 0.5f), 255);
+        const auto sRgb = dl::PixelSRGBA((int)(255.f * data.shaderParams.activeColorSRGB01.x + 0.5f),
+                                         (int)(255.f * data.shaderParams.activeColorSRGB01.y + 0.5f),
+                                         (int)(255.f * data.shaderParams.activeColorSRGB01.z + 0.5f),
+                                         255);
 
 #if 0
         const auto filledRectSize = ImVec2(9*monoFontSize, 9*monoFontSize);

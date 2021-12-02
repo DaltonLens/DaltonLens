@@ -108,7 +108,7 @@ public:
     struct Params
     {
         bool hasActiveColor = false;
-        vec4d activeColorRGB01 = vec4d(0,0,0,1);
+        vec4d activeColorSRGB01 = vec4d(0,0,0,1);
         float deltaH_360 = NAN; // within [0,360º]
         float deltaS_100 = NAN; // within [0,100%]
         float deltaV_255 = NAN; // within [0,255]
@@ -124,7 +124,7 @@ public:
 
 private:
     Params _currentParams;
-    unsigned _attribLocationRefColor_linearRGB = 0;
+    unsigned _attribLocationRefColor_sRGB = 0;
     unsigned _attribLocationDeltaH = 0;
     unsigned _attribLocationDeltaS = 0;
     unsigned _attribLocationDeltaV = 0;

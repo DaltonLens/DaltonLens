@@ -93,7 +93,7 @@ const char* commonFragmentLibrary = R"(
     // H in [0,1]
     // C in [0,1]
     // V in [0,1]
-    vec3 HCV_from_RGB(vec3 RGB)
+    vec3 HCV_from_SRGB(vec3 RGB)
     {
         // Based on work by Sam Hocevar and Emil Persson
         vec4 P = (RGB.g < RGB.b) ? vec4(RGB.bg, -1.0, 2.0/3.0) : vec4(RGB.gb, 0.0, -1.0/3.0);
@@ -106,11 +106,12 @@ const char* commonFragmentLibrary = R"(
     // H in [0,1]
     // C in [0,1]
     // V in [0,1]
-    vec3 HSV_from_RGB (vec3 rgb)
+    vec3 HSV_from_SRGB (vec3 rgb)
     {
-        // FIXME: this is ignoring gamma and treating it like linearRGB
+        // This ignores gamma, but that's how HSV
+        // is typically done.
     
-        vec3 HCV = HCV_from_RGB(rgb.xyz);
+        vec3 HCV = HCV_from_SRGB(rgb.xyz);
         float S = HCV.y / (HCV.z + hsxEpsilon);
         return vec3(HCV.x, S, HCV.z);
     }
@@ -276,7 +277,7 @@ const char* fragmentShader_DaltonizeV1_glsl_130 = R"(
 
 const char* fragmentShader_highlightSameColor = R"(
     uniform sampler2D Texture;
-    uniform vec3 u_refColor_linearRGB;
+    uniform vec3 u_refColor_sRGB;
     uniform float u_deltaH_360;
     uniform float u_deltaS_100;
     uniform float u_deltaV_255;
@@ -295,9 +296,9 @@ const char* fragmentShader_highlightSameColor = R"(
 
     void main()
     {
-        vec4 rgba = RGB_from_SRGB(texture(Texture, Frag_UV.st));
-        vec3 hsv = HSV_from_RGB(rgba.rgb);                
-        vec3 ref_hsv = HSV_from_RGB(u_refColor_linearRGB.rgb);
+        vec4 srgba = texture(Texture, Frag_UV.st);
+        vec3 hsv = HSV_from_SRGB(srgba.rgb);
+        vec3 ref_hsv = HSV_from_SRGB(u_refColor_sRGB.rgb);
         
         bool isSame = checkHSVDelta(ref_hsv, hsv);
                         
@@ -306,8 +307,8 @@ const char* fragmentShader_highlightSameColor = R"(
         float timeWeightedIntensity = timeWeight;
         hsv.z = mix (hsv.z, timeWeightedIntensity, isSame);
 
-        vec4 transformedRGB = RGBA_from_HSV(hsv, 1.0);
-        Out_Color = sRGB_from_RGBClamped(transformedRGB);
+        vec4 transformedSRGB = RGBA_from_HSV(hsv, 1.0);
+        Out_Color = transformedSRGB;
     }
 )";
 
