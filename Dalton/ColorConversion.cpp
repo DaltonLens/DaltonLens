@@ -487,6 +487,9 @@ namespace dl
 namespace dl
 {
 
+// This comes from the extended colors https://en.wikipedia.org/wiki/Web_colors
+// The extended colors is the result of merging specifications from HTML 4.01, CSS 2.0, SVG 1.0 and CSS3 User Interfaces (CSS3 UI)
+// https://en.wikipedia.org/wiki/Template:Color_chart_X11
 static ColorEntry colorEntries[] = {
     {"Pink","Pink",255,192,203},
     {"Pink","LightPink",255,182,193},
