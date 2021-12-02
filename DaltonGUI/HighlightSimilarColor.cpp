@@ -269,10 +269,10 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             float valueMin = std::max(0.f, (data.activeColorHSV_1_1_255.z) - data.shaderParams.deltaV_255);
             float valueMax = std::min(255.f, (data.activeColorHSV_1_1_255.z) + data.shaderParams.deltaV_255);
 
-            ImGui::Text("H=[%.0f %.0f]º S=[%.0f %.0f]%% V=[%.0f %.0f]",
+            ImGui::Text("H=[%.0f %.0f]º S=[%.0f %.0f]%% V=[%.0f %.0f]%%",
                         hueMin, hueMax,
                         satMin, satMax,
-                        valueMin, valueMax);
+                        valueMin*100.f/255.f, valueMax*100.f/255.f);
             ImGui::PopFont();
         }
         else

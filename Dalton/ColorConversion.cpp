@@ -246,17 +246,19 @@ namespace dl
         return outImg;
     }
 
-    // Convert rgb floats ([0-255],[0-255],[0-255]) to hsv floats ([0-1],[0-1],[0-1]), from Foley & van Dam p592
+    // Convert rgb floats ([0-255],[0-255],[0-255])
+    // to hsv floats ([0-1],[0-1],[0-255]), from Foley & van Dam p592
     // Optimized http://lolengine.net/blog/2013/01/13/fast-rgb-to-hsv
     // Adapted from ImGui ColorConvertRGBtoHSV
     PixelHSV convertToHSV(const PixelSRGBA& srgba)
     {
         // p in range [0,1]
-        PixelLinearRGB p = convertToLinearRGB(srgba);
-
-        float r = p.r*255.f;
-        float g = p.g*255.f;
-        float b = p.b*255.f;
+        // PixelLinearRGB p = convertToLinearRGB(srgba);
+        // HSV itself is defined for any RGB color space, but it is
+        // typically applied on top of the raw sRGB values, not linearRGB.
+        float r = srgba.r;
+        float g = srgba.g;
+        float b = srgba.b;
         
         float K = 0.f;
         if (g < b)
@@ -591,7 +593,8 @@ static ColorEntry colorEntries[] = {
     {"Violet","Plum",221,160,221},
     {"Violet","Violet",238,130,238},
     {"Violet","Orchid",218,112,214},
-    {"Violet","Fuchsia",255,0,255},
+    // Remove the duplicate color.
+    // {"Violet","Fuchsia",255,0,255},
     {"Violet","Magenta",255,0,255},
     {"Violet","MediumOrchid",186,85,211},
     {"Violet","MediumPurple",147,112,219},

@@ -274,9 +274,9 @@ static void windowPosCallback(GLFWwindow* w, int x, int y)
     dl_dbg ("Got a window pos callback (%p) %d %d", w, x, y);
 }
 
-void ImguiGLFWWindow::PushMonoSpaceFont (const ImGuiIO& io)
+void ImguiGLFWWindow::PushMonoSpaceFont (const ImGuiIO& io, bool small)
 {
-    ImGui::PushFont(io.Fonts->Fonts[1]); 
+    ImGui::PushFont(io.Fonts->Fonts[small ? 2 : 1]); 
 }
 
 float ImguiGLFWWindow::monoFontSize (const ImGuiIO& io)
@@ -381,6 +381,16 @@ bool ImguiGLFWWindow::initialize (GLFWwindow* parentWindow,
         // Generated from https://github.com/bluescan/proggyfonts
         {
             auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(dl::ProggyVector_compressed_data, dl::ProggyVector_compressed_size, 16.0f * retinaScaleFactor.x * dpiScale.x);
+            font->Scale /= retinaScaleFactor.x;
+        }
+        
+        // Third font, small monospace
+        {
+            auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(dl::ProggyVector_compressed_data,
+                                                                  dl::ProggyVector_compressed_size,
+                                                                  15.0f * retinaScaleFactor.x * dpiScale.x,
+                                                                  nullptr,
+                                                                  ranges);
             font->Scale /= retinaScaleFactor.x;
         }
 

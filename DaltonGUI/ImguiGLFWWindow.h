@@ -42,7 +42,7 @@ public:
 public:
     static dl::Point primaryMonitorContentDpiScale ();
     static dl::Point primaryMonitorRetinaFrameBufferScale ();
-    static void PushMonoSpaceFont(const ImGuiIO& io);
+    static void PushMonoSpaceFont(const ImGuiIO& io, bool small = false);
     static float monoFontSize (const ImGuiIO& io);
 
 public:

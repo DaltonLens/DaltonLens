@@ -39,6 +39,8 @@ namespace dl
             
         }
     };
+
+    inline int intRnd (float f) { return (int)std::roundf(f); };
     
     inline uint8_t saturateAndCast (float v)
     {

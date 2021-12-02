@@ -111,33 +111,33 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
 
             const auto hsv = dl::convertToHSV(sRgb);
             
-            // White won't be visible on bright colors. This is still not ideal
-            // for blue though, where white is more visible than black.
-            if (hsv.z > 127)
+            // This is a pretty expensive way to do it, but well, overall still very cheap.
+            if (colorDistance_CIE2000(sRgb, PixelSRGBA(255,255,255,255)) < colorDistance_CIE2000(sRgb, PixelSRGBA(0,0,0,255)))
             {
+                // White won't be visible on bright colors, so switch to a black
+                // background if œthe contrast is higher.
                 color = ImVec4(0.0, 0.0, 0.0, 1.0);
             }
 
             // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
             ImGui::PushStyleColor(ImGuiCol_Text, color);
 
-            auto intRnd = [](float f) { return (int)std::roundf(f); };
-
             ImGui::BeginChild("ColorInfo", ImVec2(squareSize - padding - monoFontSize*0.5f, zoomItemSize.y));
+            
+            ImGui::Text ("HTML #%02x%02x%02x", sRgb.r, sRgb.g, sRgb.b);
+            
             ImGui::Text("sRGB %3d %3d %3d", sRgb.r, sRgb.g, sRgb.b);
 
             PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
             ImGui::Text(" RGB %3d %3d %3d", int(lrgb.r*255.0), int(lrgb.g*255.0), int(lrgb.b*255.0));
-            
-            ImGui::Text(" HSV %3d %3d %3d", intRnd(hsv.x*360.f), intRnd(hsv.y*100.f), intRnd(hsv.z));
             
             PixelLab lab = dl::convertToLab(sRgb);
             ImGui::Text(" Lab %3d %3d %3d", intRnd(lab.l), intRnd(lab.a), intRnd(lab.b));
             
             PixelXYZ xyz = convertToXYZ(sRgb);
             ImGui::Text(" XYZ %3d %3d %3d", intRnd(xyz.x), intRnd(xyz.y), intRnd(xyz.z));
-
-            ImGui::Text ("HTML #%02x%02x%02x", sRgb.r, sRgb.g, sRgb.b);
+            
+            ImGui::Text(" HSV %3d %3d %3d", intRnd(hsv.x*360.f), intRnd(hsv.y*100.f), intRnd(hsv.z*100.f/255.f));
                         
             ImGui::EndChild();
             ImGui::PopStyleColor();
@@ -164,32 +164,46 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        auto addColorNameAndRGB = [&io,&monoFontSize](const ColorEntry& entry, const int targetNameSize, float distance)
+        auto addColorNameAndRGB = [&io,&monoFontSize](const ColorEntry& entry, const int targetNameSize, float distance, bool disabled)
         {
-            auto colorName = formatted("%s / %s", entry.className, entry.colorName);
-            if (colorName.size() > targetNameSize)
+            auto colorName = formatted("%s (%s", entry.className, entry.colorName);
+            // auto colorName = formatted("%s / %s", entry.className, entry.colorName);
+            if (colorName.size() >= targetNameSize)
             {
-                colorName = colorName.substr(0, targetNameSize - 3) + "...";
+                colorName = colorName.substr(0, targetNameSize - 4) + "...)";
             }
             else if (colorName.size() < targetNameSize)
             {
-                colorName += std::string(targetNameSize - colorName.size(), ' ');
+                colorName += ')' + std::string(targetNameSize - colorName.size(), ' ');
             }
             
+            if (disabled)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+            }
             ImGui::Text("%s", colorName.c_str());
-            ImGui::SameLine(monoFontSize*11.f);
+            
+            ImguiGLFWWindow::PushMonoSpaceFont(io, true /* small */);
+            ImGui::SameLine(monoFontSize*11.2f);
             ImGui::Text("ΔE=%d", int(distance+0.5f));
             
-            ImguiGLFWWindow::PushMonoSpaceFont(io);
             ImGui::SameLine(monoFontSize*14.f);
-            ImGui::Text("[%3d %3d %3d]",
-                        entry.r,
-                        entry.g,
-                        entry.b);
+            
+            const auto hsv = dl::convertToHSV(PixelSRGBA(entry.r, entry.g, entry.b, 255));
+            
+            ImGui::Text("HSV %3d %3d %3d",
+                        intRnd(hsv.x*360.f),
+                        intRnd(hsv.y*100.f),
+                        intRnd(hsv.z*100.f/255.f));
             ImGui::PopFont();
+            
+            if (disabled)
+            {
+                ImGui::PopStyleColor();
+            }
         };
 
-        addColorNameAndRGB (*closestColors[0].entry, 21, closestColors[0].distance);
+        addColorNameAndRGB (*closestColors[0].entry, 21, closestColors[0].distance, false /* not disabled */);
         
         {
             ImVec2 topLeft = ImGui::GetCursorPos();
@@ -203,7 +217,8 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        addColorNameAndRGB (*closestColors[1].entry, 21, closestColors[1].distance);
+        const bool secondColorNotAsClose = (closestColors[1].distance - closestColors[0].distance) > 1.f;
+        addColorNameAndRGB (*closestColors[1].entry, 21, closestColors[1].distance, secondColorNotAsClose);
 
         if (d.showHelp)
         {
@@ -236,7 +251,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             clipboardText += formatted("linearRGB %.1f %.1f %.1f\n", lrgb.r, lrgb.g, lrgb.b);
 
             const auto hsv = dl::convertToHSV(sRgb);
-            clipboardText += formatted("HSV %.1fº %.1f%% %.1f\n", hsv.x*360.f, hsv.y*100.f, hsv.z);
+            clipboardText += formatted("HSV %.1fº %.1f%% %.1f%%\n", hsv.x*360.f, hsv.y*100.f, hsv.z*100.f/255.f);
 
             PixelLab lab = dl::convertToLab(sRgb);
             clipboardText += formatted("L*a*b %.1f %.1f %.1f\n", lab.l, lab.a, lab.b);
