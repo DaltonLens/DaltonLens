@@ -56,10 +56,15 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
     if (!image.contains(mousePosInImage.x, mousePosInImage.y))
         return;
     
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(padding,padding));
     {
+        // When using a tooltip the window padding will change the initial offset of the
+        // SameLine calls. This hack makes sure that it renders the same in the controls
+        // window.
+        float paddingIfNotTooltip = showAsTooltip ? 0.f : padding;
+        
         if (showAsTooltip)
         {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(padding,padding));
             ImGui::BeginTooltip();
         }
         
@@ -164,7 +169,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::SetCursorPosX(bottomRight.x + padding);
         }
 
-        auto addColorNameAndRGB = [&io,&monoFontSize](const ColorEntry& entry, const int targetNameSize, float distance, bool disabled)
+        auto addColorNameAndRGB = [&](const ColorEntry& entry, const int targetNameSize, float distance, bool disabled)
         {
             auto colorName = formatted("%s (%s", entry.className, entry.colorName);
             // auto colorName = formatted("%s / %s", entry.className, entry.colorName);
@@ -184,10 +189,10 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             ImGui::Text("%s", colorName.c_str());
             
             ImguiGLFWWindow::PushMonoSpaceFont(io, true /* small */);
-            ImGui::SameLine(monoFontSize*11.2f);
+            ImGui::SameLine(monoFontSize*11.2f - paddingIfNotTooltip);
             ImGui::Text("ΔE=%d", int(distance+0.5f));
             
-            ImGui::SameLine(monoFontSize*14.f);
+            ImGui::SameLine(monoFontSize*14.f - paddingIfNotTooltip);
             
             const auto hsv = dl::convertToHSV(PixelSRGBA(entry.r, entry.g, entry.b, 255));
             
@@ -240,6 +245,7 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
         if (showAsTooltip)
         {
             ImGui::EndTooltip();
+            ImGui::PopStyleVar();
         }
 
         if (ImGui::IsKeyPressed(GLFW_KEY_C))
@@ -264,7 +270,6 @@ void ImageCursorOverlay::showTooltip(const CursorOverlayInfo& d, bool showAsTool
             _timeOfLastCopyToClipboard = currentDateInSeconds();
         }
     }
-    ImGui::PopStyleVar();
 }
 
 } // dl
