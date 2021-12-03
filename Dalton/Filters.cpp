@@ -185,26 +185,26 @@ void applyDaltonizeSimulation (ImageLMS& lmsImage, Filter_Daltonize::Params::Kin
     
     auto protanope = [severity](int c, int r, PixelLMS& p) {
         // Viénot 1999.
-        p.l = (1.f-severity)*p.l + severity*(2.0205f*p.m - 2.4337f*p.s);
+        p.l = (1.f-severity)*p.l + severity*(2.02344*p.m - 2.52580*p.s);
     };
     
     auto deuteranope = [severity](int c, int r, PixelLMS& p) {
         // Viénot 1999.
-        p.m = (1.f-severity)*p.m + severity*(0.4949f*p.l + + 1.2045f*p.s);
+        p.m = (1.f-severity)*p.m + severity*(0.49421*p.l + + 1.24827*p.s);
     };
     
     auto tritanope = [severity](int c, int r, PixelLMS& p) {
         // Brettel 1997.
         // Check which plane.
-        if ((p.l*0.34516 - p.m*0.65480) >= 0)
+        if ((p.l*0.34478 - p.m*0.65518) >= 0)
         {
             // Plane 1 for tritanopia
-            p.s = (1.f-severity)*p.s + severity*(-0.00213*p.l + 0.05477*p.m);
+            p.s = (1.f-severity)*p.s + severity*(-0.00257*p.l + 0.05366*p.m);
         }
         else
         {
             // Plane 2 for tritanopia
-            p.s = (1.f-severity)*p.s + severity*(-0.06195*p.l + 0.16826*p.m);
+            p.s = (1.f-severity)*p.s + severity*(-0.06011*p.l + 0.16299*p.m);
         }
     };
     

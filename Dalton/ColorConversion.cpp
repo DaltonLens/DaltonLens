@@ -16,14 +16,14 @@ namespace dl
         // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.LMS_from_linearRGB
         // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.linearRGB_from_LMS
 
-        _linearRgbToLmsMatrix = ColMajorMatrix3f(0.17886, 0.43997, 0.03597,
-                                                 0.0338 , 0.27515, 0.03621,
-                                                 0.00031, 0.00192, 0.01528);
+        _linearRgbToLmsMatrix = ColMajorMatrix3f(0.17882, 0.43516, 0.04119,
+                                                 0.03456, 0.27155, 0.03867,
+                                                 0.00030, 0.00184, 0.01467);
         
         // Eigen::Matrix3f::Map(_lmsToLinearRgbMatrix.v) = Eigen::Matrix3f::Map(_linearRgbToLmsMatrix.v).inverse();
-        _lmsToLinearRgbMatrix = ColMajorMatrix3f( 8.00533, -12.88195,  11.68065,
-                                                 -0.97821, 5.26945, -10.183,
-                                                 -0.04017, -0.39885, 66.48079);
+        _lmsToLinearRgbMatrix = ColMajorMatrix3f(8.09444, -13.05043, 11.67206,
+                                                 -1.02485, 5.40193, -11.36147,
+                                                 -0.03653, -0.41216, 69.35132);
     }
     
     void RGBAToLMSConverter :: convertToLms (const ImageLinearRGB& rgbImage, ImageLMS& lmsImage)

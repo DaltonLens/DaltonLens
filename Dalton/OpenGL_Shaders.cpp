@@ -18,17 +18,17 @@ const char* commonFragmentLibrary = R"(
     // and https://github.com/DaltonLens/DaltonLens-Python .
 
     // Warning: GLSL mat3 initialization is column by column
-    const mat3 linearRGB_from_LMS = mat3 (
-         8.00533,  -0.97821,  -0.04017, // column 1 
-        -12.88195,  5.26945,  -0.39885, // column 2
-         11.68065, -10.18300,  66.48079 // column 3
-    );
-
     // DaltonLens-Python LMSModel_sRGB_SmithPokorny75.LMS_from_linearRGB
     const mat3 LMS_from_linearRGB = mat3 (
-        0.17886, 0.03380, 0.00031, // column1 
-        0.43997, 0.27515, 0.00192, // column2
-        0.03597, 0.03621, 0.01528  // column3
+        0.17882, 0.03456, 0.00030, // column1
+        0.43516, 0.27155, 0.00184, // column2
+        0.04119, 0.03867, 0.01467  // column3      
+    );
+
+    const mat3 linearRGB_from_LMS = mat3 (
+        8.09444, -1.02485, -0.03653,   // column1
+        -13.05043, 5.40193, -0.41216,  // column2
+        11.67206, -11.36147, 69.35132  // column3
     );
 
     // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
@@ -133,14 +133,14 @@ const char* commonFragmentLibrary = R"(
     vec3 applyProtanope_Vienot (vec3 lms)
     {
         // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
-        lms[0] = 2.0205*lms[1] - 2.4337*lms[2];
+        lms[0] = 2.02344*lms[1] - 2.52580*lms[2];
         return lms;
     }
 
     vec3 applyDeuteranope_Vienot (vec3 lms)
     {
         // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
-        lms[1] = 0.4949*lms[0] + 1.2045*lms[2];
+        lms[1] = 0.49421*lms[0] + 1.24827*lms[2];
         return lms;
     }
 
@@ -149,23 +149,23 @@ const char* commonFragmentLibrary = R"(
         // DaltonLens-Python Simulator_Vienot1999.lms_projection_matrix
         // WARNING: Viénot is not good for tritanopia, we need
         // to switch to Brettel.
-        lms[2] = -0.0122*lms[0] + 0.0739*lms[1];
+        lms[2] = -0.01224*lms[0] + 0.07203*lms[1];
         return lms;
     }
 
     vec3 applyTritanope_Brettel1997 (vec3 lms)
     {
         // See libDaltonLens for the values.
-        vec3 normalOfSepPlane = vec3(0.34516, -0.65480, 0.00000);
+        vec3 normalOfSepPlane = vec3(0.34478, -0.65518, 0.00000);
         if (dot(lms, normalOfSepPlane) >= 0)
         {
             // Plane 1 for tritanopia
-            lms.z = -0.00213*lms.x + 0.05477*lms.y;
+            lms.z = -0.00257*lms.x + 0.05366*lms.y;
         }
         else
         {
             // Plane 2 for tritanopia
-            lms.z = -0.06195*lms.x + 0.16826*lms.y;
+            lms.z = -0.06011*lms.x + 0.16299*lms.y;
         }
         return lms;
     }
