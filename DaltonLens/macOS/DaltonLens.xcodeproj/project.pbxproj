@@ -1082,7 +1082,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MARKETING_VERSION = 2.4rc1;
+				MARKETING_VERSION = 2.4rc2;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1112,7 +1112,7 @@
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-64",
 					"$(PROJECT_DIR)/deps/imgui/examples/libs/glfw/lib-vc2010-32",
 				);
-				MARKETING_VERSION = 2.4rc1;
+				MARKETING_VERSION = 2.4rc2;
 				PRODUCT_BUNDLE_IDENTIFIER = org.daltonLens.DaltonLens;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

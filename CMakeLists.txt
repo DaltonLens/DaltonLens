@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.1)
 
 project(DaltonLens)
 set(PROJECT_VERSION_MAJOR 2)
-set(PROJECT_VERSION_MINOR 4rc1)
+set(PROJECT_VERSION_MINOR 4rc2)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 
 # Get the current commit as a version variable.
