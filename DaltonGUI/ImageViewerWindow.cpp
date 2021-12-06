@@ -16,6 +16,7 @@
 #include <DaltonGUI/ImguiGLFWWindow.h>
 #include <DaltonGUI/HighlightSimilarColor.h>
 #include <DaltonGUI/ImageViewerControlsWindow.h>
+#include <DaltonGUI/DaltonLensPrefs.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -46,16 +47,7 @@ namespace dl
 
 bool viewerModeIsDaltonize (DaltonViewerMode mode)
 {
-    switch (mode)
-    {
-        case DaltonViewerMode::Protanope:
-        case DaltonViewerMode::Deuteranope:
-        case DaltonViewerMode::Tritanope:
-        {
-            return true;
-        }
-        default: return false;
-    }
+    return mode == DaltonViewerMode::Daltonize;
 }
 
 std::string daltonViewerModeName (DaltonViewerMode mode)
@@ -66,9 +58,7 @@ std::string daltonViewerModeName (DaltonViewerMode mode)
         case DaltonViewerMode::Original: return "Original Image";
         case DaltonViewerMode::HighlightRegions: return "Highlight Same Color";
         case DaltonViewerMode::HSVTransform: return "HSV Manipulation";
-        case DaltonViewerMode::Protanope: return "Daltonize - Protanope";
-        case DaltonViewerMode::Deuteranope: return "Daltonize - Deuteranope";
-        case DaltonViewerMode::Tritanope: return "Daltonize - Tritanope";
+        case DaltonViewerMode::Daltonize: return "Daltonize";
         case DaltonViewerMode::FlipRedBlue: return "FlipRedBlue";
         case DaltonViewerMode::FlipRedBlueInvertRed: return "FlipRedBlueInvertRed";
         default: return "Invalid";
@@ -83,9 +73,7 @@ std::string daltonViewerModeFileName (DaltonViewerMode mode)
         case DaltonViewerMode::Original: return "original";
         case DaltonViewerMode::HighlightRegions: return "highlight_similar_colors";
         case DaltonViewerMode::HSVTransform: return "hsv_transform";
-        case DaltonViewerMode::Protanope: return "daltonize_protanope";
-        case DaltonViewerMode::Deuteranope: return "daltonize_deuteranope";
-        case DaltonViewerMode::Tritanope: return "daltonize_tritanope";
+        case DaltonViewerMode::Daltonize: return "daltonize";
         case DaltonViewerMode::FlipRedBlue: return "flip_red_blue";
         case DaltonViewerMode::FlipRedBlueInvertRed: return "flip_red_blue_invert_red";
         default: return "Invalid";
@@ -158,18 +146,7 @@ struct ImageViewerWindow::Impl
     
     void advanceMode (bool backwards)
     {
-        int newMode_asInt = (int)this->mutableState.activeMode;
-        newMode_asInt += backwards ? -1 : 1;
-        if (newMode_asInt < 0)
-        {
-            newMode_asInt = 0;
-        }
-        else if (newMode_asInt == (int)DaltonViewerMode::NumModes)
-        {
-            --newMode_asInt;
-        }
-        
-        mutableState.activeMode = (DaltonViewerMode)newMode_asInt;
+        advanceEnum(this->mutableState.activeMode, backwards ? -1 : 1, DaltonViewerMode::NumModes);
     }
     
     void onImageWidgetAreaChanged ()
@@ -184,9 +161,7 @@ struct ImageViewerWindow::Impl
         {
             case DaltonViewerMode::Original:    return nullptr;
             case DaltonViewerMode::HSVTransform: return &filters.hsvTransform;
-            case DaltonViewerMode::Protanope:   return &filters.daltonize;
-            case DaltonViewerMode::Deuteranope: return &filters.daltonize;
-            case DaltonViewerMode::Tritanope:   return &filters.daltonize;
+            case DaltonViewerMode::Daltonize:   return &filters.daltonize;
             case DaltonViewerMode::FlipRedBlue: return &filters.flipRedBlue;
             case DaltonViewerMode::FlipRedBlueInvertRed: return &filters.flipRedBlueAndInvertRed;
             
@@ -204,7 +179,9 @@ struct ImageViewerWindow::Impl
 
 ImageViewerWindow::ImageViewerWindow()
 : impl (new Impl())
-{}
+{
+    impl->mutableState.daltonizeParams.kind = (Filter_Daltonize::Params::Kind) DaltonLensPrefs::daltonizeDeficiencyKind();
+}
 
 ImageViewerWindow::~ImageViewerWindow()
 {
@@ -297,7 +274,7 @@ void ImageViewerWindow::checkImguiGlobalImageMouseEvents ()
 #else
             const float scaleFactor = 0.1f;
 #endif
-            impl->mutableState.daltonizeSeverity = dl::keepInRange (impl->mutableState.daltonizeSeverity + io.MouseWheel * scaleFactor, 0.f, 1.f);
+            impl->mutableState.daltonizeParams.severity = dl::keepInRange (impl->mutableState.daltonizeParams.severity + io.MouseWheel * scaleFactor, 0.f, 1.f);
         }
     }
     else if (impl->mutableState.activeMode == DaltonViewerMode::HSVTransform)
@@ -321,7 +298,7 @@ void ImageViewerWindow::checkImguiGlobalImageKeyEvents ()
     // These key events are valid also in the control window.
     auto& io = ImGui::GetIO();
 
-    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_N, GLFW_KEY_A, GLFW_KEY_SPACE})
+    for (const auto code : {GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_S, GLFW_KEY_W, GLFW_KEY_N, GLFW_KEY_A, GLFW_KEY_SPACE })
     {
         if (ImGui::IsKeyPressed(code))
             processKeyEvent(code);
@@ -409,11 +386,29 @@ void ImageViewerWindow::processKeyEvent (int keycode)
             break;
         }
 
+        case GLFW_KEY_LEFT:
+        {
+            if (viewerModeIsDaltonize(impl->mutableState.activeMode))
+            {
+                advanceEnum(impl->mutableState.daltonizeParams.kind, -1, Filter_Daltonize::Params::Kind::NumKinds);
+            }
+            break;
+        }
+
+        case GLFW_KEY_RIGHT:
+        {
+            if (viewerModeIsDaltonize(impl->mutableState.activeMode))
+            {
+                advanceEnum(impl->mutableState.daltonizeParams.kind, 1, Filter_Daltonize::Params::Kind::NumKinds);
+            }
+            break;
+        }
+
         case GLFW_KEY_SPACE:
         {
             if (viewerModeIsDaltonize(impl->mutableState.activeMode))
             {
-                impl->mutableState.daltonizeShouldSimulateOnly = !impl->mutableState.daltonizeShouldSimulateOnly;
+                impl->mutableState.daltonizeParams.simulateOnly = !impl->mutableState.daltonizeParams.simulateOnly;
             }
             break;
         }
@@ -609,15 +604,9 @@ void ImageViewerWindow::runOnce ()
                 break;
             }
             
-            case DaltonViewerMode::Protanope:
-            case DaltonViewerMode::Deuteranope:
-            case DaltonViewerMode::Tritanope:
+            case DaltonViewerMode::Daltonize:
             {
-                Filter_Daltonize::Params params;
-                params.kind = static_cast<Filter_Daltonize::Params::Kind>((int)impl->mutableState.modeForCurrentFrame - (int)DaltonViewerMode::Protanope);
-                params.simulateOnly = impl->mutableState.daltonizeShouldSimulateOnly;
-                params.severity = impl->mutableState.daltonizeSeverity;
-                impl->filters.daltonize.setParams (params);
+                impl->filters.daltonize.setParams (impl->mutableState.daltonizeParams);
                 break;
             }
 
@@ -788,6 +777,9 @@ void ImageViewerWindow::runOnce ()
     {
         if (impl->controller) impl->controller->onDismissRequested ();
     }
+
+    // Sync persistent settings that might have changed. This is no-op is none changed.
+    DaltonLensPrefs::setDaltonizeDeficiencyKind((int)impl->mutableState.daltonizeParams.kind);
 }
 
 } // dl

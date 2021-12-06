@@ -16,9 +16,7 @@ enum class DaltonViewerMode {
     Original = -1,
 
     HighlightRegions = 0,
-    Protanope,
-    Deuteranope,
-    Tritanope,
+    Daltonize,
     HSVTransform,
     FlipRedBlue,
     FlipRedBlueInvertRed,
@@ -39,8 +37,7 @@ struct ImageViewerWindowState
     // if the user presses the SHIFT key.
     DaltonViewerMode modeForCurrentFrame = DaltonViewerMode::None;
     
-    bool daltonizeShouldSimulateOnly = false;
-    float daltonizeSeverity = 1.0f;
+    Filter_Daltonize::Params daltonizeParams;
 
     Filter_HSVTransform::Params hsvTransform;
 

@@ -86,6 +86,23 @@ namespace dl
         return value;
     }
 
+    template <typename EnumT>
+    void advanceEnum (EnumT& v, int increment, EnumT maxValue)
+    {
+        int newMode_asInt = (int)v;
+        newMode_asInt += increment;
+        if (newMode_asInt < 0)
+        {
+            newMode_asInt = 0;
+        }
+        else if (newMode_asInt == (int)maxValue)
+        {
+            --newMode_asInt;
+        }
+        
+        v = (EnumT)newMode_asInt;
+    }
+
     struct vec2i
     {
         vec2i (int x = 0, int y = 0) : x(x), y(y) {}

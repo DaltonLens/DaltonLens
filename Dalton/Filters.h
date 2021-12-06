@@ -102,11 +102,13 @@ class Filter_Daltonize : public GLFilter
 public:
     struct Params
     {
-        enum Kind
+        enum Kind : int32_t
         {
             Protanope   = 0,
             Deuteranope = 1,
             Tritanope   = 2,
+            
+            NumKinds,
         } kind = Protanope;
 
         bool simulateOnly = false;

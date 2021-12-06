@@ -271,24 +271,10 @@ void ImageViewerControlsWindow::runOnce ()
               "  hold shift: hold to show the original image"
             },
 
-            { "Daltonize - Protanope",
-              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Protanopes.",
+            { "Daltonize",
+              "Improve the color contrast for colorblind people with the Daltonize algorithm.",
               "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005).\n\n"
-                "However the simulation part has been adjusted for modern monitors."
-            },
-
-            { "Daltonize - Deuteranope",
-              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Deuteranopes.",
-              "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005). \n\n"
-                "However the simulation part has been adjusted for modern monitors."
-            },
-
-            { "Daltonize - Tritanope",
-              "Improve the color contrast for colorblind people with the Daltonize algorithm, optimized for Tritanopes.",
-              "This implements the Daltonize algorithm by Fidaner et al. \"Analysis of Color Blindness\" (2005). \n\n"
-                "However the simulation part has been adjusted for modern monitors and uses the algorithm of "
-                "Brettel et al. \"Computerized simulation of color appearance for dichromats\" (1997), which is "
-                "much more accurate for tritanopia."
+                "Use Left-Right arrows to switch the deficiency kind, and the mouse wheel to adjust the severity."
             },
 
             { "HSV Transform",
@@ -356,8 +342,19 @@ void ImageViewerControlsWindow::runOnce ()
 
         if (viewerModeIsDaltonize(viewerState.modeForCurrentFrame))
         {
-            ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeShouldSimulateOnly);
-            ImGui::SliderFloat("Severity", &viewerState.daltonizeSeverity, 0.f, 1.f, "%.2f");
+            static const char* items[] = {
+                "Protanope (red-blind)",
+                "Deuteranope (green-blind)",
+                "Tritanope (blue-blind)",
+            };
+            // IMGUI_API bool          Combo(const char* label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1);
+            ImGui::Combo("Deficiency Type", 
+                reinterpret_cast<int*>(&viewerState.daltonizeParams.kind),
+                items,
+                3
+            );
+            ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeParams.simulateOnly);
+            ImGui::SliderFloat("Severity", &viewerState.daltonizeParams.severity, 0.f, 1.f, "%.2f");
         }
 
         if (viewerState.modeForCurrentFrame == DaltonViewerMode::HSVTransform)

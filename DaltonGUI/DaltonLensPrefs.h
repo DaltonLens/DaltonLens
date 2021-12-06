@@ -21,6 +21,9 @@ private:
 public:
     static bool showHelpOnStartup();
     static void setShowHelpOnStartupEnabled (bool enabled);
+
+    static int daltonizeDeficiencyKind ();
+    static void setDaltonizeDeficiencyKind (int kind);
     
 private:
     static DaltonLensPrefs* instance();

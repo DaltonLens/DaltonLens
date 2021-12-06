@@ -21,6 +21,7 @@ struct DaltonLensPrefs::Impl
     
     struct {
         bool _showHelpOnStartup;
+        int _deficiencyKind;
     } cache;
 };
 
@@ -28,6 +29,9 @@ DaltonLensPrefs::DaltonLensPrefs()
 : impl (new Impl())
 {
     impl->cache._showHelpOnStartup = impl->prefs.getBool("showHelpOnStartup", true);
+    
+    // Deuteranopia is the most common one, make it the default.
+    impl->cache._deficiencyKind = impl->prefs.getInt("deficiencyKind", 1);
 }
 
 DaltonLensPrefs::~DaltonLensPrefs() = default;
@@ -50,6 +54,21 @@ void DaltonLensPrefs::setShowHelpOnStartupEnabled (bool enabled)
 
     instance()->impl->cache._showHelpOnStartup = enabled;
     instance()->impl->prefs.setBool("showHelpOnStartup", enabled);
+    instance()->impl->prefs.sync();
+}
+
+int DaltonLensPrefs::daltonizeDeficiencyKind ()
+{
+    return instance()->impl->cache._deficiencyKind;
+}
+    
+void DaltonLensPrefs::setDaltonizeDeficiencyKind (int kind)
+{
+    if (instance()->impl->cache._deficiencyKind == kind)
+        return;
+
+    instance()->impl->cache._deficiencyKind = kind;
+    instance()->impl->prefs.setInt("deficiencyKind", kind);
     instance()->impl->prefs.sync();
 }
 
