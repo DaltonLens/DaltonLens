@@ -122,6 +122,29 @@ void Filter_FlipRedBlueAndInvertRed::initializeGL ()
 
 } // dl
 
+namespace dl
+{
+
+void Filter_HSVTransform::initializeGL ()
+{
+    GLFilter::initializeGL (glslVersion(), nullptr, fragmentShader_HSVTransform_glsl_130); 
+
+    GLuint shaderHandle = glHandles().shaderHandle;
+    _attribLocationHueShift = (GLuint)glGetUniformLocation(shaderHandle, "u_hueShift");
+    _attribLocationSaturationScale = (GLuint)glGetUniformLocation(shaderHandle, "u_saturationScale");
+    _attribLocationHueQuantization = (GLuint)glGetUniformLocation(shaderHandle, "u_hueQuantization");
+}
+
+void Filter_HSVTransform::enableGLShader ()
+{
+    GLFilter::enableGLShader ();
+    glUniform1f(_attribLocationHueShift, _currentParams.hueShift / 360.f);
+    glUniform1f(_attribLocationSaturationScale, _currentParams.saturationScale);
+    glUniform1f(_attribLocationHueQuantization, (float)_currentParams.hueQuantization);
+}
+
+} // dl
+
 // --------------------------------------------------------------------------------
 // Highlight Similar Colors
 // --------------------------------------------------------------------------------

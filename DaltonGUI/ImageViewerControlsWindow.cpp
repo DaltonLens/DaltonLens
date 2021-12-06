@@ -291,6 +291,12 @@ void ImageViewerControlsWindow::runOnce ()
                 "much more accurate for tritanopia."
             },
 
+            { "HSV Transform",
+              "Manipulate Hue and Saturation to better discriminate some colors.",
+              "Shifting the Hue can help make the colors easier to differentiate. Increasing the saturation can also "
+              "help make the colors more vivid, and hue quantization can \"simplify\" the colors into fewer obvious groups."
+            },
+
             { "Flip Red-Blue",
               "Potentially improve the color contrast by flipping the Red and Blue channels.",
               "The transform is applied in the YCbCr color space and flips the cb and cr components."
@@ -352,6 +358,13 @@ void ImageViewerControlsWindow::runOnce ()
         {
             ImGui::Checkbox("Only simulate color vision deficiency", &viewerState.daltonizeShouldSimulateOnly);
             ImGui::SliderFloat("Severity", &viewerState.daltonizeSeverity, 0.f, 1.f, "%.2f");
+        }
+
+        if (viewerState.modeForCurrentFrame == DaltonViewerMode::HSVTransform)
+        {
+            ImGui::SliderInt("Hue Shift", &viewerState.hsvTransform.hueShift, 0, 359, "%dº");
+            ImGui::SliderFloat("Saturation Boost", &viewerState.hsvTransform.saturationScale, 1.f, 8.f, "%.1f");
+            ImGui::SliderInt("Hue Quantization", &viewerState.hsvTransform.hueQuantization, 1, 100, "%d");
         }
         
         if (cursorOverlayInfo->valid())

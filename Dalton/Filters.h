@@ -59,6 +59,32 @@ private:
     std::unique_ptr<Impl> impl;
 };
 
+class Filter_HSVTransform : public GLFilter
+{
+public:
+    struct Params
+    {
+        int hueShift = 0;
+        // Default is to boost the saturation a bit.
+        float saturationScale = 2.0f;
+        int hueQuantization = 1;
+    };
+
+public:
+    void setParams (const Params& params) { _currentParams = params; }
+
+public:
+    virtual void initializeGL () override;
+    virtual void enableGLShader () override;
+
+private:
+    unsigned _attribLocationHueShift = 0;
+    unsigned _attribLocationSaturationScale = 0;
+    unsigned _attribLocationHueQuantization = 0;
+
+    Params _currentParams;
+};
+
 class Filter_FlipRedBlue : public GLFilter
 {
 public:

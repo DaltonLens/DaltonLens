@@ -19,6 +19,7 @@ enum class DaltonViewerMode {
     Protanope,
     Deuteranope,
     Tritanope,
+    HSVTransform,
     FlipRedBlue,
     FlipRedBlueInvertRed,
 
@@ -40,6 +41,8 @@ struct ImageViewerWindowState
     
     bool daltonizeShouldSimulateOnly = false;
     float daltonizeSeverity = 1.0f;
+
+    Filter_HSVTransform::Params hsvTransform;
 
     struct InputState
     {

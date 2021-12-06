@@ -15,6 +15,8 @@ extern const char* defaultFragmentShader_glsl_130;
 
 extern const char* fragmentShader_Normal_glsl_130;
 
+extern const char* fragmentShader_HSVTransform_glsl_130;
+
 extern const char* fragmentShader_FlipRedBlue_glsl_130;
 
 extern const char* fragmentShader_FlipRedBlue_InvertRed_glsl_130;

@@ -70,13 +70,13 @@ bool gl_checkShader(GLuint handle, const char *desc)
     glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
     glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_length);
     if ((GLboolean)status == GL_FALSE)
-        fprintf(stderr, "ERROR: GLShader: failed to compile %s!\n", desc);
+        dl::consoleMessage("ERROR: GLShader: failed to compile %s!\n", desc);
     if (log_length > 1)
     {
         std::vector<char> buf;
         buf.resize((int)(log_length + 1));
         glGetShaderInfoLog(handle, log_length, NULL, (GLchar *)buf.data());
-        fprintf(stderr, "%s\n", buf.data());
+        dl::consoleMessage("%s\n", buf.data());
     }
     return (GLboolean)status == GL_TRUE;
 }
@@ -117,12 +117,12 @@ std::vector<std::string> split_string(const std::string& str, const std::string&
 
 void showSourceCodeWithLines (const GLchar *shader_code[], int numElements)
 {
-    fprintf (stderr, "Source code:\n");
+    dl::consoleMessage("Source code:\n");
     std::string source_code = std::accumulate (shader_code, shader_code + numElements, std::string ());
     std::vector<std::string> source_lines = split_string (source_code, "\n");
     for (int i = 0; i < source_lines.size (); ++i)
     {
-        fprintf (stderr, "%04d %s\n", i, source_lines[i].c_str ());
+        dl::consoleMessage("%04d %s\n", i, source_lines[i].c_str ());
     }
 }
 

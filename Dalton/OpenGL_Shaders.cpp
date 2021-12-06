@@ -249,6 +249,27 @@ const char* fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
     }
 )";
 
+const char* fragmentShader_HSVTransform_glsl_130 = R"(
+    uniform float u_hueShift;
+    uniform float u_saturationScale;
+    uniform float u_hueQuantization;
+
+    uniform sampler2D Texture;
+    in vec2 Frag_UV;
+    out vec4 Out_Color;
+    void main()
+    {
+        vec4 srgba = texture(Texture, Frag_UV.st);
+        // All in [0,1]
+        vec3 hsv = HSV_from_SRGB(srgba.rgb);
+        hsv.x = mod(hsv.x + u_hueShift, 1.0);
+        hsv.x = int(0.5 + (360.0*hsv.x / u_hueQuantization)) * (u_hueQuantization / 360.0);
+        hsv.y = min(1.0, hsv.y * u_saturationScale);        
+        vec4 transformedSRGB = RGBA_from_HSV(hsv, 1.0);
+        Out_Color = transformedSRGB;
+    }
+)";
+
 const char* fragmentShader_DaltonizeV1_glsl_130 = R"(
     uniform sampler2D Texture;
     uniform int u_kind;

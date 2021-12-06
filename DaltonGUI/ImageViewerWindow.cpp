@@ -65,6 +65,7 @@ std::string daltonViewerModeName (DaltonViewerMode mode)
         case DaltonViewerMode::None: return "None";
         case DaltonViewerMode::Original: return "Original Image";
         case DaltonViewerMode::HighlightRegions: return "Highlight Same Color";
+        case DaltonViewerMode::HSVTransform: return "HSV Manipulation";
         case DaltonViewerMode::Protanope: return "Daltonize - Protanope";
         case DaltonViewerMode::Deuteranope: return "Daltonize - Deuteranope";
         case DaltonViewerMode::Tritanope: return "Daltonize - Tritanope";
@@ -81,6 +82,7 @@ std::string daltonViewerModeFileName (DaltonViewerMode mode)
         case DaltonViewerMode::None: return "original";
         case DaltonViewerMode::Original: return "original";
         case DaltonViewerMode::HighlightRegions: return "highlight_similar_colors";
+        case DaltonViewerMode::HSVTransform: return "hsv_transform";
         case DaltonViewerMode::Protanope: return "daltonize_protanope";
         case DaltonViewerMode::Deuteranope: return "daltonize_deuteranope";
         case DaltonViewerMode::Tritanope: return "daltonize_tritanope";
@@ -120,6 +122,7 @@ struct ImageViewerWindow::Impl
     
     struct {
         Filter_Daltonize daltonize;
+        Filter_HSVTransform hsvTransform;
         Filter_FlipRedBlue flipRedBlue;
         Filter_FlipRedBlueAndInvertRed flipRedBlueAndInvertRed;
         Filter_HighlightSimilarColors highlightSimilarColors;
@@ -180,6 +183,7 @@ struct ImageViewerWindow::Impl
         switch (modeForCurrentFrame)
         {
             case DaltonViewerMode::Original:    return nullptr;
+            case DaltonViewerMode::HSVTransform: return &filters.hsvTransform;
             case DaltonViewerMode::Protanope:   return &filters.daltonize;
             case DaltonViewerMode::Deuteranope: return &filters.daltonize;
             case DaltonViewerMode::Tritanope:   return &filters.daltonize;
@@ -263,6 +267,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerControl
     
     impl->filterProcessor.initializeGL();
     impl->filters.daltonize.initializeGL();
+    impl->filters.hsvTransform.initializeGL();
     impl->filters.flipRedBlue.initializeGL();
     impl->filters.flipRedBlueAndInvertRed.initializeGL();
     impl->filters.highlightSimilarColors.initializeGL();
@@ -293,6 +298,20 @@ void ImageViewerWindow::checkImguiGlobalImageMouseEvents ()
             const float scaleFactor = 0.1f;
 #endif
             impl->mutableState.daltonizeSeverity = dl::keepInRange (impl->mutableState.daltonizeSeverity + io.MouseWheel * scaleFactor, 0.f, 1.f);
+        }
+    }
+    else if (impl->mutableState.activeMode == DaltonViewerMode::HSVTransform)
+    {
+        // Handle the mouse wheel to adjust the severity.
+        auto& io = ImGui::GetIO ();
+        if (io.MouseWheel != 0.f)
+        {
+#if PLATFORM_MACOS
+            const float scaleFactor = 10.f;
+#else
+            const float scaleFactor = 2.f;
+#endif
+            impl->mutableState.hsvTransform.hueShift = dl::keepInRange (impl->mutableState.hsvTransform.hueShift + io.MouseWheel * scaleFactor, 0.f, 359.f);
         }
     }
 }
@@ -581,6 +600,12 @@ void ImageViewerWindow::runOnce ()
             case DaltonViewerMode::HighlightRegions: 
             {
                 impl->filters.highlightSimilarColors.setParams(impl->mutableState.highlightRegion.mutableData.shaderParams);
+                break;
+            }
+
+            case DaltonViewerMode::HSVTransform: 
+            {
+                impl->filters.hsvTransform.setParams(impl->mutableState.hsvTransform);
                 break;
             }
             
