@@ -361,7 +361,7 @@ void ImageViewerControlsWindow::runOnce ()
         {
             ImGui::SliderInt("Hue Shift", &viewerState.hsvTransform.hueShift, 0, 359, "%dº");
             ImGui::SliderFloat("Saturation Boost", &viewerState.hsvTransform.saturationScale, 1.f, 8.f, "%.1f");
-            ImGui::SliderInt("Hue Quantization", &viewerState.hsvTransform.hueQuantization, 1, 100, "%d");
+            ImGui::SliderInt("Hue Quantization", &viewerState.hsvTransform.hueQuantization, 0, 2, "%d");
         }
         
         if (cursorOverlayInfo->valid())

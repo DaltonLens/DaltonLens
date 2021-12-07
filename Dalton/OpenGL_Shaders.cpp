@@ -252,19 +252,60 @@ const char* fragmentShader_FlipRedBlue_InvertRed_glsl_130 = R"(
 const char* fragmentShader_HSVTransform_glsl_130 = R"(
     uniform float u_hueShift;
     uniform float u_saturationScale;
-    uniform float u_hueQuantization;
+    uniform int u_hueQuantization;
 
     uniform sampler2D Texture;
     in vec2 Frag_UV;
     out vec4 Out_Color;
-    void main()
+
+    // http://www.workwithcolor.com/yellow-color-hue-range-01.htm
+    vec2 quantizeHueLevel1 (int hue360)
     {
+        if (hue360 < 10)  return vec2(0, 1);   // red
+        if (hue360 < 20)  return vec2(15, 1);  // red-orange
+        if (hue360 < 40)  return vec2(30, 1);  // orange/brown
+        if (hue360 < 50)  return vec2(45, 1);  // orange-yellow
+        if (hue360 < 60)  return vec2(60, 1);  // yellow
+        if (hue360 < 80)  return vec2(70, 1);  // yellow green
+        if (hue360 < 140) return vec2(110, 1); // green
+        if (hue360 < 170) return vec2(125, 1); // green-cyan
+        if (hue360 < 200) return vec2(185, 1); // cyan
+        if (hue360 < 220) return vec2(210, 1); // cyan-blue
+        if (hue360 < 240) return vec2(230, 1); // blue
+        if (hue360 < 280) return vec2(260, 1); // blue-magenta
+        if (hue360 < 320) return vec2(300, 1); // magenta
+        if (hue360 < 330) return vec2(325, 1); // magenta-pink
+        if (hue360 < 345) return vec2(338, 1); // pink
+        if (hue360 < 355) return vec2(350, 1); // pink-red
+        return vec2(0,1); // red again
+    }
+
+    // https://www.researchgate.net/figure/Nonuniform-hue-circle-quantization_fig6_224561621
+    vec2 quantizeHueLevel2 (int hue360)
+    {
+        if (hue360 < 22)  return vec2(0, 1);   // red
+        if (hue360 < 45)  return vec2(30, 1);  // orange
+        if (hue360 < 70)  return vec2(60, 1);  // yellow
+        if (hue360 < 155) return vec2(110, 1); // green
+        if (hue360 < 186) return vec2(170, 1); // cyan
+        if (hue360 < 278) return vec2(230, 1); // blue
+        if (hue360 < 330) return vec2(300, 1); // purple
+        return vec2(0,1); // red again
+    }
+
+    void main()
+    {        
         vec4 srgba = texture(Texture, Frag_UV.st);
         // All in [0,1]
         vec3 hsv = HSV_from_SRGB(srgba.rgb);
         hsv.x = mod(hsv.x + u_hueShift, 1.0);
-        hsv.x = int(0.5 + (360.0*hsv.x / u_hueQuantization)) * (u_hueQuantization / 360.0);
-        hsv.y = min(1.0, hsv.y * u_saturationScale);        
+        if (u_hueQuantization != 0)
+        { 
+            vec2 hueBrightness = u_hueQuantization == 1 ? quantizeHueLevel1(int(hsv.x*360.0)) : quantizeHueLevel2(int(hsv.x*360.0));
+            hsv.x = hueBrightness.x / 360.0;
+            hsv.z = min(1.0, hsv.z * hueBrightness.y);
+        }
+        hsv.y = min(1.0, hsv.y * u_saturationScale);
         vec4 transformedSRGB = RGBA_from_HSV(hsv, 1.0);
         Out_Color = transformedSRGB;
     }

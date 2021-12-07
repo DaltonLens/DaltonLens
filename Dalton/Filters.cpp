@@ -140,7 +140,7 @@ void Filter_HSVTransform::enableGLShader ()
     GLFilter::enableGLShader ();
     glUniform1f(_attribLocationHueShift, _currentParams.hueShift / 360.f);
     glUniform1f(_attribLocationSaturationScale, _currentParams.saturationScale);
-    glUniform1f(_attribLocationHueQuantization, (float)_currentParams.hueQuantization);
+    glUniform1i(_attribLocationHueQuantization, _currentParams.hueQuantization);
 }
 
 } // dl

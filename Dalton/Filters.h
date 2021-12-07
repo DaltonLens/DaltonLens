@@ -67,7 +67,7 @@ public:
         int hueShift = 0;
         // Default is to boost the saturation a bit.
         float saturationScale = 2.0f;
-        int hueQuantization = 1;
+        int hueQuantization = 0;
     };
 
 public:
