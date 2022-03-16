@@ -30,6 +30,12 @@ add_library(dalton
 
 add_dependencies(dalton glfw-deps clip-deps)
 
+target_include_directories(dalton 
+    PRIVATE
+    ${OpenCV_INCLUDE_DIRS}
+)
+
 target_link_libraries(dalton 
     glfw3
+    ${OpenCV_LIBS}
 )

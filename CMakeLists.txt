@@ -89,6 +89,8 @@ if (UNIX AND NOT APPLE)
     pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
 endif()
 
+find_package(OpenCV REQUIRED PATHS ${PRECOMPILED_FOLDER}/opencv NO_DEFAULT_PATH)
+
 # ExternalProject_Add(glew-deps
 #   PREFIX glew
 #   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/glew/build/cmake"
