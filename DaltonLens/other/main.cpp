@@ -11,6 +11,8 @@
 #include <Dalton/Utils.h>
 #include <Dalton/Platform.h>
 
+#include <zv/Client.h>
+
 #if PLATFORM_LINUX
 # define TRAY_APPINDICATOR 1
 #else
@@ -107,8 +109,26 @@ private:
     dl::StartupManager _startupManager;
 };
 
+#include <Dalton/DeepAlias.h>
+
 int main ()
 {
+    // dl::DeepAlias alias;
+    // dl::ImageSRGBA input;
+    // dl::readPngImage("/home/nb/Perso/DaltonLensPrivate/charts/inputs/tests/mpl-generated/img-00001.rendered.png", input);
+    // dl::ImageSRGBA output = alias.undoAntiAliasing (input);
+    // output = alias.undoAntiAliasing (input);
+
+#ifndef NDEBUG
+    zv::connect ();
+#endif
+    // zv::logImageRGBA ("input", input.rawBytes(), input.width (), input.height (), input.bytesPerRow ());
+    // zv::logImageRGBA ("output", output.rawBytes(), output.width (), output.height (), output.bytesPerRow ());
+    // zv::waitUntilDisconnected ();
+
+    // dl::writePngImage("output.png", output);
+    // return 0;
+    
     DaltonSystemTrayApp app;
     app.run ();
     return 0;

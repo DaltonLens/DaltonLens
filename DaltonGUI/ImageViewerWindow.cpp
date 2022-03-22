@@ -17,6 +17,7 @@
 #include <DaltonGUI/HighlightSimilarColor.h>
 #include <DaltonGUI/ImageViewerControlsWindow.h>
 #include <DaltonGUI/DaltonLensPrefs.h>
+#include <DaltonGUI/ImageItem.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS 1
 #include "imgui.h"
@@ -118,9 +119,7 @@ struct ImageViewerWindow::Impl
     
     GLFilterProcessor filterProcessor;
 
-    GLTexture gpuTexture;
-    dl::ImageSRGBA im;
-    std::string imagePath;
+    ImageItem currentImage;
     
     ImVec2 monitorSize = ImVec2(-1,-1);
     
@@ -251,7 +250,7 @@ bool ImageViewerWindow::initialize (GLFWwindow* parentWindow, ImageViewerControl
 
     checkGLError ();
 
-    impl->gpuTexture.initialize();
+    impl->currentImage.gpuTexture.initialize();
     
     return true;
 }
@@ -455,19 +454,20 @@ void ImageViewerWindow::showGrabbedData (const GrabScreenData& grabbedData, dl::
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
     impl->monitorSize = ImVec2(mode->width, mode->height);
 
-    impl->im.ensureAllocatedBufferForSize(grabbedData.srgbaImage->width(), grabbedData.srgbaImage->height());
-    impl->im.copyDataFrom(*grabbedData.srgbaImage);
-    impl->imagePath = "DaltonLens";
+    impl->currentImage.aliasedIm = {}; // clear it.
+    impl->currentImage.im.ensureAllocatedBufferForSize(grabbedData.srgbaImage->width(), grabbedData.srgbaImage->height());
+    impl->currentImage.im.copyDataFrom(*grabbedData.srgbaImage);
+    impl->currentImage.imagePath = "DaltonLens";
 
-    // dl::writePngImage("/tmp/debug.png", impl->im);
+    // dl::writePngImage("/tmp/debug.png", impl->currentImage.im);
     
     impl->imguiGlfwWindow.enableContexts ();
-    impl->gpuTexture.upload(impl->im);
+    impl->currentImage.gpuTexture.upload(impl->currentImage.im);
     impl->imageWidgetRect.normal.origin = grabbedData.capturedScreenRect.origin;
     impl->imageWidgetRect.normal.size = grabbedData.capturedScreenRect.size;
     impl->imageWidgetRect.current = impl->imageWidgetRect.normal;
     
-    impl->mutableState.highlightRegion.setImage(&impl->im);
+    impl->mutableState.highlightRegion.setImage(&impl->currentImage);
     impl->mutableState.activeMode = DaltonViewerMode::HighlightRegions;
     
     // Don't show it now, but tell it to show the window after
@@ -562,7 +562,7 @@ void ImageViewerWindow::runOnce ()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0,0));
     bool isOpen = true;
     
-    std::string mainWindowName = impl->imagePath + " - " + daltonViewerModeName(impl->mutableState.modeForCurrentFrame);        
+    std::string mainWindowName = impl->currentImage.imagePath + " - " + daltonViewerModeName(impl->mutableState.modeForCurrentFrame);        
     glfwSetWindowTitle(impl->imguiGlfwWindow.glfwWindow(), mainWindowName.c_str());
 
     if (ImGui::Begin((mainWindowName + "###Image").c_str(), &isOpen, flags))
@@ -614,14 +614,14 @@ void ImageViewerWindow::runOnce ()
         }
 
         GLFilter* activeFilter = impl->filterForMode(impl->mutableState.modeForCurrentFrame);
-        GLTexture* imageTexture = &impl->gpuTexture;
+        GLTexture* imageTexture = &impl->currentImage.gpuTexture;
         if (activeFilter)
         {
             impl->filterProcessor.render (
                 *activeFilter,
-                impl->gpuTexture.textureId (),
-                impl->gpuTexture.width (),
-                impl->gpuTexture.height ()
+                impl->currentImage.gpuTexture.textureId (),
+                impl->currentImage.gpuTexture.width (),
+                impl->currentImage.gpuTexture.height ()
             );
             imageTexture = &impl->filterProcessor.filteredTexture();
         }
@@ -645,7 +645,7 @@ void ImageViewerWindow::runOnce ()
                                                         ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
                                                         // Doing both since we're not sure which one will be used.
                                                         // Could store it as a member, but well.
-                                                        that->impl->gpuTexture.setLinearInterpolationEnabled(true);
+                                                        that->impl->currentImage.gpuTexture.setLinearInterpolationEnabled(true);
                                                         that->impl->filterProcessor.filteredTexture().setLinearInterpolationEnabled(true);
                                                     },
                                                     this);
@@ -662,7 +662,7 @@ void ImageViewerWindow::runOnce ()
             ImGui::GetWindowDrawList()->AddCallback([](const ImDrawList *parent_list, const ImDrawCmd *cmd)
                                                     {
                                                         ImageViewerWindow *that = reinterpret_cast<ImageViewerWindow *>(cmd->UserCallbackData);
-                                                        that->impl->gpuTexture.setLinearInterpolationEnabled(false);
+                                                        that->impl->currentImage.gpuTexture.setLinearInterpolationEnabled(false);
                                                         that->impl->filterProcessor.filteredTexture().setLinearInterpolationEnabled(false);
                                                     },
                                                     this);
@@ -677,11 +677,11 @@ void ImageViewerWindow::runOnce ()
             ImVec2 widgetPos = (io.MousePos + ImVec2(0.5f,0.5f)) - imageWidgetTopLeft;
             ImVec2 uv_window = widgetPos / imageWidgetSize;
             mousePosInTexture = (uv1-uv0)*uv_window + uv0;
-            mousePosInImage = mousePosInTexture * ImVec2(impl->im.width(), impl->im.height());
+            mousePosInImage = mousePosInTexture * ImVec2(impl->currentImage.im.width(), impl->currentImage.im.height());
         }
         
         bool showCursorOverlay = false;
-        const bool pointerOverTheImage = ImGui::IsItemHovered() && impl->im.contains(mousePosInImage.x, mousePosInImage.y);
+        const bool pointerOverTheImage = ImGui::IsItemHovered() && impl->currentImage.im.contains(mousePosInImage.x, mousePosInImage.y);
         if (pointerOverTheImage)
         {
             // Unfortunately we can't easily show it in every mode because the image
@@ -693,8 +693,8 @@ void ImageViewerWindow::runOnce ()
         
         if (showCursorOverlay)
         {
-            impl->cursorOverlayInfo.image = &impl->im;
-            impl->cursorOverlayInfo.imageTexture = &impl->gpuTexture;
+            impl->cursorOverlayInfo.image = &impl->currentImage.im;
+            impl->cursorOverlayInfo.imageTexture = &impl->currentImage.gpuTexture;
             impl->cursorOverlayInfo.showHelp = false;
             impl->cursorOverlayInfo.imageWidgetSize = imageWidgetSize;
             impl->cursorOverlayInfo.imageWidgetTopLeft = imageWidgetTopLeft;
@@ -708,8 +708,8 @@ void ImageViewerWindow::runOnce ()
 
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && io.KeyCtrl)
         {
-            if ((impl->im.width() / float(impl->zoom.zoomFactor)) > 16.f
-                 && (impl->im.height() / float(impl->zoom.zoomFactor)) > 16.f)
+            if ((impl->currentImage.im.width() / float(impl->zoom.zoomFactor)) > 16.f
+                 && (impl->currentImage.im.height() / float(impl->zoom.zoomFactor)) > 16.f)
             {
                 impl->zoom.zoomFactor *= 2;
                 impl->zoom.uvCenter = mousePosInTexture;

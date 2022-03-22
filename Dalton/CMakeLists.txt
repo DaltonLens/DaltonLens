@@ -8,11 +8,15 @@ set (dalton_deps_sources
     ${DEPS_DIR}/gl3w/GL/gl3w.c
     ${DEPS_DIR}/gl3w/GL/gl3w.h
     ${DEPS_DIR}/stb/stb_impl.cpp
+    ${DEPS_DIR}/zv/Client.h
+    ${DEPS_DIR}/zv/Client.cpp
 )
 
 add_library(dalton 
     ColorConversion.cpp
     ColorConversion.h
+    DeepAlias.cpp
+    DeepAlias.h
     Filters.h
     Filters.cpp
     Image.h    

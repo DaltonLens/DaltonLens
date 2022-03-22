@@ -9,6 +9,7 @@
 #include <Dalton/Image.h>
 #include <Dalton/Filters.h>
 
+#include <DaltonGUI/ImageItem.h>
 #include <DaltonGUI/ImageCursorOverlay.h>
 
 #include "imgui.h"
@@ -30,24 +31,33 @@ public:
 
         bool plotMode = true;
 
+        bool smartAlias = true; 
+
         CursorOverlayInfo cursorOverlayInfo;
     };
     MutableData mutableData;
 
 public:
-    void setImage(dl::ImageSRGBA *im) { _im = im; }
+    void setImage(ImageItem* imItem);
     void clearSelection();
     void setSelectedPixel(float x, float y, const CursorOverlayInfo& cursorOverlayInfo);
     void addSliderDelta(float delta);
-    void togglePlotMode();
+    void togglePlotMode();    
     void updateDeltas();
+    void updateSmartAlias();
     bool hasActiveColor() const { return mutableData.shaderParams.hasActiveColor; }
     void updateFrameCount ();
     void handleInputEvents ();
 
+    void ensureAliasedImageReady ();
+
+private:
+    void updateSelectedPixelValue ();
+    const ImageSRGBA& refIm() const { return mutableData.smartAlias ? _imItem->aliasedIm : _imItem->im; }
+
 private:
     dl::vec2i _selectedPixel = dl::vec2i(0, 0);
-    dl::ImageSRGBA* _im = nullptr;
+    dl::ImageItem* _imItem = nullptr;
 };
 
 void renderHighlightRegionControls (HighlightRegionState& state, bool collapsed);

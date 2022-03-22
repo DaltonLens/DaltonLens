@@ -64,6 +64,7 @@ set (daltonGUI_SOURCES
     ImguiGLFWWindow.cpp
     HelpWindow.cpp
     HelpWindow.h
+    ImageItem.h
     ImageViewerControlsWindow.cpp
     ImageViewerControlsWindow.h
     ImageViewerController.h

@@ -15,6 +15,7 @@
 #include <Dalton/Utils.h>
 #include <Dalton/MathUtils.h>
 #include <Dalton/ColorConversion.h>
+#include <Dalton/DeepAlias.h>
 
 #include <DaltonGUI/ImguiUtils.h>
 #include <DaltonGUI/ImguiGLFWWindow.h>
@@ -26,6 +27,8 @@
 // Note: need to include that before GLFW3 for some reason.
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
+
+#include <zv/Client.h>
 
 namespace dl
 {
@@ -43,6 +46,30 @@ void HighlightRegionState::clearSelection()
     mutableData.cursorOverlayInfo = {};
 }
 
+void HighlightRegionState::ensureAliasedImageReady ()
+{
+    if (!mutableData.smartAlias)
+        return;
+
+    if (_imItem->aliasedIm.hasData())
+        return;
+
+    DeepAlias alias;
+    _imItem->aliasedIm = alias.undoAntiAliasing (_imItem->im);
+
+    zv::logImageRGBA ("input", _imItem->im.rawBytes (), _imItem->im.width (), _imItem->im.height (), _imItem->im.bytesPerRow ());
+    zv::logImageRGBA ("aliased", _imItem->aliasedIm.rawBytes (), _imItem->aliasedIm.width (), _imItem->aliasedIm.height (), _imItem->aliasedIm.bytesPerRow ());
+
+    _imItem->gpuAliasedTexture.upload (_imItem->aliasedIm);
+}
+
+void HighlightRegionState::setImage (ImageItem* imItem)
+{ 
+    _imItem = imItem;
+    
+    ensureAliasedImageReady ();
+}
+
 void HighlightRegionState::setSelectedPixel(float x, float y, const CursorOverlayInfo& cursorOverlayInfo)
 {
     const auto newPixel = dl::vec2i((int)x, (int)y);
@@ -55,14 +82,9 @@ void HighlightRegionState::setSelectedPixel(float x, float y, const CursorOverla
     }
 
     _selectedPixel = newPixel;
-    dl::PixelSRGBA srgba = (*_im)(_selectedPixel.col, _selectedPixel.row);
-    mutableData.shaderParams.activeColorSRGB01.x = srgba.r / 255.f;
-    mutableData.shaderParams.activeColorSRGB01.y = srgba.g / 255.f;
-    mutableData.shaderParams.activeColorSRGB01.z = srgba.b / 255.f;
-
-    mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
-
     mutableData.shaderParams.hasActiveColor = true;
+    updateSelectedPixelValue ();
+
     mutableData.cursorOverlayInfo = cursorOverlayInfo;
     updateDeltas();
 }
@@ -78,6 +100,25 @@ void HighlightRegionState::togglePlotMode()
 {
     mutableData.plotMode = !mutableData.plotMode;
     updateDeltas();
+}
+
+void HighlightRegionState::updateSelectedPixelValue ()
+{
+    if (!mutableData.shaderParams.hasActiveColor)
+        return;
+
+    dl::PixelSRGBA srgba = refIm()(_selectedPixel.col, _selectedPixel.row);
+    mutableData.shaderParams.activeColorSRGB01.x = srgba.r / 255.f;
+    mutableData.shaderParams.activeColorSRGB01.y = srgba.g / 255.f;
+    mutableData.shaderParams.activeColorSRGB01.z = srgba.b / 255.f;
+
+    mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
+}
+
+void HighlightRegionState::updateSmartAlias()
+{
+    ensureAliasedImageReady ();
+    updateSelectedPixelValue ();
 }
 
 void HighlightRegionState::updateDeltas()
@@ -152,75 +193,7 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
                                          (int)(255.f * data.shaderParams.activeColorSRGB01.y + 0.5f),
                                          (int)(255.f * data.shaderParams.activeColorSRGB01.z + 0.5f),
                                          255);
-
-#if 0
-        const auto filledRectSize = ImVec2(9*monoFontSize, 9*monoFontSize);
-        ImVec2 topLeft = ImGui::GetCursorPos();
-        ImVec2 screenFromWindow = ImGui::GetCursorScreenPos() - topLeft;
-        ImVec2 bottomRight = topLeft + filledRectSize;
-
-        auto *drawList = ImGui::GetWindowDrawList();
-        drawList->AddRectFilled(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32(sRgb.r, sRgb.g, sRgb.b, 255));
-        drawList->AddRect(topLeft + screenFromWindow, bottomRight + screenFromWindow, IM_COL32_WHITE);
-        // Show a cross.
-        if (!data.shaderParams.hasActiveColor)
-        {
-            ImVec2 imageTopLeft = topLeft + screenFromWindow;
-            ImVec2 imageBottomRight = bottomRight + screenFromWindow - ImVec2(1, 1);
-            drawList->AddLine(imageTopLeft, imageBottomRight, IM_COL32_WHITE);
-            drawList->AddLine(ImVec2(imageTopLeft.x, imageBottomRight.y), ImVec2(imageBottomRight.x, imageTopLeft.y), IM_COL32_WHITE);
-        }
-
-        ImGui::SetCursorPosX(bottomRight.x + padding);
-        ImGui::SetCursorPosY(topLeft.y);
-
-        // Show the side info about the current color
-        {
-            // ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1,0,0,1));
-            ImGui::BeginChild("ColorInfo", ImVec2(monoFontSize*14, filledRectSize.y));
-
-            if (data.shaderParams.hasActiveColor)
-            {
-                ImguiGLFWWindow::PushMonoSpaceFont(io);
-                auto closestColors = dl::closestColorEntries(sRgb, dl::ColorDistance::CIE2000);
-
-                ImGui::Text("%s / %s",
-                            closestColors[0].entry->className,
-                            closestColors[0].entry->colorName);
-
-                ImGui::Text("sRGB: [%d %d %d]", sRgb.r, sRgb.g, sRgb.b);
-
-                PixelLinearRGB lrgb = dl::convertToLinearRGB(sRgb);
-                ImGui::Text("Linear RGB: [%d %d %d]", int(lrgb.r * 255.0), int(lrgb.g * 255.0), int(lrgb.b * 255.0));
-
-                auto hsv = data.activeColorHSV_1_1_255;
-                ImGui::Text("HSV: [%.1fº %.1f%% %.1f]", hsv.x * 360.f, hsv.y * 100.f, hsv.z);
-
-                PixelLab lab = dl::convertToLab(sRgb);
-                ImGui::Text("L*a*b: [%.1f %.1f %.1f]", lab.l, lab.a, lab.b);
-
-                PixelXYZ xyz = convertToXYZ(sRgb);
-                ImGui::Text("XYZ: [%.1f %.1f %.1f]", xyz.x, xyz.y, xyz.z);
-                ImGui::PopFont();
-            }
-            else
-            {
-                ImGui::BulletText("Click on the image to\nhighlight pixels with\na similar color.");
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("Up/Down or w/s to change\nthe filter.");
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::BulletText("'c' to copy the color\ninfo to the clipboard.");
-            }
-
-            ImGui::EndChild();
-            // ImGui::PopStyleColor();
-        }
-
-        ImGui::SetCursorPosY(bottomRight.y + padding);
-#endif
         
-        // ImGui::Text("Tip: try the mouse wheel to adjust the threshold.");
-
         state.handleInputEvents();
 
         int prevDeltaInt = int (data.deltaColorThreshold + 0.5f);
@@ -241,6 +214,18 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
                    "to better handle anti-aliasing on lines and curves. "
                    "Better to disable it when looking at flat colors, "
                    "for example on pie charts.", monoFontSize*20);
+
+        if (data.plotMode)
+        {
+            ImGui::SameLine ();
+            if (ImGui::Checkbox ("Smart Aliasing", &data.smartAlias))
+            {
+                
+            }
+            ImGui::SameLine ();
+            helpMarker ("[Experimental] use deep learning to remove "
+                        "anti-aliasing on lines and edges.", monoFontSize * 20);
+        }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
         

@@ -94,7 +94,9 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "*.in": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "complex": "cpp",
+        "typeindex": "cpp"
     },
     "cmake.configureOnOpen": true,
     "C_Cpp.errorSquiggles": "Disabled",

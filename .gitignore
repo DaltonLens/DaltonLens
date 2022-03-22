@@ -13,6 +13,7 @@ deps/prebuilt/glfw/share
 # Not using them to reduce build times for now.
 # deps/prebuilt/Linux
 deps/prebuilt/Windows
+deps/prebuilt/Linux/opencv/share/opencv4/*cascades/
 build-msvc
 WindowsStore/AppPackages
 WindowsStore/bin

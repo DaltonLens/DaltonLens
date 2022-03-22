@@ -76,7 +76,7 @@
 /* #undef HAVE_JPEG */
 
 /* libpng/png.h needs to be included */
-#define HAVE_LIBPNG_PNG_H
+/* #undef HAVE_LIBPNG_PNG_H */
 
 /* GDCM DICOM codec */
 /* #undef HAVE_GDCM */
@@ -110,7 +110,7 @@
 #define HAVE_PTHREAD
 
 /* parallel_for with pthreads */
-/* #undef HAVE_PTHREADS_PF */
+#define HAVE_PTHREADS_PF
 
 /* Intel Threading Building Blocks */
 /* #undef HAVE_TBB */
