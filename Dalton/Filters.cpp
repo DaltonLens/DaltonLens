@@ -159,6 +159,7 @@ void Filter_HighlightSimilarColors::initializeGL ()
     _attribLocationDeltaH = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaH_360");
     _attribLocationDeltaS = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaS_100");
     _attribLocationDeltaV = (GLuint)glGetUniformLocation(shaderHandle, "u_deltaV_255");
+    _attribLocationUseRGBMaxDiff = (GLuint)glGetUniformLocation(shaderHandle, "u_useRgbMaxDiff");
     _attribLocationFrameCount = (GLuint)glGetUniformLocation(shaderHandle, "u_frameCount");
 }
 
@@ -173,6 +174,7 @@ void Filter_HighlightSimilarColors::enableGLShader ()
     glUniform1f(_attribLocationDeltaS, _currentParams.deltaS_100);
     glUniform1f(_attribLocationDeltaV, _currentParams.deltaV_255);
     glUniform1i(_attribLocationFrameCount, _currentParams.frameCount / 2);
+    glUniform1i(_attribLocationUseRGBMaxDiff, _currentParams.useRgbMaxDiff);
 }
 
 } // dl

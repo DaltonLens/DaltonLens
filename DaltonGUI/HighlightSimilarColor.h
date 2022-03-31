@@ -30,8 +30,7 @@ public:
         float deltaColorThreshold = 10.f;
 
         bool plotMode = true;
-
-        bool smartAlias = true; 
+        bool smartAlias = false;
 
         CursorOverlayInfo cursorOverlayInfo;
     };
@@ -44,16 +43,12 @@ public:
     void addSliderDelta(float delta);
     void togglePlotMode();    
     void updateDeltas();
-    void updateSmartAlias();
     bool hasActiveColor() const { return mutableData.shaderParams.hasActiveColor; }
     void updateFrameCount ();
     void handleInputEvents ();
 
-    void ensureAliasedImageReady ();
-
 private:
     void updateSelectedPixelValue ();
-    const ImageSRGBA& refIm() const { return mutableData.smartAlias ? _imItem->aliasedIm : _imItem->im; }
 
 private:
     dl::vec2i _selectedPixel = dl::vec2i(0, 0);

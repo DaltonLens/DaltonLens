@@ -344,6 +344,7 @@ const char* fragmentShader_highlightSameColor = R"(
     uniform float u_deltaS_100;
     uniform float u_deltaV_255;
     uniform int u_frameCount;
+    uniform bool u_useRgbMaxDiff; // 0 means false, 1 means true
     in vec2 Frag_UV;
     out vec4 Out_Color;
 
@@ -356,13 +357,29 @@ const char* fragmentShader_highlightSameColor = R"(
                 && diff.z*255.0 < u_deltaV_255);
     }
 
+    float max3 (vec3 v) { return max (max (v.x, v.y), v.z); }
+
+    bool checkRGBDelta(vec3 rgb1, vec3 rgb2)
+    {
+        vec3 diff = abs(rgb1 - rgb2);
+        return max3(diff)*255.0 < u_deltaV_255;
+    }
+
     void main()
     {
         vec4 srgba = texture(Texture, Frag_UV.st);
         vec3 hsv = HSV_from_SRGB(srgba.rgb);
-        vec3 ref_hsv = HSV_from_SRGB(u_refColor_sRGB.rgb);
         
-        bool isSame = checkHSVDelta(ref_hsv, hsv);
+        bool isSame;
+        if (u_useRgbMaxDiff)
+        {
+            isSame = checkRGBDelta (srgba.rgb, u_refColor_sRGB.rgb);
+        }
+        else
+        {
+            vec3 ref_hsv = HSV_from_SRGB(u_refColor_sRGB.rgb);
+            isSame = checkHSVDelta(ref_hsv, hsv);
+        }
                         
         float t = u_frameCount;
         float timeWeight = sin(t / 2.0)*0.5 + 0.5; // between 0 and 1

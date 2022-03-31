@@ -72,10 +72,11 @@ public:
     ~GLTexture();
     
     int width () const { return _width; }
-    int height () const { return _height; }
+    int height () const { return _height; }    
 
     void initialize ();
     void initializeWithExistingTextureID (uint32_t textureId, int width, int height);
+    bool isInitialized () const { return _textureId > 0; }
     void releaseGL ();
 
     void ensureAllocatedForRGBA (int width, int height);

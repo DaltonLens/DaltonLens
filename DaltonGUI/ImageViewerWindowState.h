@@ -36,7 +36,7 @@ struct ImageViewerWindowState
     // modeForCurrentFrame can be different from activeMode
     // if the user presses the SHIFT key.
     DaltonViewerMode modeForCurrentFrame = DaltonViewerMode::None;
-    
+
     Filter_Daltonize::Params daltonizeParams;
 
     Filter_HSVTransform::Params hsvTransform;

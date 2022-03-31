@@ -136,6 +136,7 @@ public:
     struct Params
     {
         bool hasActiveColor = false;
+        bool useRgbMaxDiff = false;
         vec4d activeColorSRGB01 = vec4d(0,0,0,1);
         float deltaH_360 = NAN; // within [0,360º]
         float deltaS_100 = NAN; // within [0,100%]
@@ -156,6 +157,7 @@ private:
     unsigned _attribLocationDeltaH = 0;
     unsigned _attribLocationDeltaS = 0;
     unsigned _attribLocationDeltaV = 0;
+    unsigned _attribLocationUseRGBMaxDiff = 0;
     unsigned _attribLocationFrameCount = 0;
 };
 

@@ -17,11 +17,9 @@ namespace dl
 // Image and its associated data.
 struct ImageItem
 {
-    std::string imagePath;
+    bool isAliased = false;
     dl::ImageSRGBA im;
-    dl::ImageSRGBA aliasedIm;
     GLTexture gpuTexture;
-    GLTexture gpuAliasedTexture;
 };
 
 } // dl

@@ -46,28 +46,18 @@ void HighlightRegionState::clearSelection()
     mutableData.cursorOverlayInfo = {};
 }
 
-void HighlightRegionState::ensureAliasedImageReady ()
-{
-    if (!mutableData.smartAlias)
-        return;
-
-    if (_imItem->aliasedIm.hasData())
-        return;
-
-    DeepAlias alias;
-    _imItem->aliasedIm = alias.undoAntiAliasing (_imItem->im);
-
-    zv::logImageRGBA ("input", _imItem->im.rawBytes (), _imItem->im.width (), _imItem->im.height (), _imItem->im.bytesPerRow ());
-    zv::logImageRGBA ("aliased", _imItem->aliasedIm.rawBytes (), _imItem->aliasedIm.width (), _imItem->aliasedIm.height (), _imItem->aliasedIm.bytesPerRow ());
-
-    _imItem->gpuAliasedTexture.upload (_imItem->aliasedIm);
-}
-
 void HighlightRegionState::setImage (ImageItem* imItem)
 { 
-    _imItem = imItem;
+    if (_imItem == imItem)
+        return;
     
-    ensureAliasedImageReady ();
+    _imItem = imItem;
+    mutableData.cursorOverlayInfo.image = &_imItem->im;
+    mutableData.cursorOverlayInfo.imageTexture = &_imItem->gpuTexture;
+
+    mutableData.smartAlias = imItem->isAliased;
+    updateSelectedPixelValue ();
+    updateDeltas ();
 }
 
 void HighlightRegionState::setSelectedPixel(float x, float y, const CursorOverlayInfo& cursorOverlayInfo)
@@ -107,7 +97,7 @@ void HighlightRegionState::updateSelectedPixelValue ()
     if (!mutableData.shaderParams.hasActiveColor)
         return;
 
-    dl::PixelSRGBA srgba = refIm()(_selectedPixel.col, _selectedPixel.row);
+    dl::PixelSRGBA srgba = _imItem->im(_selectedPixel.col, _selectedPixel.row);
     mutableData.shaderParams.activeColorSRGB01.x = srgba.r / 255.f;
     mutableData.shaderParams.activeColorSRGB01.y = srgba.g / 255.f;
     mutableData.shaderParams.activeColorSRGB01.z = srgba.b / 255.f;
@@ -115,16 +105,25 @@ void HighlightRegionState::updateSelectedPixelValue ()
     mutableData.activeColorHSV_1_1_255 = dl::convertToHSV(srgba);
 }
 
-void HighlightRegionState::updateSmartAlias()
-{
-    ensureAliasedImageReady ();
-    updateSelectedPixelValue ();
-}
-
 void HighlightRegionState::updateDeltas()
-{
-    // If the selected color is not saturated at all (grayscale), then we need rely on
-    // value to discriminate the treat it the same way we treat the non-plot style.
+{    
+    // We'll use the RGB difference in that case.
+    if (mutableData.smartAlias)
+    {        
+        mutableData.shaderParams.deltaH_360 = 0;
+        mutableData.shaderParams.deltaS_100 = 0;
+        // Multiplying by 2 because the HSV threshold scale is too strict for RGB.
+        mutableData.shaderParams.deltaV_255 = mutableData.deltaColorThreshold * 2.0;
+        mutableData.shaderParams.useRgbMaxDiff = true;
+        return;
+    }
+
+    // Use HSV in the other modes.
+    mutableData.shaderParams.useRgbMaxDiff = false;
+
+    // If the selected color is not saturated at all (~ grayscale), then we need rely on
+    // value to discriminate and treat it the same way we treat the non-plot style.
+    // The hue indeed becomes irrelevant and unstable in that case.
     if (mutableData.plotMode && mutableData.activeColorHSV_1_1_255.y > 0.1)
     {        
         mutableData.shaderParams.deltaH_360 = mutableData.deltaColorThreshold;
@@ -205,27 +204,27 @@ void renderHighlightRegionControls(HighlightRegionState &state, bool collapsed)
             state.updateDeltas ();
         }
 
-        if (ImGui::Checkbox("Plot Mode", &data.plotMode))
+        if (ImGui::Checkbox ("Improve Edges", &data.smartAlias))
         {
             state.updateDeltas();
         }
-        ImGui::SameLine();
-        helpMarker("Allow more difference in saturation and value "
-                   "to better handle anti-aliasing on lines and curves. "
-                   "Better to disable it when looking at flat colors, "
-                   "for example on pie charts.", monoFontSize*20);
+        ImGui::SameLine ();
+        helpMarker ("[Experimental] use deep learning to remove "
+            "anti-aliasing on lines and edges.", monoFontSize * 20);
 
-        if (data.plotMode)
+        ImGui::SameLine ();
+        ImGui::BeginDisabled (data.smartAlias);
+        bool alwaysFalse = false;
+        if (ImGui::Checkbox ("Line Plot Mode", data.smartAlias ? &alwaysFalse : &data.plotMode))
         {
-            ImGui::SameLine ();
-            if (ImGui::Checkbox ("Smart Aliasing", &data.smartAlias))
-            {
-                
-            }
-            ImGui::SameLine ();
-            helpMarker ("[Experimental] use deep learning to remove "
-                        "anti-aliasing on lines and edges.", monoFontSize * 20);
+            state.updateDeltas ();
         }
+        ImGui::SameLine ();
+        helpMarker ("Allow more difference in saturation and value "
+            "to better handle anti-aliasing on lines and curves. "
+            "Better to disable it when looking at flat colors, "
+            "for example on pie charts.", monoFontSize * 20);
+        ImGui::EndDisabled ();
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
         
