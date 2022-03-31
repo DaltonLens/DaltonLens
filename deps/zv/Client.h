@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Message.h"
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -15,28 +17,51 @@ namespace zv
 
 // View of an existing buffer, no ownership will be taken and no reference
 // will get stored.
-struct ImageView
+struct ClientImageBuffer
 {
-    ImageView() {}
-    ImageView(void* pixels_RGBA32, int width, int height, int bytesPerRow = 0)
-        : pixels_RGBA32(pixels_RGBA32), width(width), height(height), bytesPerRow(bytesPerRow)
+    ClientImageBuffer() {}
+
+    ClientImageBuffer(void* pixels_RGBA32, int width, int height, int bytesPerRow = 0)
+    :   format(ImageBufferFormat::Data_RGBA32), 
+        data(pixels_RGBA32), 
+        width(width), 
+        height(height), 
+        bytesPerRow(bytesPerRow)
     {
         if (this->bytesPerRow == 0)
             this->bytesPerRow = width * 4;
     }
 
-    inline size_t numBytes() const { return height * bytesPerRow; }
+    ClientImageBuffer(const std::string& filePath, void* fileContent, size_t fileLength)
+    :   format(ImageBufferFormat::Raw_File),
+        filePath (filePath),
+        data (fileContent),
+        width (0), 
+        height(1),
+        bytesPerRow (fileLength)
+    {
+    }
 
-    void* pixels_RGBA32 = nullptr;
+    inline size_t contentSizeInBytes() const { return height * bytesPerRow; }
+
+    ImageBufferFormat format = ImageBufferFormat::Empty;
+
+    std::string filePath;
+    void* data = nullptr;
     int width = 0;
     int height = 0;
     int bytesPerRow = 0;
 };
 
-class ImageWriter
+inline size_t messagePayloadSize (const ClientImageBuffer& im)
+{
+    return 4*sizeof(uint32_t) + im.contentSizeInBytes() + im.filePath.size() + sizeof(uint64_t);
+}
+
+class ClientImageWriter
 {
 public:
-    virtual void write (const ImageView& imageView) = 0;
+    virtual void write (const ClientImageBuffer& imageView) = 0;
 };
 
 class Client
@@ -56,10 +81,14 @@ public:
     bool isConnected () const;
     bool connect (const std::string& hostname = "127.0.0.1", int port = 4207);
     void waitUntilDisconnected ();
+    void disconnect ();
 
-    using GetDataCallback = std::function<bool(ImageWriter&)>;
-    void addImage (uint64_t imageId, const std::string& imageName, const ImageView& imageBuffer, bool replaceExisting = true);
-    void addImage (uint64_t imageId, const std::string& imageName, const GetDataCallback& getDataCallback, bool replaceExisting = true);
+    using GetDataCallback = std::function<bool(ClientImageWriter&)>;
+    
+    void addImage (uint64_t imageId, const std::string& imageName, const ClientImageBuffer& imageBuffer, bool replaceExisting = true, const std::string& viewerName = "default");
+    void addImage (uint64_t imageId, const std::string& prettyName, const std::string& fileName, const GetDataCallback& getDataCallback, bool replaceExisting = true, const std::string& viewerName = "default");
+
+    void addImageFromFile (uint64_t imageId, const std::string& imagePath);
 
 private:
     struct Impl;

@@ -4,9 +4,10 @@
 // of the BSD license.  See the LICENSE file for details.
 //
 
+#include "znet_zv.h"
+
 #include "Client.h"
 
-#include "kissnet_zv.h"
 #include "Message.h"
 
 #include <thread>
@@ -16,17 +17,15 @@
 #include <deque>
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <atomic>
+#include <filesystem>
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-# define PLATFORM_WINDOWS 1
-#endif
+#include <netdb.h>
+#include <arpa/inet.h>
 
-#if !PLATFORM_WINDOWS
-# include <signal.h>
-#endif
-
-using namespace std::chrono_literals;
-namespace kn = kissnet;
+namespace fs = std::filesystem;
+namespace zn = zsummer::network;
 
 namespace zv
 {
@@ -35,109 +34,33 @@ struct ClientPayloadWriter : PayloadWriter
 {
     ClientPayloadWriter(std::vector<uint8_t>& payload) : PayloadWriter (payload) {}
 
-    void appendImageBuffer (const ImageView& imageBuffer)
+    void appendImageBuffer (const ClientImageBuffer& imageBuffer)
     {
+        appendUInt32 ((uint32_t)imageBuffer.format);
+        appendStringUTF8 (imageBuffer.filePath);
         appendUInt32 (imageBuffer.width);
         appendUInt32 (imageBuffer.height);
         appendUInt32 (imageBuffer.bytesPerRow);
         if (imageBuffer.bytesPerRow > 0)
-            appendBytes ((uint8_t*)imageBuffer.pixels_RGBA32, imageBuffer.numBytes());
+            appendBytes ((uint8_t*)imageBuffer.data, imageBuffer.contentSizeInBytes());
     }
 };
 
-class ClientWriteThread
+class MessageImageViewWriter : public ClientImageWriter
 {
 public:
-    ClientWriteThread ()
+    MessageImageViewWriter (Message& msg, uint64_t imageId) : msg (msg), writer (msg.payload)
     {
-        
-    }
-
-    ~ClientWriteThread ()
-    {
-        stop ();
-    }
-
-    void start (kn::tcp_socket* socket)
-    {
-        _socket = socket;
-        _writeThread = std::thread([this]() {
-            run ();
-        });
-    }
-
-    void stop ()
-    {
-        _messageAdded.notify_all();
-        _shouldDisconnect = true;
-        if (_writeThread.joinable())
-            _writeThread.join();
-    }
-
-    void enqueueMessage (Message&& msg)
-    {
-        std::lock_guard<std::mutex> _(_outputQueueMutex);
-        _outputQueue.push_back (std::move(msg));
-        _messageAdded.notify_all();
-    }
-
-private:
-    void run ()
-    {
-        while (!_shouldDisconnect)
-        {
-            std::unique_lock<std::mutex> lk (_outputQueueMutex);
-            _messageAdded.wait (lk, [this]() {
-                return _shouldDisconnect || !_outputQueue.empty();
-            });
-            // Mutex locked again.
-
-            std::clog << "[DEBUG][WRITER] Got event, checking if anything to send." << std::endl;
-            std::deque<Message> messagesToSend;
-            messagesToSend.swap(_outputQueue);
-            lk.unlock ();
-
-            while (!messagesToSend.empty())
-            {
-                try
-                {
-                    sendMessage(*_socket, std::move(messagesToSend.front()));
-                    messagesToSend.pop_front();
-                }
-                catch (const std::exception& e)
-                {
-                    std::clog << "Got an exception, stopping the connection: " << e.what() << std::endl;
-                    _shouldDisconnect = true;
-                    break;
-                }
-            }
-        }
-    }
-
-private:
-    kn::tcp_socket* _socket = nullptr;
-    bool _shouldDisconnect = false;
-    std::thread _writeThread;
-    std::mutex _outputQueueMutex;
-    std::deque<Message> _outputQueue;
-    std::condition_variable _messageAdded;
-};
-
-class MessageImageWriter : public ImageWriter
-{
-public:
-    MessageImageWriter (Message& msg, uint64_t imageId) : msg (msg), writer (msg.payload)
-    {
-        msg.kind = MessageKind::ImageBuffer;
+        msg.header.kind = MessageKind::ImageBuffer;
         writer.appendUInt64 (imageId);
     }
 
-    ~MessageImageWriter ()
+    ~MessageImageViewWriter ()
     {
-        msg.payloadSizeInBytes = msg.payload.size();
+        msg.header.payloadSizeInBytes = msg.payload.size();
     }
 
-    virtual void write (const ImageView& imageView) override
+    virtual void write (const ClientImageBuffer& imageView) override
     {
         writer.appendImageBuffer (imageView);
     }
@@ -150,6 +73,16 @@ private:
 class ClientThread
 {
 public:
+    enum class Status
+    {
+        Init,
+        Connecting,
+        Connected,
+        FailedToConnect,
+        Disconnected,
+    };
+
+public:
     ~ClientThread()
     {
         stop ();
@@ -157,7 +90,8 @@ public:
 
     bool isConnected () const
     {
-        return _socket.is_valid();
+        std::lock_guard<std::mutex> _ (_statusMutex);
+        return _status == Status::Connected;
     }
 
     void waitUntilDisconnected ()
@@ -166,50 +100,41 @@ public:
             _thread.join ();
     }
 
-    bool start(const std::string &hostname, int port)
+    bool start(const std::string& hostname, int port)
     {
-#if !PLATFORM_WINDOWS
-        sigset_t sig_block, sig_restore, sig_pending;
-        sigemptyset(&sig_block);
-        sigaddset(&sig_block, SIGPIPE);
-        if (pthread_sigmask(SIG_BLOCK, &sig_block, &sig_restore) != 0) 
-        {
-            // Could not block sigmask?
-            assert (false);
-        }
-#endif
-        _socket = kn::tcp_socket(kn::endpoint(hostname, port));
+        _status = Status::Connecting;
+        _thread = std::thread([this, hostname, port]() { runMainLoop(hostname, port); });
         
-        try
+        Status connectionStatus;
         {
-            _socket.connect ();
-        }
-        catch (const std::exception& e)
-        {
-            std::clog << "Could not connect to ZV client: " << e.what() << std::endl;
-            return false;
+            std::unique_lock<std::mutex> lk(_statusMutex);
+            _statusChanged.wait(lk, [this]()
+                                { return _status != Status::Connecting; });
+            connectionStatus = _status;
         }
 
-        _thread = std::thread([this]() { runMainLoop(); });
-        return true;
+        if (connectionStatus != Status::Connected && _thread.joinable())
+            _thread.join();
+
+        return connectionStatus == Status::Connected;
     }
 
     void stop ()
     {
-        _shouldDisconnect = true;
-        enqueueMessage (closeMessage());
         if (_thread.joinable())
+        {
+            {
+                std::lock_guard<std::mutex> lk(_eventLoopMutex);
+                if (_eventLoop)
+                    _eventLoop->post([this]() { disconnect(); });
+            }
             _thread.join();
+        }
     }
 
-    void enqueueMessage (Message&& msg)
+    void addImage (uint64_t imageId, const std::string& imageName, const std::string& imagePath, const Client::GetDataCallback& getDataCallback, bool replaceExisting, const std::string& viewerName)
     {
-        return _writeThread.enqueueMessage (std::move(msg));
-    }
-
-    void addImage (uint64_t imageId, const std::string& imageName, const Client::GetDataCallback& getDataCallback, bool replaceExisting)
-    {
-        if (!_socket.is_valid())
+        if (!isConnected())
             return;
 
         {
@@ -217,12 +142,17 @@ public:
             assert(_getDataCallbacks.find(imageId) == _getDataCallbacks.end());
             _getDataCallbacks[imageId] = getDataCallback;
         }
-        addImage(imageId, imageName, ImageView(), replaceExisting);
+        
+        // Only write the path.
+        ClientImageBuffer imageBuffer;
+        imageBuffer.filePath = imagePath;
+
+        addImage(imageId, imageName, imageBuffer, replaceExisting, viewerName);
     }
 
-    void addImage (uint64_t imageId, const std::string& imageName, const ImageView& imageBuffer, bool replaceExisting)
+    void addImage (uint64_t imageId, const std::string& imageName, const ClientImageBuffer& imageBuffer, bool replaceExisting, const std::string& viewerName)
     {
-        if (!_socket.is_valid())
+        if (!isConnected())
             return;
 
         // uniqueId:uint64_t name:StringUTF8 flags:uint32_t imageBuffer:ImageBuffer
@@ -233,129 +163,210 @@ public:
         //      bytesPerRow:uint32_t
         //      buffer:Blob
         Message msg;
-        msg.kind = MessageKind::Image;
-        msg.payloadSizeInBytes = (
+        msg.header.kind = MessageKind::Image;
+        msg.header.payloadSizeInBytes = (
             sizeof(uint64_t) // imageId
             + imageName.size() + sizeof(uint64_t) // name
+            + viewerName.size() + sizeof(uint64_t) // viewerName
             + sizeof(uint32_t) // flags
-            + sizeof(uint32_t)*3 + imageBuffer.numBytes() // image buffer
+            + messagePayloadSize(imageBuffer)
         );
-        msg.payload.reserve (msg.payloadSizeInBytes);
+        msg.payload.reserve (msg.header.payloadSizeInBytes);
 
         uint32_t flags = replaceExisting;
         ClientPayloadWriter w (msg.payload);
         w.appendUInt64 (imageId);
-        w.appendStringUTF8 (imageName);    
+        w.appendStringUTF8 (imageName);
+        w.appendStringUTF8 (viewerName);
         w.appendUInt32 (flags);
         w.appendImageBuffer (imageBuffer);
-        assert (msg.payload.size() == msg.payloadSizeInBytes);
+        assert (msg.payload.size() == msg.header.payloadSizeInBytes);
 
-        enqueueMessage (std::move(msg));
+        _senderQueue->enqueueMessage (std::move(msg));
     }
 
 private: 
-    // The main loop will keep reading.
-    // The write loop will keep writing.
-    void runMainLoop ()
+    void disconnect ()
     {
-        _writeThread.start (&_socket);
-        _writeThread.enqueueMessage (versionMessage(1));
+        // Already disconnected.
+        if (!_socket)
+            return;
 
-        while (!_shouldDisconnect)
-        {       
-            try 
-            {
-                Message msg = recvMessage();
-                switch (msg.kind)
-                {
-                case MessageKind::Invalid:
-                {
-                    std::clog << "[DEBUG][READER] Invalid message" << std::endl;
-                    _shouldDisconnect = true;
-                    break;
-                }
-
-                case MessageKind::Close:
-                {
-                    std::clog << "[DEBUG][READER] got close message" << std::endl;
-                    if (!_shouldDisconnect)
-                    {
-                        _writeThread.enqueueMessage (closeMessage ());
-                    }
-                    _shouldDisconnect = true;
-                    break;
-                }
-
-                case MessageKind::Version:
-                {
-                    PayloadReader r (msg.payload);
-                    int32_t serverVersion = r.readInt32();
-                    std::clog << "[DEBUG][READER] Server version = " << serverVersion << std::endl;
-                    assert(serverVersion == 1);
-                    break;
-                }
-
-                case MessageKind::RequestImageBuffer:
-                {
-                    // uniqueId:uint64_t
-                    PayloadReader r (msg.payload);
-                    uint64_t imageId = r.readUInt64();
-
-                    Message outputMessage;
-                    {
-                        MessageImageWriter msgWriter(outputMessage, imageId);
-                        Client::GetDataCallback callback;
-                        {
-                            std::lock_guard<std::mutex> lk(_getDataCallbacksMutex);
-                            auto callbackIt = _getDataCallbacks.find(imageId);
-                            assert(callbackIt != _getDataCallbacks.end());
-                            callback = callbackIt->second;
-                        }
-
-                        if (callback)
-                        {
-                            callback(msgWriter);
-                        }
-                    }
-                    _writeThread.enqueueMessage (std::move(outputMessage));
-                    break;
-                }
-                }
-            }
-            catch (const std::exception& e)
-            {
-                std::clog << "Got an exception, stopping the connection: " << e.what() << std::endl;
-                break;
-            }
-        }
-
-        _writeThread.stop ();
-        _socket.close ();
+        _shouldDisconnect = true;
+        _receiver.reset ();
+        _senderQueue.reset ();
+        _socket->doClose ();
+        _socket.reset ();
+        setStatus (Status::Disconnected);
     }
 
-private:
-    Message recvMessage ()
+    void setStatus (Status status)
     {
-        KnReader r (_socket);
-        Message msg;
-        msg.kind = (MessageKind)r.recvUInt32 ();
-        msg.payloadSizeInBytes = r.recvUInt64 ();
-        msg.payload.resize (msg.payloadSizeInBytes);
-        if (msg.payloadSizeInBytes > 0)
-            r.recvAllBytes (msg.payload.data(), msg.payloadSizeInBytes);
-        return msg;
+        std::lock_guard<std::mutex> _ (_statusMutex);
+        _status = status;
+        _statusChanged.notify_all ();
+    }
+
+    void onMessage(zn::NetErrorCode error, const Message& msg)
+    {        
+        if (error != zn::NEC_SUCCESS)
+            return disconnect();
+
+        switch (msg.header.kind)
+        {
+        case MessageKind::Invalid:
+        {
+            std::clog << "[DEBUG][READER] Invalid message" << std::endl;
+            disconnect ();
+            break;
+        }
+
+        case MessageKind::Version:
+        {
+            PayloadReader r(msg.payload);
+            int32_t serverVersion = r.readInt32();
+            // std::clog << "[DEBUG][READER] Server version = " << serverVersion << std::endl;
+            assert(serverVersion == 1);
+            break;
+        }
+
+        case MessageKind::RequestImageBuffer:
+        {
+            // uniqueId:uint64_t
+            PayloadReader r(msg.payload);
+            uint64_t imageId = r.readUInt64();
+
+            Message outputMessage;
+            {
+                MessageImageViewWriter msgWriter(outputMessage, imageId);
+                Client::GetDataCallback callback;
+                {
+                    std::lock_guard<std::mutex> lk(_getDataCallbacksMutex);
+                    auto callbackIt = _getDataCallbacks.find(imageId);
+                    assert(callbackIt != _getDataCallbacks.end());
+                    callback = callbackIt->second;
+                }
+
+                if (callback)
+                {
+                    callback(msgWriter);
+                }
+            }
+            _senderQueue->enqueueMessage(std::move(outputMessage));
+            break;
+        }
+
+        default:
+            break;
+        }
+
+        // Keep reading.
+        recvMessage();
+    }
+
+    // https://stackoverflow.com/questions/9400756/ip-address-from-host-name-in-windows-socket-programming
+    std::string hostnameToIP(const std::string& host_or_ip)
+    {
+        hostent *hostname = gethostbyname(host_or_ip.c_str());
+        if (hostname)
+            return std::string(inet_ntoa(**(in_addr **)hostname->h_addr_list));
+        else
+            return host_or_ip;
+    }
+
+    // The main loop will keep reading.
+    // The write loop will keep writing.
+    void runMainLoop (const std::string &hostname, int port)
+    {        
+        _eventLoop = std::make_shared<zn::EventLoop>();
+        _eventLoop->initialize ();
+        _socket = std::make_shared<zn::TcpSocket>();
+        bool ok = _socket->initialize (_eventLoop);
+        if (!ok)
+        {
+            setStatus (Status::FailedToConnect);
+            std::clog << "Could not initialize a socket." << std::endl;
+            return;
+        }
+
+        const std::string ip = hostnameToIP (hostname);
+
+        ok = _socket->doConnect (ip, port, [this, hostname, ip, port](zn::NetErrorCode error) {
+            if (error != zn::NEC_SUCCESS)
+            {
+                fprintf (stderr, "Could not connect to the ZV server %s(%s):%d .\n", hostname.c_str(), ip.c_str(), port);
+                setStatus (Status::FailedToConnect);
+                return disconnect ();
+            }
+
+            // Start the receive message loop.
+            _receiver = std::make_shared<zn::MessageReceiver>(_socket);
+            recvMessage ();
+
+            _senderQueue = std::make_shared<zn::MessageSenderQueue>(_eventLoop, _socket, [this](zn::NetErrorCode err) {
+                if (err != zn::NEC_SUCCESS)
+                    disconnect ();
+            });
+
+            _senderQueue->enqueueMessage (versionMessage(1));
+
+            setStatus (Status::Connected);
+        });
+        if (!ok)
+        {
+            std::clog << "Could not connect to the ZV client." << std::endl;
+            return;
+        }
+
+        while (!_shouldDisconnect)
+        {
+            // onMessage will be called once read.
+            bool success = _eventLoop->runOnce ();
+            if (!success)
+                disconnect ();
+        }
+        
+        disconnect ();
+        
+        {
+            std::lock_guard<std::mutex> lk(_eventLoopMutex);
+            _eventLoop.reset();
+        }
+    }
+
+    void recvMessage ()
+    {
+        if (!_receiver)
+            return;
+        _receiver->recvMessage([this](zn::NetErrorCode err, const Message &msg) { onMessage(err, msg); });
     }
 
 private: 
     std::thread _thread; 
-    ClientWriteThread _writeThread;
+    
+    std::mutex _eventLoopMutex;
+    zn::EventLoopPtr _eventLoop;
 
-    kn::tcp_socket _socket;
+    zn::TcpSocketPtr _socket;
+    zn::MessageReceiverPtr _receiver;
+    zn::MessageSenderQueuePtr _senderQueue;
+
     bool _shouldDisconnect = false;
+    Status _status = Status::Init;
+    std::condition_variable _statusChanged;
+    mutable std::mutex _statusMutex;
+
+    std::mutex _outputQueueMutex;
+    std::deque<Message> _outputQueue;
 
     std::mutex _getDataCallbacksMutex;
     std::unordered_map<uint64_t, Client::GetDataCallback> _getDataCallbacks;
 };
+
+} // zv
+
+namespace zv
+{
 
 struct Client::Impl
 {
@@ -370,7 +381,7 @@ Client::~Client() = default;
 
 bool Client::connect (const std::string& hostname, int port)
 {
-    return impl->_clientThread.start (hostname, port);
+    return impl->_clientThread.start (hostname, port); 
 }
 
 bool Client::isConnected () const
@@ -383,14 +394,49 @@ void Client::waitUntilDisconnected ()
     impl->_clientThread.waitUntilDisconnected ();
 }
 
-void Client::addImage (uint64_t imageId, const std::string& imageName, const ImageView& imageBuffer, bool replaceExisting)
+void Client::disconnect ()
 {
-    impl->_clientThread.addImage (imageId, imageName, imageBuffer, replaceExisting);
+    impl->_clientThread.stop ();
 }
 
-void Client::addImage (uint64_t imageId, const std::string& imageName, const GetDataCallback& getDataCallback, bool replaceExisting)
+void Client::addImage (uint64_t imageId, const std::string& imageName, const ClientImageBuffer& imageBuffer, bool replaceExisting, const std::string& viewerName)
 {
-    impl->_clientThread.addImage (imageId, imageName, getDataCallback, replaceExisting);
+    impl->_clientThread.addImage (imageId, imageName, imageBuffer, replaceExisting, viewerName);
+}
+
+void Client::addImage (uint64_t imageId, const std::string& imageName, const std::string& fileName, const GetDataCallback& getDataCallback, bool replaceExisting, const std::string& viewerName)
+{
+    impl->_clientThread.addImage (imageId, imageName, fileName, getDataCallback, replaceExisting, viewerName);
+}
+
+inline size_t fileLength (std::ifstream& is)
+{
+    is.seekg (0, is.end);
+    size_t length = is.tellg();
+    is.seekg (0, is.beg);
+    return length;
+}
+
+void Client::addImageFromFile (uint64_t imageId, const std::string& imPath)
+{
+    auto cb = [imPath](ClientImageWriter& writer) {
+        fprintf (stderr, "%s requested", imPath.c_str());
+        std::ifstream f(imPath, std::ios::in | std::ios::binary);
+        if (!f.good())
+            return false;
+        // Only accurate on all platforms in binary mode.
+        // https://stackoverflow.com/questions/2409504/using-c-filestreams-fstream-how-can-you-determine-the-size-of-a-file
+        // https://stackoverflow.com/questions/22984956/tellg-function-give-wrong-size-of-file/22986486#22986486
+        size_t sizeInBytes = fileLength (f);
+        std::vector<uint8_t> contents (sizeInBytes);
+        f.read((char*)contents.data(), sizeInBytes);
+
+        ClientImageBuffer buffer (imPath, contents.data(), sizeInBytes);        
+        writer.write (buffer);
+        return true;
+    };
+
+    addImage (imageId, fs::path(imPath).filename(), imPath, std::move(cb), true);
 }
 
 Client& Client::instance()
@@ -414,7 +460,7 @@ bool connect (const std::string& hostname, int port)
 void logImageRGBA (const std::string& name, void* pixels_RGBA32, int width, int height, int bytesPerRow)
 {
     Client& client = Client::instance();
-    client.addImage (client.nextUniqueId(), name, ImageView((uint8_t*)pixels_RGBA32, width, height, bytesPerRow));
+    client.addImage (client.nextUniqueId(), name, ClientImageBuffer((uint8_t*)pixels_RGBA32, width, height, bytesPerRow));
 }
 
 void waitUntilDisconnected ()

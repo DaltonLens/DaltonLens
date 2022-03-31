@@ -10,6 +10,7 @@ set (dalton_deps_sources
     ${DEPS_DIR}/stb/stb_impl.cpp
     ${DEPS_DIR}/zv/Client.h
     ${DEPS_DIR}/zv/Client.cpp
+    ${DEPS_DIR}/zv/znet.cpp
 )
 
 add_library(dalton 

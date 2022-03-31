@@ -7,6 +7,10 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
+#include <string>
+#include <stdexcept>
+#include <cassert>
 
 namespace zv
 {
@@ -45,6 +49,7 @@ namespace zv
 
     ImageBuffer:
         format: uint32_t
+        filename: StringUTF8 // can be empty
         width:uint32_t
         height:uint32_t
         bytesPerRow:uint32_t
@@ -55,9 +60,6 @@ enum class MessageKind : int32_t
 {
     Invalid = -1,
 
-    // No payload. Just request a close message.
-    Close = 0,
-
     // version:uint32_t
     Version = 1,
 
@@ -66,7 +68,7 @@ enum class MessageKind : int32_t
     // it'll need it. This is useful when telling the server about many
     // available images (e.g listing a folder). 
     //
-    // uniqueId:uint64_t name:StringUTF8 flags:uint32_t imageBuffer:ImageBuffer
+    // uniqueId:uint64_t name:StringUTF8 viewerName:StringUTF8 flags:uint32_t imageBuffer:ImageBuffer
     Image = 2,
 
     // Request image data.
@@ -78,17 +80,37 @@ enum class MessageKind : int32_t
     ImageBuffer = 4,
 };
 
+enum class ImageBufferFormat : uint32_t
+{
+    Unknown = 0,
+    Empty = 1, // will be sent later
+    Raw_File = 2, // determine the encoding from the filePath extension.
+    Data_RGBA32 = 3,
+};
+
+#pragma pack(push,1)
+struct MessageHeader
+{
+    MessageKind kind = MessageKind::Invalid;
+    uint64_t payloadSizeInBytes;
+
+    void* rawBytes () { return reinterpret_cast<void*>(this); }
+};
+#pragma pack(pop)
+
 struct Message
 {
-    Message () {}
+    Message () {}    
 
     // Make sure we don't accidentally make copies by leaving
     // only the move operators.
     Message (Message&& msg) = default;
     Message& operator= (Message&& msg) = default;
 
-    MessageKind kind = MessageKind::Invalid;
-    uint64_t payloadSizeInBytes = 0;
+    bool isValid() const { return header.kind != MessageKind::Invalid; }
+    void setInvalid () { header.kind = MessageKind::Invalid; payload.clear(); }
+
+    MessageHeader header;
     std::vector<uint8_t> payload;
 };
 
@@ -184,23 +206,15 @@ private:
     size_t offset = 0;
 };
 
-static Message closeMessage()
-{
-    Message msg;
-    msg.kind = MessageKind::Close;
-    msg.payloadSizeInBytes = 0;
-    return msg;
-}
-
 static Message versionMessage(int32_t version)
 {
     Message msg;
-    msg.kind = MessageKind::Version;
-    msg.payloadSizeInBytes = sizeof(uint32_t);
-    msg.payload.reserve(msg.payloadSizeInBytes);
+    msg.header.kind = MessageKind::Version;
+    msg.header.payloadSizeInBytes = sizeof(uint32_t);
+    msg.payload.reserve(msg.header.payloadSizeInBytes);
     PayloadWriter w (msg.payload);
     w.appendInt32 (version);
-    assert (msg.payload.size() == msg.payloadSizeInBytes);
+    assert (msg.payload.size() == msg.header.payloadSizeInBytes);
     return msg;
 }
 
