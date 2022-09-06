@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <memory>
 #include <cstring>
+#include <cstdlib>
 
 #define XDO_ERROR 1
 #define XDO_SUCCESS 0
