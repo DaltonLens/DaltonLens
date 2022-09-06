@@ -11,7 +11,7 @@ add_executable(binary_to_compressed "${DEPS_DIR}/imgui/misc/fonts/binary_to_comp
 if (UNIX)
     # App indicator includes the required gtk3 headers
     find_package(PkgConfig REQUIRED)
-    pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
+    pkg_check_modules(APPINDICATOR REQUIRED ayatana-appindicator3-0.1)
 endif()
 
 target_include_directories(DaltonLens PRIVATE ${APPINDICATOR_INCLUDE_DIRS})
