@@ -40,6 +40,7 @@ public:
     
 public:
     bool initialize (GLFWwindow* parentContext);
+    void updateMonitorInfo();
     void shutdown ();
     void runOnce ();
     bool startGrabbing ();

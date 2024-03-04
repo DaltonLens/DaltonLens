@@ -12,6 +12,7 @@
 #include <functional>
 
 struct GLFWwindow;
+struct GLFWmonitor;
 
 struct ImGuiIO;
 
@@ -57,7 +58,8 @@ public:
     bool isEnabled () const;
     
     void setWindowPos (int x, int y);
-    void setWindowSize (int width, int height);    
+    void setWindowSize (int width, int height);
+    void setWindowMonitorAndGeometry (GLFWmonitor* monitor, const dl::Rect& geometry);
     
 public:
     bool closeRequested () const;
@@ -81,5 +83,7 @@ private:
     std::unique_ptr<Impl> impl;
     friend class ImGuiScopedContext;
 };
+
+bool glfwGetMonitorWithMouseCursor(GLFWmonitor** monitor, GLFWwindow* window);
 
 } // dl

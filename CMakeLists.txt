@@ -116,6 +116,9 @@ mark_as_advanced(
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" "RelWithDebInfo" "DebugFast")
 
+if (APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version" FORCE)
+endif()
 # add_compile_options(
 #     $<$<CONFIG:Debug>:-Os>
 # )
