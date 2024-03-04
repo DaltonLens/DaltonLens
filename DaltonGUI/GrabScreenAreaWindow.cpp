@@ -58,8 +58,10 @@ struct GrabScreenAreaWindow::Impl
     bool grabbingFinished = true;
     GrabScreenData grabbedData;
     
+    GLFWmonitor* currentMonitor = nullptr;
     ImVec2 monitorWorkAreaSize = ImVec2(-1,-1);
     ImVec2 monitorWorkAreaTopLeft = ImVec2(-1,-1);
+    ImVec2 monitorTopLeft = ImVec2(-1,-1);
     
     ScreenGrabber grabber;
     
@@ -138,11 +140,21 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 {
     dl::Rect geometry;
     {
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-        int xpos, ypos, width, height;
-        glfwGetMonitorWorkarea(monitor, &xpos, &ypos, &width, &height);
-        impl->monitorWorkAreaSize = ImVec2(width, height);
-        impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
+        impl->currentMonitor = glfwGetPrimaryMonitor();
+        {
+            int xpos, ypos, width, height;
+            glfwGetMonitorWorkarea(impl->currentMonitor, &xpos, &ypos, &width, &height);
+            impl->monitorWorkAreaSize = ImVec2(width, height);
+            impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
+        }
+        
+        {
+            int xpos, ypos;
+            glfwGetMonitorPos(impl->currentMonitor, &xpos, &ypos);
+            impl->monitorTopLeft.x = xpos;
+            impl->monitorTopLeft.y = ypos;
+        }
+        
         geometry.size.x = impl->monitorWorkAreaSize.x;
         geometry.size.y = impl->monitorWorkAreaSize.y;
         geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
@@ -300,9 +312,63 @@ void GrabScreenAreaWindow::runOnce ()
     if (impl->justGotEnabled)
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        impl->imguiGlfwWindow.setEnabled (true);
+        dl::Rect geometry;
+//        geometry.size.x = impl->monitorWorkAreaSize.x;
+//        geometry.size.y = impl->monitorWorkAreaSize.y;
+        geometry.size.x = 256;
+        geometry.size.y = 256;
+        geometry.origin.x = impl->monitorWorkAreaTopLeft.x + 64;
+        geometry.origin.y = impl->monitorWorkAreaTopLeft.y + 64;
+        dl_dbg("Setting window origin to %f %f", geometry.origin.x, geometry.origin.y);
+        impl->imguiGlfwWindow.setEnabled(true);
+        impl->imguiGlfwWindow.setWindowPos(geometry.origin.x, geometry.origin.y);
+        impl->imguiGlfwWindow.setWindowSize(geometry.size.x, geometry.size.y);
+        // impl->imguiGlfwWindow.setWindowMonitorAndGeometry(nullptr, geometry);
         impl->justGotEnabled = false;
     }
+}
+
+void GrabScreenAreaWindow::updateMonitorInfo()
+{
+    dl::Rect geometry;
+    GLFWmonitor* monitor = nullptr;
+    if (!glfwGetMonitorWithMouseCursor(&monitor, impl->imguiGlfwWindow.glfwWindow()))
+    {
+        dl_dbg("[WARNING] could not retrieve the current monitor");
+        return;
+    }
+    
+    impl->currentMonitor = monitor;
+    
+    {
+        int xWorkPos, yWorkPos, width, height;
+        glfwGetMonitorWorkarea(monitor, &xWorkPos, &yWorkPos, &width, &height);
+        impl->monitorWorkAreaSize = ImVec2(width, height);
+        impl->monitorWorkAreaTopLeft = ImVec2(xWorkPos, yWorkPos);
+        geometry.size.x = impl->monitorWorkAreaSize.x;
+        geometry.size.y = impl->monitorWorkAreaSize.y;
+        geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
+        geometry.origin.y = impl->monitorWorkAreaTopLeft.y;
+        
+        int xpos, ypos;
+        glfwGetMonitorPos(monitor, &xpos, &ypos);
+        impl->monitorTopLeft.x = xpos;
+        impl->monitorTopLeft.y = ypos;
+    }
+    
+    int numMonitors = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&numMonitors);
+    
+    for (int i = 0; i < numMonitors; ++i)
+    {
+        int xpos, ypos, width, height;
+        glfwGetMonitorWorkarea(monitors[i], &xpos, &ypos, &width, &height);
+        dl_dbg ("Monitor %d (%x): %d %d %d %d", i, monitors[i], xpos, ypos, width, height);
+    }
+    
+    dl_dbg("Primary monitor = %x", glfwGetPrimaryMonitor());
+    dl_dbg("Selected monitor with the mouse cursor = %x", monitor);
+    dl_dbg("Geometry = %f %f %f %f", geometry.origin.x, geometry.origin.y, geometry.size.x, geometry.size.y);
 }
 
 bool GrabScreenAreaWindow::startGrabbing ()
@@ -310,6 +376,8 @@ bool GrabScreenAreaWindow::startGrabbing ()
     // Make sure we have the right GL state.
     // FIXME: should we disable it after?
     impl->imguiGlfwWindow.enableContexts ();
+ 
+    updateMonitorInfo ();
     
     impl->currentState = Impl::State::Initial;
     impl->justGotEnabled = true;
