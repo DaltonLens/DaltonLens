@@ -32,6 +32,8 @@
 #include <cstdio>
 #include <unordered_set>
 
+struct GLFWmonitor;
+
 namespace dl
 {
 struct ImguiGLFWWindow::Impl
@@ -150,6 +152,7 @@ void ImguiGLFWWindow::setEnabled (bool enabled)
     if (impl->enabled)
     {
         glfwSetWindowShouldClose(impl->window, false);
+        dl_dbg("Calling glfwShowWindow and bringToFront");
         glfwShowWindow(impl->window);
         
         // This seems necessary on Linux to avoid random issues with the window not getting focus.
@@ -197,6 +200,12 @@ void ImguiGLFWWindow::setWindowPos (int x, int y)
 void ImguiGLFWWindow::setWindowSize (int width, int height)
 {
     glfwSetWindowSize (impl->window, width, height);
+}
+
+void ImguiGLFWWindow::setWindowMonitorAndGeometry (GLFWmonitor* monitor, const dl::Rect& geometry)
+{
+    glfwSetWindowMonitor (impl->window, monitor, geometry.origin.x, geometry.origin.y, geometry.size.x, geometry.size.y, GLFW_DONT_CARE);
+    impl->posToSetForNextShow = {};
 }
 
 dl::Rect ImguiGLFWWindow::geometry() const
@@ -510,6 +519,49 @@ void ImguiGLFWWindow::endFrame ()
     glfwSwapBuffers(impl->window);
 
     // would be safer to call disableContexts now?
+}
+
+bool glfwGetMonitorWithMouseCursor(GLFWmonitor** monitor, GLFWwindow* window)
+{
+    bool success = false;
+
+    double cursor_position[2] = {0};
+    glfwGetCursorPos(window, &cursor_position[0], &cursor_position[1]);
+
+    int window_position[2] = {0};
+    glfwGetWindowPos(window, &window_position[0], &window_position[1]);
+
+    dl_dbg("Cursor position: %f %f", cursor_position[0], cursor_position[1]);
+    dl_dbg("Window position: %d %d", window_position[0], window_position[1]);
+    
+    int monitors_size = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitors_size);
+
+    // convert cursor position from window coordinates to screen coordinates
+    cursor_position[0] += window_position[0];
+    cursor_position[1] += window_position[1];
+
+    for (int i = 0; ((!success) && (i < monitors_size)); ++i)
+    {
+        int monitor_position[2] = {0};
+        glfwGetMonitorPos(monitors[i], &monitor_position[0], &monitor_position[1]);
+
+        const GLFWvidmode* monitor_video_mode = glfwGetVideoMode(monitors[i]);
+
+        if (
+            (cursor_position[0] >= monitor_position[0]) &&
+            (cursor_position[0] < (monitor_position[0] + monitor_video_mode->width)) &&
+            (cursor_position[1] >= monitor_position[1]) &&
+            (cursor_position[1] < (monitor_position[1] + monitor_video_mode->height))
+        ) {
+            *monitor = monitors[i];
+            success = true;
+        }
+    }
+
+    // true: monitor contains the monitor the mouse is on
+    // false: monitor is unmodified
+    return success;
 }
 
 } // dl

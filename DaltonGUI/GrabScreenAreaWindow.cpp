@@ -27,18 +27,18 @@ namespace  dl
 
 struct RectSelection
 {
-    bool isValid () const { return firstCorner.x >= 0.; }
+    bool isValid () const { return firstCornerRelativeToWorkArea.x != -10000000; }
     
     dl::Rect asDL () const
     {
         dl::Rect dlRect;
-        dlRect.origin = dl::Point(std::min(firstCorner.x, secondCorner.x), std::min(firstCorner.y, secondCorner.y));
-        dlRect.size = dl::Point(std::abs(secondCorner.x - firstCorner.x), std::abs(secondCorner.y - firstCorner.y));
+        dlRect.origin = dl::Point(std::min(firstCornerRelativeToWorkArea.x, secondCornerRelativeToWorkArea.x), std::min(firstCornerRelativeToWorkArea.y, secondCornerRelativeToWorkArea.y));
+        dlRect.size = dl::Point(std::abs(secondCornerRelativeToWorkArea.x - firstCornerRelativeToWorkArea.x), std::abs(secondCornerRelativeToWorkArea.y - firstCornerRelativeToWorkArea.y));
         return dlRect;
     }
     
-    ImVec2 firstCorner = ImVec2(-1,-1);
-    ImVec2 secondCorner = ImVec2(-1,-1);
+    ImVec2 firstCornerRelativeToWorkArea = ImVec2(-10000000,-10000000);
+    ImVec2 secondCornerRelativeToWorkArea = ImVec2(-10000000,-10000000);
 };
 
 struct GrabScreenAreaWindow::Impl
@@ -53,13 +53,20 @@ struct GrabScreenAreaWindow::Impl
     ImguiGLFWWindow imguiGlfwWindow;
 
     bool justGotEnabled = false;
+    
+    // If we don't wait for a few frames before showing the windows, then it won't
+    // have the right size yet and we'll have a fliker.
+    int numFramesRemainingBeforeShow = 0;
+    
     bool wasFocused = false;
     
     bool grabbingFinished = true;
     GrabScreenData grabbedData;
     
+    GLFWmonitor* currentMonitor = nullptr;
     ImVec2 monitorWorkAreaSize = ImVec2(-1,-1);
     ImVec2 monitorWorkAreaTopLeft = ImVec2(-1,-1);
+    ImVec2 monitorTopLeft = ImVec2(-1,-1);
     
     ScreenGrabber grabber;
     
@@ -138,11 +145,21 @@ bool GrabScreenAreaWindow::initialize (GLFWwindow* parentContext)
 {
     dl::Rect geometry;
     {
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-        int xpos, ypos, width, height;
-        glfwGetMonitorWorkarea(monitor, &xpos, &ypos, &width, &height);
-        impl->monitorWorkAreaSize = ImVec2(width, height);
-        impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
+        impl->currentMonitor = glfwGetPrimaryMonitor();
+        {
+            int xpos, ypos, width, height;
+            glfwGetMonitorWorkarea(impl->currentMonitor, &xpos, &ypos, &width, &height);
+            impl->monitorWorkAreaSize = ImVec2(width, height);
+            impl->monitorWorkAreaTopLeft = ImVec2(xpos, ypos);
+        }
+        
+        {
+            int xpos, ypos;
+            glfwGetMonitorPos(impl->currentMonitor, &xpos, &ypos);
+            impl->monitorTopLeft.x = xpos;
+            impl->monitorTopLeft.y = ypos;
+        }
+        
         geometry.size.x = impl->monitorWorkAreaSize.x;
         geometry.size.y = impl->monitorWorkAreaSize.y;
         geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
@@ -187,8 +204,7 @@ void GrabScreenAreaWindow::runOnce ()
     
     // Disable the pointer if we lose focus since the window would stay on top
     // and confuse everyone.
-    int isFocused = glfwGetWindowAttrib (impl->imguiGlfwWindow.glfwWindow(), GLFW_FOCUSED);
-    // dl_dbg ("isFocused = %d", isFocused);
+    const int isFocused = glfwGetWindowAttrib (impl->imguiGlfwWindow.glfwWindow(), GLFW_FOCUSED);
     bool lostFocus = false;
     if (impl->wasFocused && !isFocused)
     {        
@@ -208,8 +224,8 @@ void GrabScreenAreaWindow::runOnce ()
         dl::Rect frontWindowRect = dl::getFrontWindowGeometry(impl->imguiGlfwWindow.glfwWindow());
         if (frontWindowRect.size.x >= 0)
         {
-            impl->currentSelectionInScreen.firstCorner = imPos(frontWindowRect);
-            impl->currentSelectionInScreen.secondCorner = impl->currentSelectionInScreen.firstCorner + imSize(frontWindowRect);
+            impl->currentSelectionInScreen.firstCornerRelativeToWorkArea = imPos(frontWindowRect);
+            impl->currentSelectionInScreen.secondCornerRelativeToWorkArea = impl->currentSelectionInScreen.firstCornerRelativeToWorkArea + imSize(frontWindowRect);
         }
     }
     
@@ -224,8 +240,9 @@ void GrabScreenAreaWindow::runOnce ()
     {
         impl->currentState = Impl::State::MouseDragging;
         ImVec2 deltaFromInitial = ImGui::GetMouseDragDelta();
-        impl->currentSelectionInScreen.firstCorner = io.MousePos - deltaFromInitial + impl->monitorWorkAreaTopLeft;
-        impl->currentSelectionInScreen.secondCorner = io.MousePos + impl->monitorWorkAreaTopLeft;
+        // dl_dbg("MousePos: %f %f [monitorWorkAreaTopLeft: %f %f][monitorTopLeft: %f %f]", io.MousePos.x, io.MousePos.y, impl->monitorWorkAreaTopLeft.x, impl->monitorWorkAreaTopLeft.y, impl->monitorTopLeft.x, impl->monitorTopLeft.y);
+        impl->currentSelectionInScreen.firstCornerRelativeToWorkArea = io.MousePos - deltaFromInitial + impl->monitorWorkAreaTopLeft;
+        impl->currentSelectionInScreen.secondCornerRelativeToWorkArea = io.MousePos + impl->monitorWorkAreaTopLeft;
     }
     
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
@@ -279,13 +296,13 @@ void GrabScreenAreaWindow::runOnce ()
         overlayInfo.mousePos = io.MousePos;
         impl->cursorOverlay.showTooltip(overlayInfo);
 
-        ImVec2 selectionFirstCornerInWindow = impl->currentSelectionInScreen.firstCorner - impl->monitorWorkAreaTopLeft;
-        ImVec2 selectionSecondCornerInWindow = impl->currentSelectionInScreen.secondCorner - impl->monitorWorkAreaTopLeft;
-            
+        ImVec2 selectionFirstCornerInWindow = impl->currentSelectionInScreen.firstCornerRelativeToWorkArea - impl->monitorWorkAreaTopLeft;
+        ImVec2 selectionSecondCornerInWindow = impl->currentSelectionInScreen.secondCornerRelativeToWorkArea - impl->monitorWorkAreaTopLeft;
+                    
         if (impl->currentSelectionInScreen.isValid())
         {
             auto* drawList = ImGui::GetWindowDrawList();
-            
+
             // Border around the selected area.
             drawList->AddRectFilled(selectionFirstCornerInWindow, selectionSecondCornerInWindow, IM_COL32(0, 0, 127, 64));
         }
@@ -300,9 +317,68 @@ void GrabScreenAreaWindow::runOnce ()
     if (impl->justGotEnabled)
     {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        impl->imguiGlfwWindow.setEnabled (true);
+        dl::Rect geometry;
+        geometry.size.x = impl->monitorWorkAreaSize.x;
+        geometry.size.y = impl->monitorWorkAreaSize.y;
+        geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
+        geometry.origin.y = impl->monitorWorkAreaTopLeft.y;
+        // impl->imguiGlfwWindow.setWindowPos(geometry.origin.x, geometry.origin.y);
+        // impl->imguiGlfwWindow.setWindowSize(geometry.size.x, geometry.size.y);
+        impl->imguiGlfwWindow.setWindowMonitorAndGeometry(nullptr, geometry);
         impl->justGotEnabled = false;
+        impl->numFramesRemainingBeforeShow = 2;
     }
+    else if (impl->numFramesRemainingBeforeShow > 0)
+    {
+        --impl->numFramesRemainingBeforeShow;
+        if (impl->numFramesRemainingBeforeShow == 0)
+        {
+            impl->imguiGlfwWindow.setEnabled(true);
+        }
+    }
+}
+
+void GrabScreenAreaWindow::updateMonitorInfo()
+{
+    dl::Rect geometry;
+    GLFWmonitor* monitor = nullptr;
+    if (!glfwGetMonitorWithMouseCursor(&monitor, impl->imguiGlfwWindow.glfwWindow()))
+    {
+        dl_dbg("[WARNING] could not retrieve the current monitor");
+        return;
+    }
+    
+    impl->currentMonitor = monitor;
+    
+    {
+        int xWorkPos, yWorkPos, width, height;
+        glfwGetMonitorWorkarea(monitor, &xWorkPos, &yWorkPos, &width, &height);
+        impl->monitorWorkAreaSize = ImVec2(width, height);
+        impl->monitorWorkAreaTopLeft = ImVec2(xWorkPos, yWorkPos);
+        geometry.size.x = impl->monitorWorkAreaSize.x;
+        geometry.size.y = impl->monitorWorkAreaSize.y;
+        geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
+        geometry.origin.y = impl->monitorWorkAreaTopLeft.y;
+        
+        int xpos, ypos;
+        glfwGetMonitorPos(monitor, &xpos, &ypos);
+        impl->monitorTopLeft.x = xpos;
+        impl->monitorTopLeft.y = ypos;
+    }
+    
+    int numMonitors = 0;
+    GLFWmonitor** monitors = glfwGetMonitors(&numMonitors);
+    
+    for (int i = 0; i < numMonitors; ++i)
+    {
+        int xpos, ypos, width, height;
+        glfwGetMonitorWorkarea(monitors[i], &xpos, &ypos, &width, &height);
+        dl_dbg ("Monitor %d (%x): %d %d %d %d", i, monitors[i], xpos, ypos, width, height);
+    }
+    
+    dl_dbg("Primary monitor = %x", glfwGetPrimaryMonitor());
+    dl_dbg("Selected monitor with the mouse cursor = %x", monitor);
+    dl_dbg("Geometry = %f %f %f %f", geometry.origin.x, geometry.origin.y, geometry.size.x, geometry.size.y);
 }
 
 bool GrabScreenAreaWindow::startGrabbing ()
@@ -310,6 +386,8 @@ bool GrabScreenAreaWindow::startGrabbing ()
     // Make sure we have the right GL state.
     // FIXME: should we disable it after?
     impl->imguiGlfwWindow.enableContexts ();
+ 
+    updateMonitorInfo ();
     
     impl->currentState = Impl::State::Initial;
     impl->justGotEnabled = true;
@@ -327,7 +405,7 @@ bool GrabScreenAreaWindow::startGrabbing ()
     impl->grabbedData.srgbaImage = std::make_shared<dl::ImageSRGBA>();
     impl->grabbedData.texture = std::make_shared<GLTexture>();
     impl->grabbedData.capturedScreenRect = screenRect;
-    
+
     bool ok = impl->grabber.grabScreenArea (screenRect, *impl->grabbedData.srgbaImage, *impl->grabbedData.texture);
     if (!ok)
     {
@@ -335,6 +413,7 @@ bool GrabScreenAreaWindow::startGrabbing ()
         // Make it invalid.
         impl->grabbedData = {};
     }
+
     return ok;
 }
 

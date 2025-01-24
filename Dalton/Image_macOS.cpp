@@ -153,7 +153,7 @@ namespace dl {
                                            8 * bytesPerPixel,
                                            image.bytesPerRow(),
                                            colorSpace,
-                                           0,
+                                           kCGImageAlphaNoneSkipLast,
                                            dataProvider,
                                            NULL,
                                            false,

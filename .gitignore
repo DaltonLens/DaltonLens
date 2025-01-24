@@ -18,3 +18,4 @@ WindowsStore/AppPackages
 WindowsStore/bin
 WindowsStore/BundleArtifacts
 WindowsStore/obj
+.cache
