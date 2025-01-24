@@ -205,6 +205,7 @@ void ImguiGLFWWindow::setWindowSize (int width, int height)
 void ImguiGLFWWindow::setWindowMonitorAndGeometry (GLFWmonitor* monitor, const dl::Rect& geometry)
 {
     glfwSetWindowMonitor (impl->window, monitor, geometry.origin.x, geometry.origin.y, geometry.size.x, geometry.size.y, GLFW_DONT_CARE);
+    impl->posToSetForNextShow = {};
 }
 
 dl::Rect ImguiGLFWWindow::geometry() const

@@ -53,6 +53,11 @@ struct GrabScreenAreaWindow::Impl
     ImguiGLFWWindow imguiGlfwWindow;
 
     bool justGotEnabled = false;
+    
+    // If we don't wait for a few frames before showing the windows, then it won't
+    // have the right size yet and we'll have a fliker.
+    int numFramesRemainingBeforeShow = 0;
+    
     bool wasFocused = false;
     
     bool grabbingFinished = true;
@@ -317,11 +322,19 @@ void GrabScreenAreaWindow::runOnce ()
         geometry.size.y = impl->monitorWorkAreaSize.y;
         geometry.origin.x = impl->monitorWorkAreaTopLeft.x;
         geometry.origin.y = impl->monitorWorkAreaTopLeft.y;
-        impl->imguiGlfwWindow.setEnabled(true);
         // impl->imguiGlfwWindow.setWindowPos(geometry.origin.x, geometry.origin.y);
         // impl->imguiGlfwWindow.setWindowSize(geometry.size.x, geometry.size.y);
         impl->imguiGlfwWindow.setWindowMonitorAndGeometry(nullptr, geometry);
         impl->justGotEnabled = false;
+        impl->numFramesRemainingBeforeShow = 2;
+    }
+    else if (impl->numFramesRemainingBeforeShow > 0)
+    {
+        --impl->numFramesRemainingBeforeShow;
+        if (impl->numFramesRemainingBeforeShow == 0)
+        {
+            impl->imguiGlfwWindow.setEnabled(true);
+        }
     }
 }
 
