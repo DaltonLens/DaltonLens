@@ -36,8 +36,6 @@
 
 #include <nfd.h>
 
-#include <argparse.hpp>
-
 #include <clip/clip.h>
 
 #include <cstdio>
