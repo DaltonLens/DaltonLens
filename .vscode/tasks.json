@@ -11,6 +11,14 @@
                 "--target", "package"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "CMake - Build DaltonLens",
+            "command": "C:\\Program Files\\CMake\\bin\\cmake.EXE",
+            "args": [
+                "--build", "build", "--target", "DaltonLens",
+            ],
+            "problemMatcher": []
         }
     ]
 }

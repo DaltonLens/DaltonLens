@@ -189,7 +189,7 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
     bool ok = StretchBlt (hwindowCompatibleDC,
         0, 0, screenRect.size.x, screenRect.size.y,
         hwindowDC,
-        screenRect.origin.x, screenRect.origin.x, screenRect.size.x, screenRect.size.y,
+        screenRect.origin.x, screenRect.origin.y, screenRect.size.x, screenRect.size.y,
         SRCCOPY);
     if (!ok)
     {

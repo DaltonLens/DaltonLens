@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "DaltonLens - Windows",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/DaltonLens/other/DaltonLens.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "internalConsole",
+            "preLaunchTask": "CMake - Build DaltonLens"
+        },
+        {
             "name": "DaltonLens - Linux",
             "type": "cppdbg",
             "request": "launch",
