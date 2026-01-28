@@ -21,7 +21,19 @@ set (deps_SOURCES
 if (APPLE)
     set (daltonGUI_platform_specific_sources 
          PlatformSpecific_macOS.cpp
+         DaltonLensGUI_macOS.h
+         DaltonLensGUI_macOS.mm
          ${DEPS_DIR}/nativefiledialog-extended/src/nfd_cocoa.m
+         # MASShortcut library
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASDictionaryTransformer.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASHotKey.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASLocalization.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcut.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcutBinder.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcutMonitor.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcutValidator.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcutView.m
+         ${CMAKE_SOURCE_DIR}/DaltonLens/macOS/MASShortcut/MASShortcutView+Bindings.m
     )
 elseif (UNIX)
     set (daltonGUI_platform_specific_sources 
@@ -116,6 +128,8 @@ if (APPLE)
         "-framework CoreData"
         "-framework IOKit"
         "-framework Foundation"
+        "-framework GLKit"
+        "-framework Carbon"
     )
 elseif (UNIX)
     target_link_libraries(daltonGUI
