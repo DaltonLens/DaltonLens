@@ -14,6 +14,10 @@ execute_process(COMMAND git -C "${CMAKE_SOURCE_DIR}" rev-parse --short HEAD
          OUTPUT_STRIP_TRAILING_WHITESPACE)
 set_property(GLOBAL APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/.git/index")
 
+if (APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum OS X deployment version" FORCE)
+endif()
+
 include(ExternalProject)
 
 configure_file(${CMAKE_SOURCE_DIR}/Dalton/DaltonGeneratedConfig.h.in ${PROJECT_BINARY_DIR}/DaltonGeneratedConfig.h)
@@ -40,6 +44,7 @@ ExternalProject_Add(glfw-deps
   CMAKE_ARGS
         -DCMAKE_BUILD_TYPE=${CMAKE_DEPS_CONFIG}
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/glfw
         -DGLFW_BUILD_DOCS=OFF
         -DGLFW_BUILD_EXAMPLES=OFF
@@ -63,6 +68,7 @@ ExternalProject_Add(clip-deps
   CMAKE_ARGS
         -DCMAKE_BUILD_TYPE=${CMAKE_DEPS_CONFIG}
         -DCMAKE_OSX_ARCHITECTURES=${cmake_osx_archs_special_separator}
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
         -DCMAKE_INSTALL_PREFIX:PATH=${PRECOMPILED_FOLDER}/clip
         -DCLIP_EXAMPLES=OFF
         -DCLIP_TESTS=OFF
@@ -116,9 +122,6 @@ mark_as_advanced(
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" "RelWithDebInfo" "DebugFast")
 
-if (APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum OS X deployment version" FORCE)
-endif()
 # add_compile_options(
 #     $<$<CONFIG:Debug>:-Os>
 # )
