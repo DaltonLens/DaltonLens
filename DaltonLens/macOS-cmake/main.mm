@@ -71,13 +71,20 @@
   self.statusItem = [[NSStatusBar systemStatusBar]
       statusItemWithLength:NSSquareStatusItemLength];
 
-  NSImage *icon = [NSImage imageNamed:@"DaltonLensIcon_32x32"];
+  // Load icon from bundle resources (not asset catalog)
+  NSString *iconPath = [[NSBundle mainBundle] pathForResource:@"DaltonLensIcon_32x32" ofType:@"png"];
+  NSImage *icon = iconPath ? [[NSImage alloc] initWithContentsOfFile:iconPath] : nil;
   if (!icon) {
-    // Fallback to template icon if named image not found
+    // Fallback to system symbol if icon not found
     icon = [NSImage imageWithSystemSymbolName:@"eye"
                      accessibilityDescription:@"DaltonLens"];
+    [icon setTemplate:YES];
+  } else {
+    // Set the size to 18x18 points for menu bar (the image will be scaled)
+    [icon setSize:NSMakeSize(18, 18)];
+    // Don't use template mode - this is a colorful icon
+    [icon setTemplate:NO];
   }
-  [icon setTemplate:YES];
   self.statusItem.button.image = icon;
 
   NSMenu *menu = [[NSMenu alloc] init];
