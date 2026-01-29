@@ -98,4 +98,5 @@
     },
     "cmake.configureOnOpen": true,
     "C_Cpp.errorSquiggles": "Disabled",
+    "editor.formatOnSave": false,
 }
