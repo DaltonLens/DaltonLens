@@ -18,6 +18,15 @@
             "preLaunchTask": "CMake - Build DaltonLens (Windows)5"
         },
         {
+            "name": "DaltonLens - macOS",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/DaltonLens/macOS-cmake/DaltonLens",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "CMake - Build DaltonLens"
+        },
+        {
             "name": "DaltonLens - Linux",
             "type": "cppdbg",
             "request": "launch",

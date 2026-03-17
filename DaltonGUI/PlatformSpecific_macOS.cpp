@@ -36,7 +36,8 @@ DisplayLinkTimer::DisplayLinkTimer ()
 
 DisplayLinkTimer::~DisplayLinkTimer ()
 {
-    
+    if (impl->timer)
+        [impl->timer invalidate];
 }
 
 void DisplayLinkTimer::setCallback (const std::function<void(void)>& callback)
@@ -262,10 +263,10 @@ bool ScreenGrabber::grabScreenArea (const dl::Rect& screenRect, dl::ImageSRGBA& 
 
     if (!canRecordScreen())
     {
-        NSTextView *accessory = [[NSTextView alloc] initWithFrame:NSMakeRect(0,0,200,15)];
+        NSTextView *accessory = [[NSTextView alloc] initWithFrame:NSMakeRect(0,0,400,120)];
         NSString* msg = @"DaltonLens needs to capture your screen to apply color filters.\n\n"
                         "To give it permission you need to enable the DaltonLens app in "
-                        "System Preferences / Security & Privacy / Screen Recording.\n\n"
+                        "System Settings > Privacy & Security > Screen Recording.\n\n"
                         "If this is the first time that you see this dialog, a macOS"
                         " prompt will propose to take you there directly once you click on OK.";
         NSFont *font = [NSFont systemFontOfSize:[NSFont systemFontSize]];

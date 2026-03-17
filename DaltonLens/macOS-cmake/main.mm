@@ -59,6 +59,8 @@
 }
 
 - (void)applicationWillTerminate:(NSNotification *)notification {
+  [self.daltonGUI shutdown];
+  
   if (self.spaceChangeObserver) {
     [[NSWorkspace sharedWorkspace].notificationCenter
         removeObserver:self.spaceChangeObserver];
